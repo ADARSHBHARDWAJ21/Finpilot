@@ -17,15 +17,15 @@ import {
   Lightbulb,
   Settings,
   Sparkles,
+  ChevronDown,
+  Crown,
 } from "lucide-react";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Receipt, label: "Transactions", href: "/transactions" },
   { icon: Wallet, label: "Budget Tracker", href: "#" },
-  { icon: Landmark, label: "Taxation", href: "#", badge: "New", badgeColor: "bg-emerald-100 text-emerald-700" },
-  { icon: Bot, label: "Tax AI Advisor", href: "#", badge: "AI", badgeColor: "bg-blue-100 text-blue-700" },
-  { icon: FileText, label: "Documents", href: "#" },
+  { icon: FileText, label: "Documents", href: "/documents" },
   { icon: TrendingUp, label: "Investments", href: "#" },
   { icon: PieChart, label: "Net Worth", href: "#", badge: "New", badgeColor: "bg-emerald-100 text-emerald-700" },
   { icon: Target, label: "Goals", href: "#" },
@@ -35,30 +35,16 @@ const menuItems = [
   { icon: Settings, label: "Settings", href: "#" },
 ];
 
-function HealthScoreRing({ score }) {
-  const circumference = 2 * Math.PI * 42;
-  const offset = circumference - (score / 100) * circumference;
-
-  return (
-    <svg width="100" height="100" className="-rotate-90">
-      <circle cx="50" cy="50" r="42" fill="none" stroke="#f3f4f6" strokeWidth="8" />
-      <circle
-        cx="50"
-        cy="50"
-        r="42"
-        fill="none"
-        stroke="#6366f1"
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-      />
-    </svg>
-  );
-}
+const taxationSubItems = [
+  { label: "Overview", href: "/taxation" },
+  { label: "AI Copilot", href: "/taxation/ai-copilot", badge: "New" },
+];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const isTaxationSection = pathname.startsWith("/taxation");
+  const isTaxationOverview = pathname === "/taxation";
+  const isAICopilot = pathname === "/taxation/ai-copilot";
 
   return (
     <aside className="w-[240px] shrink-0 bg-white border-r border-gray-100 min-h-screen flex flex-col">
@@ -75,10 +61,98 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {menuItems.map((item) => {
+        {menuItems.slice(0, 3).map((item) => {
           const Icon = item.icon;
           const isActive = item.href !== "#" && pathname === item.href;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Icon size={18} className={isActive ? "text-indigo-600" : "text-gray-400"} />
+              <span className="flex-1">{item.label}</span>
+            </Link>
+          );
+        })}
 
+        {/* Taxation group */}
+        <div>
+          <Link
+            href="/taxation"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm w-full ${
+              isTaxationSection
+                ? "bg-indigo-50 text-indigo-700 font-medium"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Landmark size={18} className={isTaxationSection ? "text-indigo-600" : "text-gray-400"} />
+            <span className="flex-1">Taxation</span>
+            <ChevronDown
+              size={16}
+              className={`text-gray-400 transition-transform ${isTaxationSection ? "rotate-180" : ""}`}
+            />
+          </Link>
+
+          {isTaxationSection && (
+            <div className="mt-1 ml-3 pl-3 border-l border-indigo-100 space-y-1">
+              {taxationSubItems.map((sub) => {
+                const isActive =
+                  sub.href === "/taxation" ? isTaxationOverview : pathname === sub.href;
+
+                if (sub.label === "AI Copilot") {
+                  return (
+                    <Link
+                      key={sub.label}
+                      href={sub.href}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-full transition-all text-sm ${
+                        isAICopilot
+                          ? "bg-indigo-600 text-white font-medium shadow-sm"
+                          : "bg-[#f8faff] text-gray-600 hover:bg-indigo-50"
+                      }`}
+                    >
+                      <Bot size={16} className={isAICopilot ? "text-white" : "text-gray-400"} />
+                      <span className="flex-1">{sub.label}</span>
+                      {sub.badge && (
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                            isAICopilot
+                              ? "bg-white/20 text-white"
+                              : "bg-indigo-100 text-indigo-700"
+                          }`}
+                        >
+                          {sub.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={sub.label}
+                    href={sub.href}
+                    className={`block px-3 py-2 rounded-lg text-sm transition-all ${
+                      isActive && !isAICopilot
+                        ? "text-indigo-700 font-medium bg-indigo-50/60"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {sub.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {menuItems.slice(3).map((item) => {
+          const Icon = item.icon;
+          const isActive = item.href !== "#" && pathname === item.href;
           return (
             <Link
               key={item.label}
@@ -101,31 +175,21 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 m-3 mt-auto bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/60">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Financial Health Score
-        </p>
-        <div className="flex items-center gap-4">
-          <div className="relative shrink-0">
-            <HealthScoreRing score={78} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl font-bold text-gray-900">78</span>
-              <span className="text-[10px] text-gray-400">/100</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-emerald-600">Good</p>
-            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
-              You&apos;re on track. Keep saving consistently.
-            </p>
-            <a
-              href="#"
-              className="inline-block text-[11px] font-semibold text-indigo-600 mt-2 hover:underline"
-            >
-              View full report →
-            </a>
-          </div>
+      <div className="p-4 m-3 mt-auto bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <Crown size={18} className="text-amber-500" />
+          <p className="text-sm font-semibold text-gray-900">Upgrade to Pro</p>
         </div>
+        <p className="text-[11px] text-gray-500 leading-relaxed mb-3">
+          Unlock advanced tax planning, unlimited AI chats, and priority support.
+        </p>
+        <button
+          type="button"
+          suppressHydrationWarning
+          className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors"
+        >
+          Upgrade Now
+        </button>
       </div>
     </aside>
   );
