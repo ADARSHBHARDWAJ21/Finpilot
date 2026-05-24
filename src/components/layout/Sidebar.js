@@ -14,7 +14,7 @@ import {
   Target,
   Bell,
   BarChart3,
-  Lightbulb,
+  CalendarDays,
   Settings,
   Sparkles,
   ChevronDown,
@@ -24,14 +24,14 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Receipt, label: "Transactions", href: "/transactions" },
-  { icon: Wallet, label: "Budget Tracker", href: "#" },
+  { icon: Wallet, label: "Budget Tracker", href: "/budget-tracker" },
   { icon: FileText, label: "Documents", href: "/documents" },
-  { icon: TrendingUp, label: "Investments", href: "#" },
-  { icon: PieChart, label: "Net Worth", href: "#", badge: "New", badgeColor: "bg-emerald-100 text-emerald-700" },
-  { icon: Target, label: "Goals", href: "#" },
-  { icon: Bell, label: "Reminders", href: "#" },
-  { icon: BarChart3, label: "Reports", href: "#" },
-  { icon: Lightbulb, label: "Insights", href: "#" },
+  { icon: TrendingUp, label: "Investments", href: "/investments" },
+  { icon: PieChart, label: "Net Worth", href: "/net-worth", badge: "New", badgeColor: "bg-emerald-100 text-emerald-700" },
+  { icon: Target, label: "Goals", href: "/goals" },
+  { icon: Bell, label: "Reminders", href: "/reminders" },
+  { icon: BarChart3, label: "Reports", href: "/reports" },
+  { icon: CalendarDays, label: "Calendar", href: "/calendar" },
   { icon: Settings, label: "Settings", href: "#" },
 ];
 
@@ -153,15 +153,20 @@ export default function Sidebar() {
         {menuItems.slice(3).map((item) => {
           const Icon = item.icon;
           const isActive = item.href !== "#" && pathname === item.href;
+          const hasAccentBar =
+            isActive &&
+            (item.href === "/reports" ||
+              item.href === "/calendar" ||
+              item.href === "/reminders");
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm relative ${
                 isActive
                   ? "bg-indigo-50 text-indigo-700 font-medium"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+              } ${hasAccentBar ? "border-l-[3px] border-l-indigo-600 rounded-l-lg" : ""}`}
             >
               <Icon size={18} className={isActive ? "text-indigo-600" : "text-gray-400"} />
               <span className="flex-1">{item.label}</span>
