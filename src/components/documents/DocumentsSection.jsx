@@ -260,11 +260,11 @@ function FileTypeIcon({ type }) {
 
 export default function DocumentsSection() {
   return (
-    <div className="max-w-[1500px]">
+    <div className="w-full max-w-[1500px] min-w-0">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-6">
         <div className="shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Documents</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-md">
             Securely store, organize and manage all your tax-related documents in one place.
           </p>
@@ -281,7 +281,7 @@ export default function DocumentsSection() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
           <button
             type="button"
             suppressHydrationWarning
@@ -386,7 +386,7 @@ export default function DocumentsSection() {
       </section>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px_260px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_280px_260px] gap-5">
         {/* Left column: table + tax packages */}
         <div className="space-y-5 xl:col-span-1">
           {/* Recent Uploads */}
@@ -516,7 +516,7 @@ export default function DocumentsSection() {
         </section>
 
         {/* Right sidebar */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 lg:col-span-2 xl:col-span-1">
           {/* AI Document Insights */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">

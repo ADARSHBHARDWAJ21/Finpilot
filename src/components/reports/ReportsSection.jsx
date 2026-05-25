@@ -219,16 +219,16 @@ export default function ReportsSection() {
   const [activeTab, setActiveTab] = useState("Tax Summary");
 
   return (
-    <div className="max-w-[1500px]">
+    <div className="w-full max-w-[1500px] min-w-0">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-5 min-w-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
           <p className="text-sm text-gray-500 mt-1">
             All your tax insights and summaries in one place.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
           <button
             type="button"
             suppressHydrationWarning
@@ -311,7 +311,7 @@ export default function ReportsSection() {
       </div>
 
       {/* Charts + Quick Actions */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px_220px] gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_320px_220px] gap-4 mb-6">
         {/* Tax Liability Overview */}
         <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -410,7 +410,7 @@ export default function ReportsSection() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm h-fit">
+        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm h-fit lg:col-span-2 xl:col-span-1">
           <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
           <ul className="space-y-0.5">
             {quickActions.map((action) => {

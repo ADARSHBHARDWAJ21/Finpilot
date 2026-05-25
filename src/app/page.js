@@ -11,9 +11,9 @@ import AIInsights from "@/components/dashboard/AIInsights";
 export default function Home() {
   return (
     <DashboardLayout>
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Good morning, Aryan 👋</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Good morning, Aryan 👋</h1>
           <p className="text-sm text-gray-500 mt-1">
             Here&apos;s your financial overview for May 2025
           </p>
@@ -23,12 +23,12 @@ export default function Home() {
 
       <SummaryCards />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
         <NetWorthSection />
         <ExpenseChart />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
         <CashFlowChart />
         <BudgetTracker />
         <TaxSummary />

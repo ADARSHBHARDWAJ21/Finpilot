@@ -56,7 +56,7 @@ const cards = [
 
 export default function SummaryCards() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-6">
+    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-4 sm:mt-6">
       {cards.map((card, index) => {
         const Icon = card.icon;
         return (

@@ -11,6 +11,13 @@ export const metadata = {
   description: "Your AI-powered personal finance and tax dashboard",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html

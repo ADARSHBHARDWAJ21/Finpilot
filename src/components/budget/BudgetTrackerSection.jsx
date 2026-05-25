@@ -237,16 +237,16 @@ export default function BudgetTrackerSection() {
   ];
 
   return (
-    <div className="max-w-[1500px]">
+    <div className="w-full max-w-[1500px] min-w-0">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 min-w-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Budget Tracker</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Budget Tracker</h1>
           <p className="text-sm text-gray-500 mt-1">
             Track spending, set budgets and achieve your financial goals.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
           <button
             type="button"
             suppressHydrationWarning
@@ -324,7 +324,7 @@ export default function BudgetTrackerSection() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
         <div className="space-y-5 min-w-0">
           {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

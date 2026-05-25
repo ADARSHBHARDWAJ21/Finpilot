@@ -149,16 +149,16 @@ const bottomTools = [
 
 export default function TaxationSection() {
   return (
-    <div className="max-w-[1400px]">
+    <div className="w-full max-w-[1400px] min-w-0">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Taxation</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Taxation</h1>
           <p className="text-sm text-gray-500 mt-1">
             Optimize your taxes. Save more. Stress less.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
           <button
             type="button"
             suppressHydrationWarning
@@ -243,7 +243,7 @@ export default function TaxationSection() {
       </div>
 
       {/* Main layout: center + right column */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
         <div className="space-y-6">
           {/* 5 Key Tax Problems */}
           <section>
@@ -460,7 +460,7 @@ export default function TaxationSection() {
         </div>
 
         {/* Right column */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 min-w-0">
           {/* Tax Health Score */}
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
             <h3 className="text-sm font-semibold text-gray-900 text-left mb-4">

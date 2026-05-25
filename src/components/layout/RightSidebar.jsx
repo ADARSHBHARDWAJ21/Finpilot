@@ -26,7 +26,7 @@ const transactions = [
 
 export default function RightSidebar() {
   return (
-    <aside className="w-[300px] shrink-0 bg-white border-l border-gray-100 min-h-screen overflow-y-auto p-4 space-y-4">
+    <aside className="w-[280px] xl:w-[300px] shrink-0 bg-white border-l border-gray-100 min-h-screen overflow-y-auto p-4 space-y-4">
       {/* AI Copilot */}
       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100/60">
         <div className="flex items-center gap-2 mb-3">

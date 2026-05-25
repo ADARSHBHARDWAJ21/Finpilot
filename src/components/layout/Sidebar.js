@@ -40,16 +40,20 @@ const taxationSubItems = [
   { label: "AI Copilot", href: "/taxation/ai-copilot", badge: "New" },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   const pathname = usePathname();
   const isTaxationSection = pathname.startsWith("/taxation");
   const isTaxationOverview = pathname === "/taxation";
   const isAICopilot = pathname === "/taxation/ai-copilot";
 
+  const handleNav = () => {
+    onNavigate?.();
+  };
+
   return (
-    <aside className="w-[240px] shrink-0 bg-white border-r border-gray-100 min-h-screen flex flex-col">
+    <aside className="w-[min(280px,85vw)] sm:w-[240px] shrink-0 bg-white border-r border-gray-100 min-h-screen min-h-[100dvh] flex flex-col shadow-xl lg:shadow-none">
       <div className="p-5 border-b border-gray-50">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5" onClick={handleNav}>
           <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
@@ -68,6 +72,7 @@ export default function Sidebar() {
             <Link
               key={item.label}
               href={item.href}
+              onClick={handleNav}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${
                 isActive
                   ? "bg-indigo-50 text-indigo-700 font-medium"
@@ -84,6 +89,7 @@ export default function Sidebar() {
         <div>
           <Link
             href="/taxation"
+            onClick={handleNav}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm w-full ${
               isTaxationSection
                 ? "bg-indigo-50 text-indigo-700 font-medium"
@@ -109,6 +115,7 @@ export default function Sidebar() {
                     <Link
                       key={sub.label}
                       href={sub.href}
+                      onClick={handleNav}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-full transition-all text-sm ${
                         isAICopilot
                           ? "bg-indigo-600 text-white font-medium shadow-sm"
@@ -136,6 +143,7 @@ export default function Sidebar() {
                   <Link
                     key={sub.label}
                     href={sub.href}
+                    onClick={handleNav}
                     className={`block px-3 py-2 rounded-lg text-sm transition-all ${
                       isActive && !isAICopilot
                         ? "text-indigo-700 font-medium bg-indigo-50/60"
@@ -162,6 +170,7 @@ export default function Sidebar() {
             <Link
               key={item.label}
               href={item.href}
+              onClick={handleNav}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm relative ${
                 isActive
                   ? "bg-indigo-50 text-indigo-700 font-medium"

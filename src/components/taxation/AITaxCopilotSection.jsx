@@ -168,12 +168,12 @@ function SidebarCard({ title, children }) {
 
 export default function AITaxCopilotSection() {
   return (
-    <div className="flex flex-col min-h-[calc(100vh-3rem)]">
+    <div className="flex flex-col min-h-[calc(100dvh-8rem)] lg:min-h-[calc(100vh-3rem)]">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-4 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">AI Tax Copilot</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 shrink-0 min-w-0">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Tax Copilot</h1>
             <span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
               Beta
             </span>
@@ -182,7 +182,7 @@ export default function AITaxCopilotSection() {
             Your personal AI tax assistant. Get answers, insights and action plans based on your data.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
           <button
             type="button"
             suppressHydrationWarning
@@ -222,7 +222,7 @@ export default function AITaxCopilotSection() {
         </div>
       </div>
 
-      <div className="flex flex-1 gap-5 min-h-0">
+      <div className="flex flex-1 flex-col lg:flex-row gap-5 min-h-0 min-w-0">
         {/* Main chat column — no outer white shell */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Try asking */}
@@ -250,7 +250,7 @@ export default function AITaxCopilotSection() {
           {/* Scrollable chat */}
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
             {/* Welcome card */}
-            <div className="bg-violet-50/60 rounded-xl p-5 border border-violet-200/70 flex items-center justify-between gap-4">
+            <div className="bg-violet-50/60 rounded-xl p-5 border border-violet-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
                   <Sparkles size={18} className="text-white" />
@@ -260,7 +260,9 @@ export default function AITaxCopilotSection() {
                   your data for FY 2024-25. You can ask me anything about your taxes.
                 </p>
               </div>
-              <RobotIllustration />
+              <div className="hidden sm:block shrink-0 self-center sm:self-auto">
+                <RobotIllustration />
+              </div>
             </div>
 
             {/* User message */}
@@ -404,7 +406,7 @@ export default function AITaxCopilotSection() {
         </div>
 
         {/* Right sidebar */}
-        <aside className="w-[268px] shrink-0 space-y-4 overflow-y-auto hidden lg:block">
+        <aside className="w-full lg:w-[268px] shrink-0 space-y-4 sm:grid sm:grid-cols-2 lg:flex lg:flex-col lg:overflow-y-auto gap-4">
           <SidebarCard title="Your Data Snapshot">
             <ul className="space-y-3">
               {dataSnapshot.map((row) => {
