@@ -179,13 +179,25 @@ export default function TaxLiabilityTrackerSection({ data }) {
             <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment Schedule (Advance Tax)</h3>
               <ul className="space-y-2 text-sm">
-                <li className="grid grid-cols-4 text-gray-500 text-xs font-semibold"><span>Installment</span><span>Due Date</span><span>Amount</span><span>Status</span></li>
-                <li className="grid grid-cols-4 text-xs"><span>1st (15%)</span><span>15 Jun 2024</span><span>{formatInr(Math.round(data.estimatedTax * 0.15))}</span><span className="text-emerald-600 font-semibold">Paid</span></li>
-                <li className="grid grid-cols-4 text-xs"><span>2nd (45%)</span><span>15 Sep 2024</span><span>{formatInr(Math.round(data.estimatedTax * 0.45))}</span><span className="text-emerald-600 font-semibold">Paid</span></li>
-                <li className="grid grid-cols-4 text-xs"><span>3rd (75%)</span><span>15 Dec 2024</span><span>{formatInr(Math.round(data.estimatedTax * 0.75))}</span><span className="text-emerald-600 font-semibold">Paid</span></li>
-                <li className="grid grid-cols-4 text-xs"><span>4th (100%)</span><span>15 Mar 2025</span><span>{formatInr(data.estimatedTax)}</span><span className="text-orange-600 font-semibold">Pending</span></li>
+                <li className="grid grid-cols-4 text-gray-500 text-xs font-semibold">
+                  <span>Installment</span>
+                  <span>Due Date</span>
+                  <span>Amount</span>
+                  <span>Status</span>
+                </li>
+                {(data.advanceTaxSchedule ?? []).map((row) => (
+                  <li key={row.label} className="grid grid-cols-4 text-xs">
+                    <span>{row.label}</span>
+                    <span>{row.dueDate}</span>
+                    <span>{formatInr(row.target)}</span>
+                    <span className={row.status === "Paid" ? "text-emerald-600 font-semibold" : "text-orange-600 font-semibold"}>
+                      {row.status}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </section>
+
           </div>
 
           <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -212,10 +224,17 @@ export default function TaxLiabilityTrackerSection({ data }) {
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-semibold">Beta</span>
             </div>
             <p className="text-xs text-gray-500 mb-3">Here are a few insights for you</p>
-            <div className="text-xs text-orange-700 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 flex items-center justify-between mb-3">
-              <span>You may pay extra {formatInr(data.taxPayable)} if no action is taken before 31 Mar 2025.</span>
-              <TriangleAlert size={14} className="shrink-0" />
-            </div>
+            {data.taxPayable > 0 ? (
+              <div className="text-xs text-orange-700 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 flex items-center justify-between mb-3">
+                <span>You may pay extra {formatInr(data.taxPayable)} if no action is taken before year end.</span>
+                <TriangleAlert size={14} className="shrink-0" />
+              </div>
+            ) : (
+              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center justify-between mb-3">
+                <span>You are on track for an estimated refund of {formatInr(data.refund)}.</span>
+                <Sparkles size={14} className="shrink-0" />
+              </div>
+            )}
             <p className="text-sm font-semibold text-gray-800 mb-2">What would you like to know?</p>
             {[
               "How can I reduce my tax liability?",

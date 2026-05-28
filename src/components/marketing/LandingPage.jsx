@@ -4,45 +4,98 @@ import {
   Shield,
   BarChart3,
   Bot,
-  FileText,
   Landmark,
   ArrowRight,
   CheckCircle2,
+  CalendarClock,
+  Target,
+  Wallet,
+  BrainCircuit,
+  IndianRupee,
 } from "lucide-react";
 
 const features = [
   {
-    icon: Landmark,
-    title: "Tax planning & filing",
-    description: "Compare regimes, track deductions, and stay ahead of deadlines for FY 2024-25.",
+    icon: BrainCircuit,
+    title: "AI Financial Copilot",
+    description:
+      "Understands your salary, deductions, spending, and goals to suggest smart next actions.",
   },
   {
-    icon: Bot,
-    title: "AI Tax Copilot",
-    description: "Get personalized answers based on your real income, TDS, and investment data.",
+    icon: Landmark,
+    title: "Tax Intelligence for India",
+    description:
+      "Regime comparison, deduction planning, advance tax tracking, and filing readiness in one place.",
+  },
+  {
+    icon: Wallet,
+    title: "Budget + Expense Command Center",
+    description:
+      "Track income, spending leaks, and cash flow health with practical month-wise insights.",
+  },
+  {
+    icon: Target,
+    title: "Goals & Affordability Engine",
+    description:
+      "Simulate EMIs, assess risk, and plan realistic timelines before making big money decisions.",
+  },
+  {
+    icon: CalendarClock,
+    title: "Real-time Reminders & Calendar",
+    description:
+      "Auto-generated deadlines and reminders from your entered data, so you never miss critical actions.",
   },
   {
     icon: BarChart3,
-    title: "Reports & insights",
-    description: "Tax summaries, liability charts, and actionable insights in one dashboard.",
-  },
-  {
-    icon: FileText,
-    title: "Document vault",
-    description: "Securely store Form 16, rent receipts, and proofs — organized by category.",
-  },
-  {
-    icon: Shield,
-    title: "Bank-grade security",
-    description: "Encrypted storage and Indian tax compliance built into every workflow.",
+    title: "Actionable Reports",
+    description:
+      "Get clean dashboards for net worth, liabilities, deductions, and projections you can act on.",
   },
 ];
 
+const valuePillars = [
+  {
+    title: "What FinCopilot does",
+    description:
+      "FinCopilot is a personal finance + tax SaaS for salaried Indians. It connects your income, deductions, expenses, goals, and deadlines into one intelligent system.",
+  },
+  {
+    title: "What you get before filing season",
+    description:
+      "You get year-round visibility: where your money goes, what taxes are building up, what to invest in, and what to do next each month.",
+  },
+  {
+    title: "Why this is different",
+    description:
+      "Not just a tax calculator. It is a decision assistant that helps you plan affordability, reduce stress, and improve financial outcomes over time.",
+  },
+];
+
+const outcomes = [
+  "Reduce tax outflow with smarter deduction planning",
+  "Avoid missed deadlines with real-time reminders",
+  "Improve savings rate with budget insights",
+  "Plan goals safely with affordability simulations",
+  "Track net worth growth across the full year",
+];
+
+const idealFor = [
+  "Salaried professionals managing taxes + expenses",
+  "Users planning EMI purchases or long-term goals",
+  "Anyone who wants one dashboard for money decisions",
+];
+
+const trustItems = [
+  "Encrypted data storage and secure auth",
+  "Built specifically for Indian tax workflows",
+  "Actionable insights, not just raw numbers",
+];
+
 const highlights = [
-  "Old vs new regime comparison",
-  "Budget & expense tracking",
-  "Calendar for tax deadlines",
-  "AIS / TDS reconciliation",
+  "Tax + budget + goals in one workspace",
+  "AI-backed insights from real user inputs",
+  "Live reminders and calendar auto-updates",
+  "Built for Indian salaried users",
 ];
 
 export default function LandingPage() {
@@ -91,14 +144,23 @@ export default function LandingPage() {
             <Sparkles size={14} />
             AI Finance & Tax Copilot for India
           </span>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight max-w-3xl mx-auto">
-            Your taxes, budget, and wealth —{" "}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight max-w-4xl mx-auto">
+            Your taxes, budget, goals, and wealth —{" "}
             <span className="text-indigo-600">one intelligent copilot</span>
           </h1>
-          <p className="mt-5 text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            FinCopilot helps salaried professionals and individuals optimize taxes, track
-            spending, and never miss a filing deadline. Built for Indian tax rules.
+          <p className="mt-5 text-base sm:text-lg text-gray-500 max-w-3xl mx-auto leading-relaxed">
+            FinCopilot is a financial planning SaaS built for Indian salaried users. It combines
+            tax planning, expense tracking, reminders, affordability simulation, and AI guidance so
+            you always know what to do next with your money.
           </p>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
+            {valuePillars.map((item) => (
+              <div key={item.title} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/auth/signup"
@@ -124,6 +186,57 @@ export default function LandingPage() {
           </ul>
         </section>
 
+        {/* Product explanation */}
+        <section className="bg-white border-y border-gray-100 py-14 sm:py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-[#f8f9fc] border border-gray-100 rounded-2xl p-6">
+              <h2 className="text-2xl font-bold text-gray-900">How our SaaS helps you daily</h2>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                Instead of opening multiple apps for taxes, spending, and planning, FinCopilot
+                gives you a single system that turns your inputs into actionable financial guidance.
+              </p>
+              <ul className="mt-5 space-y-2">
+                {outcomes.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
+                    <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-[#f8f9fc] border border-gray-100 rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-gray-900">Who FinCopilot is for</h3>
+              <ul className="mt-4 space-y-3">
+                {idealFor.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
+                    <IndianRupee size={16} className="text-indigo-600 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 border-t border-gray-200 pt-4">
+                <p className="text-sm font-semibold text-gray-900">Trust & reliability</p>
+                <ul className="mt-2 space-y-1.5">
+                  {trustItems.map((item) => (
+                    <li key={item} className="text-xs text-gray-500">
+                      • {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4">
+                  <Link
+                    href="/auth/signup"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                  >
+                    Start with your financial profile
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features */}
         <section id="features" className="bg-white border-y border-gray-100 py-16 sm:py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -131,7 +244,8 @@ export default function LandingPage() {
               Everything you need for financial clarity
             </h2>
             <p className="text-gray-500 text-center mt-2 max-w-xl mx-auto">
-              From daily budgeting to annual ITR — designed for the Indian tax system.
+              From daily budgeting to annual ITR and goal planning - designed for real Indian
+              finance workflows.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
               {features.map((feature) => {

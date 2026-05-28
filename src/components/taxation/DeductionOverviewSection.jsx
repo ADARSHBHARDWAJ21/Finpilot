@@ -46,25 +46,45 @@ function section80cFromOnboarding(profile) {
 
 export default function DeductionOverviewSection({ taxContext }) {
   const [showAll, setShowAll] = useState(false);
-  const profile = taxContext.salaryProfile ?? taxContext.onboardingProfile;
+  const onboardingProfile = taxContext.onboardingProfile ?? {};
   const deductions = taxContext.deductions ?? [];
 
   const data = useMemo(() => {
+    const annualCtc = n(taxContext.annualCtc);
+    const estimatedTax = n(taxContext.estimatedTax);
+    const effectiveTaxRate =
+      annualCtc > 0 ? Math.min(0.35, Math.max(0.05, estimatedTax / annualCtc)) : 0.2;
+
     const claimed80c = Math.min(
       150000,
-      Math.max(totalByKey(deductions, "80C"), section80cFromOnboarding(profile))
+      Math.max(totalByKey(deductions, "80C"), section80cFromOnboarding(onboardingProfile))
     );
+    const insuranceSelfFamily = Math.max(
+      totalByKey(deductions, "80D"),
+      n(onboardingProfile.health_insurance)
+    );
+    const insuranceParents = n(onboardingProfile.parents_health_insurance);
+    const section80dLimit = insuranceParents > 0 ? 50000 : 25000;
     const claimed80d = Math.min(
-      25000,
-      Math.max(totalByKey(deductions, "80D"), n(profile?.health_insurance))
+      section80dLimit,
+      insuranceSelfFamily + insuranceParents
     );
     const claimedNps = Math.min(
       50000,
-      totalByKey(deductions, "80CCD_1B") + n(profile?.nps_contribution)
+      totalByKey(deductions, "80CCD_1B") + n(onboardingProfile.nps_contribution)
     );
     const claimedHra = Math.max(0, n(taxContext.hraExemption));
-    const claimed80e = totalByKey(deductions, "80E");
-    const claimed24b = totalByKey(deductions, "24B") + totalByKey(deductions, "24b");
+    const hraEligible = taxContext.payingRent
+      ? Math.max(claimedHra, n(onboardingProfile.monthly_rent) * 12)
+      : 0;
+    const claimed80e = Math.max(
+      totalByKey(deductions, "80E"),
+      n(onboardingProfile.education_loan_interest)
+    );
+    const claimed24b = Math.max(
+      totalByKey(deductions, "24B") + totalByKey(deductions, "24b"),
+      n(onboardingProfile.home_loan_interest)
+    );
     const claimed80dd = totalByKey(deductions, "80DD");
 
     const rows = [
@@ -89,8 +109,8 @@ export default function DeductionOverviewSection({ taxContext }) {
         action: "View Eligible Expenses",
         typeLabel: "Claimed",
         claimed: claimed80d,
-        eligible: 25000,
-        limitLabel: "₹25,000",
+        eligible: section80dLimit,
+        limitLabel: formatInr(section80dLimit),
         progressColor: "bg-blue-500",
         Icon: HeartPulse,
         iconBg: "bg-blue-50",
@@ -103,8 +123,8 @@ export default function DeductionOverviewSection({ taxContext }) {
         action: "View HRA Calculation",
         typeLabel: "Eligible",
         claimed: claimedHra,
-        eligible: claimedHra || 120000,
-        limitLabel: formatInr(claimedHra || 120000),
+        eligible: hraEligible,
+        limitLabel: hraEligible > 0 ? formatInr(hraEligible) : "Not eligible",
         progressColor: "bg-indigo-500",
         Icon: House,
         iconBg: "bg-indigo-50",
@@ -175,8 +195,8 @@ export default function DeductionOverviewSection({ taxContext }) {
       .filter((r) => r.eligible > 0)
       .reduce((sum, r) => sum + Math.min(r.claimed, r.eligible), 0);
     const totalRemaining = Math.max(0, totalEligible - totalClaimed);
-    const potentialTaxSaving = Math.round(totalRemaining * 0.312);
-    const claimedTaxSaving = Math.round(totalClaimed * 0.312);
+    const potentialTaxSaving = Math.round(totalRemaining * effectiveTaxRate);
+    const claimedTaxSaving = Math.round(totalClaimed * effectiveTaxRate);
     const overallPercent = totalEligible > 0 ? Math.round((totalClaimed / totalEligible) * 100) : 0;
 
     const insights = rows
@@ -194,7 +214,7 @@ export default function DeductionOverviewSection({ taxContext }) {
               : r.id === "80CCD_1B"
                 ? "Consider NPS Voluntary"
                 : `Increase ${r.title}`,
-        desc: `Add ${formatInr(r.remaining)} to save ${formatInr(Math.round(r.remaining * 0.312))}`,
+        desc: `Add ${formatInr(r.remaining)} to save ${formatInr(Math.round(r.remaining * effectiveTaxRate))}`,
       }));
 
     return {
@@ -207,7 +227,14 @@ export default function DeductionOverviewSection({ taxContext }) {
       overallPercent,
       insights,
     };
-  }, [deductions, profile, taxContext.hraExemption]);
+  }, [
+    deductions,
+    onboardingProfile,
+    taxContext.annualCtc,
+    taxContext.estimatedTax,
+    taxContext.hraExemption,
+    taxContext.payingRent,
+  ]);
 
   const initials = String(taxContext.userName || "U")
     .split(" ")

@@ -168,7 +168,7 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
 
   const quickActions = [
     { label: "AI Tax Copilot", href: "/taxation/ai-copilot", icon: Bot },
-    { label: "Upload Documents", href: "/documents", icon: Upload },
+    { label: "Upload Statements", href: "/transactions", icon: Upload },
     { label: "Tax Saving Calculator", href: "/taxation/deductions", icon: Calculator },
     { label: "Tax Regime Calculator", href: "/taxation/compare-regimes", icon: Scale },
     { label: "Check Refund Status", href: "/taxation/liability-tracker", icon: FileCheck },
@@ -448,7 +448,7 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
                 {simulationTags.map((tag) => (
                   <Link
                     key={tag}
-                    href="/taxation/ai-copilot"
+                      href="/taxation/simulation"
                     className="text-xs bg-white hover:bg-indigo-50 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 transition-colors"
                   >
                     {tag}
@@ -457,7 +457,7 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
               </div>
             </div>
             <Link
-              href="/taxation/ai-copilot"
+              href="/taxation/simulation"
               className="mt-4 w-full py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-semibold rounded-xl text-center"
             >
               Run Simulation →
