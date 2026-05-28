@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SignOutButton from "@/components/auth/SignOutButton";
 import {
   LayoutDashboard,
   Receipt,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Receipt, label: "Transactions", href: "/transactions" },
   { icon: Wallet, label: "Budget Tracker", href: "/budget-tracker" },
   { icon: FileText, label: "Documents", href: "/documents" },
@@ -32,18 +33,22 @@ const menuItems = [
   { icon: Bell, label: "Reminders", href: "/reminders" },
   { icon: BarChart3, label: "Reports", href: "/reports" },
   { icon: CalendarDays, label: "Calendar", href: "/calendar" },
-  { icon: Settings, label: "Settings", href: "#" },
+  { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 const taxationSubItems = [
   { label: "Overview", href: "/taxation" },
+  { label: "Salary Documents", href: "/taxation/salary-documents" },
+  { label: "Tax Saving Proofs", href: "/taxation/deductions" },
+  { label: "Rent & HRA", href: "/taxation/rent-hra" },
+  { label: "Banking & Investments", href: "/taxation/banking-investments" },
+  { label: "Compliance & Filing", href: "/taxation/compliance-filing" },
   { label: "AI Copilot", href: "/taxation/ai-copilot", badge: "New" },
 ];
 
 export default function Sidebar({ onNavigate }) {
   const pathname = usePathname();
   const isTaxationSection = pathname.startsWith("/taxation");
-  const isTaxationOverview = pathname === "/taxation";
   const isAICopilot = pathname === "/taxation/ai-copilot";
 
   const handleNav = () => {
@@ -53,7 +58,7 @@ export default function Sidebar({ onNavigate }) {
   return (
     <aside className="w-[min(280px,85vw)] sm:w-[240px] shrink-0 bg-white border-r border-gray-100 min-h-screen min-h-[100dvh] flex flex-col shadow-xl lg:shadow-none">
       <div className="p-5 border-b border-gray-50">
-        <Link href="/" className="flex items-center gap-2.5" onClick={handleNav}>
+        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={handleNav}>
           <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
@@ -108,7 +113,9 @@ export default function Sidebar({ onNavigate }) {
             <div className="mt-1 ml-3 pl-3 border-l border-indigo-100 space-y-1">
               {taxationSubItems.map((sub) => {
                 const isActive =
-                  sub.href === "/taxation" ? isTaxationOverview : pathname === sub.href;
+                  sub.href === "/taxation"
+                    ? pathname === "/taxation"
+                    : pathname === sub.href || pathname.startsWith(`${sub.href}/`);
 
                 if (sub.label === "AI Copilot") {
                   return (
@@ -188,6 +195,10 @@ export default function Sidebar({ onNavigate }) {
           );
         })}
       </nav>
+
+      <div className="px-3 pb-2">
+        <SignOutButton />
+      </div>
 
       <div className="p-4 m-3 mt-auto bg-white rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-2 mb-2">

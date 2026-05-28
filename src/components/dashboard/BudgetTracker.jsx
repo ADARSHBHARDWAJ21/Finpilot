@@ -1,51 +1,66 @@
-const budgets = [
-  { category: "Food & Dining", spent: 12450, budget: 15000, color: "bg-indigo-500" },
-  { category: "Shopping", spent: 7850, budget: 10000, color: "bg-pink-500" },
-  { category: "Transport", spent: 8920, budget: 8000, color: "bg-red-500", over: true },
-  { category: "Entertainment", spent: 5240, budget: 6000, color: "bg-amber-500" },
-  { category: "Utilities", spent: 4800, budget: 5000, color: "bg-cyan-500" },
-  { category: "Healthcare", spent: 4300, budget: 5000, color: "bg-emerald-500" },
-];
+import Link from "next/link";
 
-export default function BudgetTracker() {
+function formatInr(value) {
+  return `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
+}
+
+export default function BudgetTracker({ categories = [], monthLabel = "" }) {
+  const top = categories.slice(0, 6);
+
   return (
     <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-semibold text-gray-900">Budget Tracker</h2>
-          <p className="text-xs text-gray-400 mt-0.5">May 2025 spending vs budget</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {monthLabel ? `${monthLabel} spending vs budget` : "From your transactions"}
+          </p>
         </div>
-        <a href="#" className="text-xs text-indigo-600 font-medium hover:underline">View all →</a>
+        <Link href="/budget-tracker" className="text-xs text-indigo-600 font-medium hover:underline">
+          View all →
+        </Link>
       </div>
 
-      <div className="space-y-4">
-        {budgets.map((item) => {
-          const pct = Math.min(Math.round((item.spent / item.budget) * 100), 100);
-          const overPct = item.over ? Math.round((item.spent / item.budget) * 100) : pct;
-          return (
-            <div key={item.category}>
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="font-medium text-gray-700">{item.category}</span>
-                <span className="text-gray-500">
-                  ₹{item.spent.toLocaleString("en-IN")}{" "}
-                  <span className="text-gray-300">/</span>{" "}
-                  ₹{item.budget.toLocaleString("en-IN")}
-                </span>
+      {top.length === 0 ? (
+        <p className="text-xs text-gray-500 py-4">
+          No expenses this month.{" "}
+          <Link href="/budget-tracker" className="text-indigo-600">
+            Set a budget
+          </Link>
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {top.map((item) => {
+            const pct = item.budget > 0 ? Math.min(Math.round((item.spent / item.budget) * 100), 100) : 0;
+            const over = item.pct > 100;
+            const barPct = over ? Math.min(item.pct, 100) : pct;
+            return (
+              <div key={item.key}>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-medium text-gray-700">{item.name}</span>
+                  <span className="text-gray-500">
+                    {formatInr(item.spent)}{" "}
+                    <span className="text-gray-300">/</span> {formatInr(item.budget)}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      over ? "bg-red-500" : item.barColor || "bg-indigo-500"
+                    }`}
+                    style={{ width: `${barPct}%` }}
+                  />
+                </div>
+                <p
+                  className={`text-[10px] mt-1 ${over ? "text-red-500 font-medium" : "text-gray-400"}`}
+                >
+                  {over ? `${item.pct}% — Over budget!` : `${pct}% used`}
+                </p>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${item.over ? "bg-red-500" : item.color}`}
-                  style={{ width: `${overPct}%` }}
-                />
-              </div>
-              <p className={`text-[10px] mt-1 ${item.over ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                {item.over ? `${overPct}% — Over budget!` : `${pct}% used`}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
-

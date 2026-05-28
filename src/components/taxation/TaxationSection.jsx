@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Upload,
   Bell,
@@ -272,13 +273,12 @@ export default function TaxationSection() {
                   </p>
                   <RegimeBars />
                 </div>
-                <button
-                  type="button"
-                  suppressHydrationWarning
-                  className="mt-4 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                <Link
+                  href="/taxation/compare-regimes"
+                  className="mt-4 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors text-center block"
                 >
                   Compare Regimes →
-                </button>
+                </Link>
               </div>
 
               {/* Card 2 - Green */}
@@ -298,13 +298,12 @@ export default function TaxationSection() {
                   </p>
                   <FileCheck size={20} className="text-emerald-600 shrink-0" />
                 </div>
-                <button
-                  type="button"
-                  suppressHydrationWarning
-                  className="mt-4 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl transition-colors"
+                <Link
+                  href="/taxation/deductions"
+                  className="mt-4 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl transition-colors text-center block"
                 >
                   View Deductions →
-                </button>
+                </Link>
               </div>
 
               {/* Card 3 - Orange */}
@@ -322,13 +321,12 @@ export default function TaxationSection() {
                   </p>
                   <AlertTriangle size={20} className="text-orange-500 shrink-0" />
                 </div>
-                <button
-                  type="button"
-                  suppressHydrationWarning
-                  className="mt-4 w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
+                <Link
+                  href="/taxation/liability-tracker"
+                  className="mt-4 w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors text-center block"
                 >
                   Tax Liability Tracker →
-                </button>
+                </Link>
               </div>
 
               {/* Card 4 - Blue wide */}

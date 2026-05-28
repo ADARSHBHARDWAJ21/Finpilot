@@ -1,67 +1,43 @@
 import { Sparkles, TrendingDown, PiggyBank, Shield, Zap } from "lucide-react";
 
-const insights = [
-  {
-    icon: Sparkles,
-    bg: "bg-purple-50",
-    iconColor: "text-purple-600",
-    text: "You can save up to ₹18,540 in taxes by optimizing your investments.",
-    action: "Optimize now →",
-    actionColor: "text-purple-600",
-  },
-  {
-    icon: TrendingDown,
-    bg: "bg-red-50",
-    iconColor: "text-red-500",
-    text: "Dining expenses are 31% higher than last month.",
-    action: "View details →",
-    actionColor: "text-red-500",
-  },
-  {
-    icon: PiggyBank,
-    bg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-    text: "Your savings rate of 42.6% is above the recommended 30%.",
-    action: "Keep it up →",
-    actionColor: "text-emerald-600",
-  },
-  {
-    icon: Shield,
-    bg: "bg-blue-50",
-    iconColor: "text-blue-600",
-    text: "Consider increasing your emergency fund to 6 months of expenses.",
-    action: "Plan now →",
-    actionColor: "text-blue-600",
-  },
-  {
-    icon: Zap,
-    bg: "bg-amber-50",
-    iconColor: "text-amber-600",
-    text: "Switch to ELSS funds to save ₹46,800 under Section 80C.",
-    action: "Explore →",
-    actionColor: "text-amber-600",
-  },
-];
+const ICONS = [Sparkles, TrendingDown, PiggyBank, Shield, Zap];
 
-export default function AIInsights() {
+export default function AIInsights({ insights = [] }) {
+  const items =
+    insights.length > 0
+      ? insights.map((message, i) => ({
+          icon: ICONS[i % ICONS.length],
+          title: "Insight",
+          message,
+          color: "text-indigo-600",
+          bg: "bg-indigo-50",
+        }))
+      : [
+          {
+            icon: Sparkles,
+            title: "Complete onboarding",
+            message: "Finish your financial profile to unlock personalized AI insights.",
+            color: "text-indigo-600",
+            bg: "bg-indigo-50",
+          },
+        ];
+
   return (
-    <section>
-      <h2 className="text-base font-semibold text-gray-900 mb-3">AI Insights & Opportunities</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3">
-        {insights.map((item, i) => {
+    <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles size={18} className="text-indigo-600" />
+        <h2 className="text-base font-semibold text-gray-900">AI Insights</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {items.map((item, index) => {
           const Icon = item.icon;
           return (
-            <div
-              key={i}
-              className={`${item.bg} rounded-2xl p-4 border border-white/60 hover:shadow-md transition-shadow cursor-pointer`}
-            >
-              <div className={`w-8 h-8 rounded-lg bg-white/70 flex items-center justify-center mb-3`}>
-                <Icon size={16} className={item.iconColor} />
+            <div key={index} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+              <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center mb-2`}>
+                <Icon size={16} className={item.color} />
               </div>
-              <p className="text-xs text-gray-700 leading-relaxed">{item.text}</p>
-              <a href="#" className={`inline-block text-xs font-semibold mt-3 ${item.actionColor} hover:underline`}>
-                {item.action}
-              </a>
+              <p className="text-xs font-semibold text-gray-900">{item.title}</p>
+              <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{item.message}</p>
             </div>
           );
         })}
@@ -69,4 +45,3 @@ export default function AIInsights() {
     </section>
   );
 }
-

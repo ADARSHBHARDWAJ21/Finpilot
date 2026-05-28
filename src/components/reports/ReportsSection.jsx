@@ -48,175 +48,102 @@ const tabs = [
   "Download Center",
 ];
 
-const metricCards = [
-  {
-    label: "Annual Income",
-    value: "₹13,00,000",
-    sub: "Total Gross Income",
-    icon: Wallet,
-    iconBg: "bg-indigo-50",
-    iconColor: "text-indigo-600",
-  },
-  {
-    label: "Gross Total Income",
-    value: "₹12,41,200",
-    sub: "After Exemptions",
-    icon: FileText,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-  },
-  {
-    label: "Total Deductions",
-    value: "₹2,15,000",
-    sub: "42% of Eligible",
-    icon: Receipt,
-    iconBg: "bg-orange-50",
-    iconColor: "text-orange-600",
-  },
-  {
-    label: "Total Tax Liability",
-    value: "₹78,420",
-    sub: "Includes cess & surcharge",
-    icon: Shield,
-    iconBg: "bg-red-50",
-    iconColor: "text-red-500",
-  },
-  {
-    label: "Expected Refund",
-    value: "₹43,880",
-    sub: "Processing after filing",
-    icon: FileText,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-    valueColor: "text-emerald-600",
-  },
-];
-
-const monthlyData = [
-  { month: "Apr '24", liability: 5200, tds: 4800, refund: 400 },
-  { month: "May '24", liability: 6100, tds: 5800, refund: 300 },
-  { month: "Jun '24", liability: 5800, tds: 6200, refund: -400 },
-  { month: "Jul '24", liability: 6500, tds: 6000, refund: 500 },
-  { month: "Aug '24", liability: 6200, tds: 6400, refund: -200 },
-  { month: "Sep '24", liability: 6800, tds: 6500, refund: 300 },
-  { month: "Oct '24", liability: 7100, tds: 7000, refund: 100 },
-  { month: "Nov '24", liability: 6900, tds: 7200, refund: -300 },
-  { month: "Dec '24", liability: 7400, tds: 7100, refund: 300 },
-  { month: "Jan '25", liability: 7600, tds: 7500, refund: 100 },
-  { month: "Feb '25", liability: 7200, tds: 7800, refund: -600 },
-  { month: "Mar '25", liability: 8020, tds: 7600, refund: 420 },
-];
-
-const taxBreakdown = [
-  { name: "Income Tax", value: 67510, pct: 86.1, color: "#6366f1" },
-  { name: "Surcharge", value: 8078, pct: 10.3, color: "#a78bfa" },
-  { name: "Health & Education Cess", value: 2832, pct: 3.6, color: "#c4b5fd" },
-];
-
 const quickActions = [
-  { label: "Download Tax Summary", icon: Download },
-  { label: "View Form 16", icon: FileText },
-  { label: "Tax Projection Report", icon: TrendingUp },
-  { label: "Old vs New Regime Report", icon: Scale },
-  { label: "Investment Proof Report", icon: PiggyBank },
+  { label: "Download Tax Summary", iconKey: "download" },
+  { label: "View Form 16", iconKey: "file" },
+  { label: "Tax Projection Report", iconKey: "trend" },
+  { label: "Old vs New Regime Report", iconKey: "scale" },
+  { label: "Investment Proof Report", iconKey: "piggy" },
 ];
 
-const reportsLibrary = [
-  {
-    title: "Income & Tax Report",
-    desc: "Detailed income breakdown by source",
-    date: "8 May 2024",
-    icon: Landmark,
-    iconBg: "bg-indigo-50",
-    iconColor: "text-indigo-600",
-  },
-  {
-    title: "Deductions Summary",
-    desc: "80C, 80D, HRA and other claims",
-    date: "8 May 2024",
-    icon: Receipt,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-  },
-  {
-    title: "Investment Report",
-    desc: "ELSS, PPF, NPS and capital gains",
-    date: "7 May 2024",
-    icon: TrendingUp,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-600",
-  },
-  {
-    title: "TDS & Payments",
-    desc: "TDS credits and advance tax paid",
-    date: "7 May 2024",
-    icon: FileBarChart,
-    iconBg: "bg-purple-50",
-    iconColor: "text-purple-600",
-  },
-  {
-    title: "Compliance Checklist",
-    desc: "Filing status and pending actions",
-    date: "6 May 2024",
-    icon: ClipboardList,
-    iconBg: "bg-orange-50",
-    iconColor: "text-orange-600",
-  },
-  {
-    title: "Regime Comparison",
-    desc: "Old vs new regime side-by-side",
-    date: "6 May 2024",
-    icon: Scale,
-    iconBg: "bg-violet-50",
-    iconColor: "text-violet-600",
-  },
-  {
-    title: "Annual Tax Summary",
-    desc: "Complete FY tax overview PDF",
-    date: "5 May 2024",
-    icon: FileText,
-    iconBg: "bg-red-50",
-    iconColor: "text-red-500",
-  },
-  {
-    title: "Form 16 Consolidated",
-    desc: "All employers combined",
-    date: "5 May 2024",
-    icon: FileText,
-    iconBg: "bg-amber-50",
-    iconColor: "text-amber-600",
-  },
-];
+const ICON_BY_KEY = {
+  wallet: Wallet,
+  file: FileText,
+  receipt: Receipt,
+  shield: Shield,
+  download: Download,
+  trend: TrendingUp,
+  scale: Scale,
+  piggy: PiggyBank,
+  landmark: Landmark,
+  fileChart: FileBarChart,
+  checklist: ClipboardList,
+  bars: BarChart3,
+  target: Target,
+};
 
-const highlights = [
-  {
-    text: "You save ₹21,340 by choosing Old Tax Regime",
-    icon: ArrowUpRight,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-  },
-  {
-    text: "80C limit: ₹62,000 still available to invest",
-    icon: BarChart3,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-600",
-  },
-  {
-    text: "NPS (80CCD) can save you ₹7,500 more",
-    icon: Shield,
-    iconBg: "bg-orange-50",
-    iconColor: "text-orange-600",
-  },
-  {
-    text: "HRA exemption may be underutilized by ₹18,000",
-    icon: Target,
-    iconBg: "bg-purple-50",
-    iconColor: "text-purple-600",
-  },
-];
-
-export default function ReportsSection() {
+export default function ReportsSection({ data }) {
   const [activeTab, setActiveTab] = useState("Tax Summary");
+  const metricCards = data?.metricCards ?? [];
+  const monthlyData = data?.monthlyData ?? [];
+  const taxBreakdown = data?.taxBreakdown ?? [];
+  const reportsLibrary = [
+    {
+      title: "Income & Tax Report",
+      desc: "Detailed income breakdown by source",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "landmark",
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
+    },
+    {
+      title: "Deductions Summary",
+      desc: "80C, 80D, HRA and other claims",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "receipt",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+    },
+    {
+      title: "Investment Report",
+      desc: "ELSS, PPF, NPS and capital gains",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "trend",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+    },
+    {
+      title: "TDS & Payments",
+      desc: "TDS credits and advance tax paid",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "fileChart",
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
+    },
+    {
+      title: "Compliance Checklist",
+      desc: "Filing status and pending actions",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "checklist",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
+    },
+    {
+      title: "Regime Comparison",
+      desc: "Old vs new regime side-by-side",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "scale",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
+    },
+    {
+      title: "Annual Tax Summary",
+      desc: "Complete FY tax overview PDF",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "file",
+      iconBg: "bg-red-50",
+      iconColor: "text-red-500",
+    },
+    {
+      title: "Form 16 Consolidated",
+      desc: "All employers combined",
+      date: data?.reportsLibraryGeneratedOn,
+      iconKey: "file",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+    },
+  ];
+  const highlights = data?.highlights ?? [];
 
   return (
     <div className="w-full max-w-[1500px] min-w-0">
@@ -235,7 +162,7 @@ export default function ReportsSection() {
             className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
           >
             <Calendar size={16} className="text-gray-500" />
-            FY 2024-25
+            FY {data?.header?.financialYear || "2024-25"}
             <ChevronDown size={14} className="text-gray-400" />
           </button>
           <button
@@ -245,16 +172,16 @@ export default function ReportsSection() {
           >
             <Bell size={18} className="text-gray-500" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              3
+              {Math.min(data?.header?.alertsCount || 0, 9)}
             </span>
           </button>
           <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3 py-1.5">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-              RS
+              {data?.header?.initials || "US"}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 leading-tight">Rahul Sharma</p>
-              <p className="text-[11px] text-gray-500">₹13,00,000 CTC</p>
+              <p className="text-sm font-semibold text-gray-900 leading-tight">{data?.header?.userName || "User"}</p>
+              <p className="text-[11px] text-gray-500">{data?.header?.annualIncome || "₹0"} CTC</p>
             </div>
             <ChevronDown size={14} className="text-gray-400" />
           </div>
@@ -283,7 +210,7 @@ export default function ReportsSection() {
       {/* Metric cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         {metricCards.map((card) => {
-          const Icon = card.icon;
+          const Icon = ICON_BY_KEY[card.iconKey] || FileText;
           return (
             <div
               key={card.label}
@@ -388,7 +315,7 @@ export default function ReportsSection() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-lg font-bold text-gray-900">₹78,420</p>
+                <p className="text-lg font-bold text-gray-900">{data?.totalTax || "₹0"}</p>
                 <p className="text-[10px] text-gray-400">Total Tax</p>
               </div>
             </div>
@@ -414,7 +341,7 @@ export default function ReportsSection() {
           <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
           <ul className="space-y-0.5">
             {quickActions.map((action) => {
-              const Icon = action.icon;
+              const Icon = ICON_BY_KEY[action.iconKey] || FileText;
               return (
                 <li key={action.label}>
                   <button
@@ -455,7 +382,7 @@ export default function ReportsSection() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {reportsLibrary.map((report) => {
-              const Icon = report.icon;
+              const Icon = ICON_BY_KEY[report.iconKey] || FileText;
               return (
                 <div
                   key={report.title}
@@ -465,14 +392,14 @@ export default function ReportsSection() {
                     <div
                       className={`w-10 h-10 rounded-lg ${report.iconBg} flex items-center justify-center shrink-0`}
                     >
-                      <Icon size={18} className={report.iconColor} />
+                  <Icon size={18} className={report.iconColor} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-gray-900">{report.title}</h3>
                       <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{report.desc}</p>
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-[10px] text-gray-400">
-                          Generated on {report.date}
+                          Generated on {report.date || data?.lastUpdated}
                         </p>
                         <ChevronRight
                           size={14}
@@ -491,7 +418,7 @@ export default function ReportsSection() {
           <h2 className="text-base font-semibold text-gray-900 mb-4">Highlights</h2>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
             {highlights.map((item, i) => {
-              const Icon = item.icon;
+              const Icon = ICON_BY_KEY[item.iconKey] || ArrowUpRight;
               return (
                 <div
                   key={i}
@@ -518,7 +445,7 @@ export default function ReportsSection() {
         </span>
         <span className="flex items-center gap-1.5">
           <RefreshCw size={14} />
-          Data last updated on 10 May 2024
+          Data last updated on {data?.lastUpdated}
         </span>
       </footer>
     </div>

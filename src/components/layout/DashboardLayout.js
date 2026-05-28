@@ -60,7 +60,7 @@ export default function DashboardLayout({ children, showRightSidebar = true }) {
           >
             <Menu size={22} className="text-gray-700" />
           </button>
-          <Link href="/" className="flex items-center gap-2 min-w-0">
+          <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
