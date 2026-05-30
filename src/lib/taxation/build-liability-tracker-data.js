@@ -101,10 +101,11 @@ export function buildLiabilityTrackerData(taxContext) {
     hra_exemption: n(taxContext.hraExemption),
   });
 
+  const recommendedRegime = taxContext.liveCompare?.recommended ?? compare.recommended;
   const preferredRegime =
     onboardingProfile.tax_regime && onboardingProfile.tax_regime !== "unsure"
       ? onboardingProfile.tax_regime
-      : taxContext.recommendedRegime ?? compare.recommended;
+      : recommendedRegime;
 
   const chosenTax = preferredRegime === "old" ? compare.oldResult.tax : compare.newResult.tax;
   const chosenTaxableIncome =

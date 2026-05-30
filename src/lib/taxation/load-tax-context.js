@@ -1,25 +1,8 @@
-import { compareRegimes } from "@/lib/tax/compare-regimes";
 import { calculateDeductionUtilization } from "@/lib/tax/deduction-utilization";
+import { computeLiveRegimeCompare } from "@/lib/taxation/build-regime-compare-data";
 
 function n(value) {
   return Number(value) || 0;
-}
-
-function section80cFromOnboarding(profile) {
-  if (!profile) return 0;
-  return (
-    n(profile.elss_investments) +
-    n(profile.ppf) +
-    n(profile.epf) +
-    n(profile.tax_saver_fd) +
-    n(profile.life_insurance)
-  );
-}
-
-function totalByKey(deductions, key) {
-  return (deductions ?? [])
-    .filter((r) => r.key === key)
-    .reduce((sum, r) => sum + n(r.amount), 0);
 }
 
 export async function loadTaxContext(supabase, userId) {
@@ -45,28 +28,11 @@ export async function loadTaxContext(supabase, userId) {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const profile = salaryProfile ?? onboardingProfile;
   const annualCtc = n(salaryProfile?.annual_ctc ?? onboardingProfile?.annual_ctc);
-  const section80c = Math.max(
-    totalByKey(deductions, "80C"),
-    Math.min(150000, section80cFromOnboarding(onboardingProfile))
-  );
   const hraMonthly = n(salaryProfile?.hra ?? onboardingProfile?.hra);
   const rentMonthly = n(onboardingProfile?.monthly_rent);
   const payingRent = Boolean(onboardingProfile?.paying_rent);
-
-  const section80d = Math.min(
-    25000,
-    Math.max(totalByKey(deductions, "80D"), n(onboardingProfile?.health_insurance))
-  );
-
-  const liveCompare = compareRegimes({
-    annual_ctc: annualCtc,
-    section80c,
-    section80d,
-    nps: totalByKey(deductions, "80CCD_1B") + n(onboardingProfile?.nps_contribution),
-    hra_exemption: payingRent ? Math.min(rentMonthly * 12, hraMonthly * 12) : 0,
-  });
+  const hraExemption = payingRent ? Math.min(rentMonthly * 12, hraMonthly * 12) : 0;
 
   const taxHealthScore =
     onboardingProfile?.ai_summary?.taxHealthScore ??
@@ -77,6 +43,14 @@ export async function loadTaxContext(supabase, userId) {
         : 20);
 
   const deductionUtilization = calculateDeductionUtilization(deductions ?? []);
+
+  const liveCompare = computeLiveRegimeCompare({
+    salaryProfile,
+    onboardingProfile,
+    deductions: deductions ?? [],
+    annualCtc,
+    hraExemption,
+  });
 
   const userName =
     onboardingProfile?.full_name ||
@@ -94,12 +68,14 @@ export async function loadTaxContext(supabase, userId) {
     taxHealthScore,
     deductionUtilization,
     liveCompare,
-    recommendedRegime:
-      taxCalculation?.recommended_regime ?? liveCompare.recommended,
+    recommendedRegime: liveCompare.recommended,
     estimatedTax:
-      taxCalculation?.new_regime_tax ??
-      liveCompare.newResult.tax,
-    hraExemption: payingRent ? Math.min(rentMonthly * 12, hraMonthly * 12) : 0,
+      liveCompare.recommended === "old"
+        ? liveCompare.oldResult.tax
+        : liveCompare.newResult.tax,
+    estimatedTaxOld: liveCompare.oldResult.tax,
+    estimatedTaxNew: liveCompare.newResult.tax,
+    hraExemption,
     payingRent,
     rentMonthly,
     hraMonthly,

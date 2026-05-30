@@ -19,10 +19,7 @@ function isValidRow(row) {
   return Boolean(hasDate && hasDescription && hasAmount);
 }
 
-function formatRowForDb(tx, userId) {
-  const date = String(tx.transaction_date || tx.date).trim();
-  const description = String(tx.description).trim();
-
+function optionalImportMeta(tx) {
   const score =
     tx.confidence_score !== undefined && tx.confidence_score !== null
       ? Number(tx.confidence_score)
@@ -32,10 +29,16 @@ function formatRowForDb(tx, userId) {
     tx.review_status ||
     (Number.isFinite(score) && score < 70 ? "needs_review" : "completed");
 
-  const meta = {
+  return {
     confidence_score: Number.isFinite(score) ? score : 100,
     review_status: reviewStatus,
   };
+}
+
+function formatRowForDb(tx, userId, { includeImportMeta = true } = {}) {
+  const date = String(tx.transaction_date || tx.date).trim();
+  const description = String(tx.description).trim();
+  const meta = includeImportMeta ? optionalImportMeta(tx) : {};
 
   if (tx.transaction_date && (tx.type === "income" || tx.type === "expense")) {
     return {
@@ -65,6 +68,24 @@ function formatRowForDb(tx, userId) {
     payment_method: tx.payment_method?.trim() || "Unknown",
     ...meta,
   };
+}
+
+function stripImportMeta(rows) {
+  return rows.map(({ confidence_score: _score, review_status: _status, ...row }) => row);
+}
+
+function isMissingImportColumnsError(error) {
+  const message = String(error?.message || "");
+  return /confidence_score|review_status/i.test(message);
+}
+
+async function insertTransactions(supabase, rows) {
+  const attempt = await supabase.from("transactions").insert(rows).select("*");
+  if (!attempt.error || !isMissingImportColumnsError(attempt.error)) {
+    return attempt;
+  }
+
+  return supabase.from("transactions").insert(stripImportMeta(rows)).select("*");
 }
 
 async function filterDuplicates(supabase, userId, formatted) {
@@ -138,10 +159,7 @@ export async function saveTransactions(transactions) {
     };
   }
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert(toInsert)
-    .select("*");
+  const { data, error } = await insertTransactions(supabase, toInsert);
 
   if (error) {
     throw new Error(error.message);
@@ -156,6 +174,45 @@ export async function saveTransactions(transactions) {
     skipped,
     transactions: data ?? [],
   };
+}
+
+export async function deleteTransaction(transactionId) {
+  if (!transactionId) {
+    throw new Error("Transaction not found");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .delete()
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Transaction not found or already deleted");
+  }
+
+  revalidatePath("/transactions");
+  revalidatePath("/dashboard");
+  revalidatePath("/budget-tracker");
+  revalidatePath("/reports");
+  revalidatePath("/net-worth");
+
+  return { success: true, id: data.id };
 }
 
 export async function addManualTransaction(input) {
@@ -174,8 +231,6 @@ export async function addManualTransaction(input) {
       type,
       category: input.category,
       payment_method: input.payment_method,
-      confidence_score: 100,
-      review_status: "completed",
     },
   ]);
 }

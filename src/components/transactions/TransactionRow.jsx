@@ -1,4 +1,6 @@
-export default function TransactionRow({ tx }) {
+import { Trash2 } from "lucide-react";
+
+export default function TransactionRow({ tx, onDelete, deleting = false }) {
   return (
     <tr className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
       <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{tx.date}</td>
@@ -50,6 +52,18 @@ export default function TransactionRow({ tx }) {
         >
           {tx.status}
         </span>
+      </td>
+      <td className="px-4 py-4 text-right">
+        <button
+          type="button"
+          onClick={() => onDelete?.(tx.id)}
+          disabled={deleting || !tx.id}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          aria-label={`Delete ${tx.name}`}
+          title="Delete transaction"
+        >
+          <Trash2 size={16} />
+        </button>
       </td>
     </tr>
   );

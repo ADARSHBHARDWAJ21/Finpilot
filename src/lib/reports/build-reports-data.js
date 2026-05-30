@@ -113,7 +113,7 @@ export function buildReportsData(taxContext, transactions) {
     {
       text:
         taxContext.liveCompare.savings > 0
-          ? `You save ${formatInr(taxContext.liveCompare.savings)} with ${String(taxContext.recommendedRegime).toUpperCase()} regime.`
+          ? `You save ${formatInr(taxContext.liveCompare.savings)} with ${String(taxContext.liveCompare.recommended).toUpperCase()} regime.`
           : "Upload salary details to compute regime savings.",
       iconKey: "trend",
       iconBg: "bg-emerald-50",

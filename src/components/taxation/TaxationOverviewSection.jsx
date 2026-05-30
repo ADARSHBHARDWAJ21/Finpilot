@@ -71,8 +71,9 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
     financialYear,
     taxHealthScore,
     annualCtc,
-    recommendedRegime,
     estimatedTax,
+    estimatedTaxOld,
+    estimatedTaxNew,
     deductions,
     liveCompare,
   } = taxContext;
@@ -101,8 +102,12 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
   const totalItems = Object.values(categoryProgress).reduce((acc, p) => acc + p.total, 0);
   const missingCount = totalItems - totalChecklist;
 
+  const recommendedRegime = liveCompare?.recommended ?? taxContext.recommendedRegime;
   const isOldRecommended = String(recommendedRegime).toLowerCase() === "old";
   const regimeLabel = recommendedRegime ? String(recommendedRegime).toUpperCase() : "—";
+  const estTaxForRecommended = isOldRecommended
+    ? estimatedTaxOld ?? liveCompare?.oldResult?.tax
+    : estimatedTaxNew ?? liveCompare?.newResult?.tax ?? estimatedTax;
 
   const util = taxContext.deductionUtilization ?? [];
   const hraExemption = Number(taxContext.hraExemption) || 0;
@@ -303,8 +308,12 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">Est. Tax (New)</p>
-              <p className="text-xl font-bold text-gray-900 mt-1">{estimatedTax ? formatInr(estimatedTax) : "—"}</p>
+              <p className="text-xs text-gray-500 font-medium">
+                Est. Tax ({isOldRecommended ? "Old" : "New"})
+              </p>
+              <p className="text-xl font-bold text-gray-900 mt-1">
+                {estTaxForRecommended ? formatInr(estTaxForRecommended) : "—"}
+              </p>
               <p className="text-[10px] text-gray-400 mt-1">Incl. cess & surcharge</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">

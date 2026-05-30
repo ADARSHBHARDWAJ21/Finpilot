@@ -45,7 +45,7 @@ function buildCompareInputs(taxContext, overrides = {}) {
       totalByKey(deductions, "80CCD_1B") + n(profile?.nps_contribution) + n(profile?.employer_nps)
   );
   const hra_exemption = n(overrides.hra_exemption ?? taxContext.hraExemption);
-  const home_loan_interest = n(overrides.home_loan_interest);
+  const home_loan_interest = n(overrides.home_loan_interest ?? profile?.home_loan_interest);
 
   return {
     annual_ctc: annualCtc,
@@ -279,7 +279,7 @@ export function buildRegimeCompareData(taxContext, overrides = {}) {
     taxContext.onboardingProfile?.tax_regime &&
     taxContext.onboardingProfile.tax_regime !== "unsure"
       ? taxContext.onboardingProfile.tax_regime
-      : taxContext.recommendedRegime ?? compare.recommended;
+      : compare.recommended;
 
   return {
     userName: taxContext.userName,
@@ -324,3 +324,10 @@ export function buildRegimeCompareData(taxContext, overrides = {}) {
 }
 
 export { buildCompareInputs };
+
+/** Single source of truth for old vs new regime recommendation (used across taxation UI). */
+export function computeLiveRegimeCompare(taxContext, overrides = {}) {
+  const compareInputs = buildCompareInputs(taxContext, overrides);
+  const compare = compareRegimes(compareInputs);
+  return { compareInputs, ...compare };
+}

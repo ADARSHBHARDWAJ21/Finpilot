@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -10,11 +11,16 @@ import {
 } from "lucide-react";
 import TransactionRow from "@/components/transactions/TransactionRow";
 import { mapTransactionToRow } from "@/components/transactions/transaction-utils";
+import { deleteTransaction } from "@/app/transactions/actions";
 
 export default function TransactionsSection({ initialTransactions = [] }) {
+  const router = useRouter();
   const [category, setCategory] = useState("all");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [deletingId, setDeletingId] = useState(null);
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setTransactions(initialTransactions);
@@ -37,6 +43,27 @@ export default function TransactionsSection({ initialTransactions = [] }) {
 
   const categoryLabel =
     category === "all" ? "All Categories" : category;
+
+  function handleDelete(transactionId) {
+    if (!transactionId) return;
+    const confirmed = window.confirm("Delete this transaction? This cannot be undone.");
+    if (!confirmed) return;
+
+    setError("");
+    setDeletingId(transactionId);
+
+    startTransition(async () => {
+      try {
+        await deleteTransaction(transactionId);
+        setTransactions((prev) => prev.filter((tx) => tx.id !== transactionId));
+        router.refresh();
+      } catch (err) {
+        setError(err.message || "Failed to delete transaction");
+      } finally {
+        setDeletingId(null);
+      }
+    });
+  }
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm mt-5 overflow-hidden">
@@ -115,15 +142,23 @@ export default function TransactionsSection({ initialTransactions = [] }) {
         </div>
       </div>
 
+      {error ? (
+        <p className="mx-6 mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      ) : null}
+
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px]">
+        <table className="w-full min-w-[860px]">
           <thead>
             <tr className="border-y border-gray-100 bg-gray-50/50">
-              {["Date", "Description", "Category", "Payment Method", "Amount", "Status"].map(
-                (col) => (
+              {["Date", "Description", "Category", "Payment Method", "Amount", "Status", ""].map(
+                (col, i) => (
                   <th
-                    key={col}
-                    className="px-6 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+                    key={col || "actions"}
+                    className={`py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide ${
+                      i === 6 ? "px-4 text-right w-14" : "px-6 text-left"
+                    }`}
                   >
                     {col}
                   </th>
@@ -134,14 +169,21 @@ export default function TransactionsSection({ initialTransactions = [] }) {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                   {rows.length === 0
                     ? "No transactions yet. Use Add Expense above to add one manually."
                     : "No transactions match this category."}
                 </td>
               </tr>
             ) : (
-              filtered.map((tx) => <TransactionRow key={tx.id} tx={tx} />)
+              filtered.map((tx) => (
+                <TransactionRow
+                  key={tx.id}
+                  tx={tx}
+                  onDelete={handleDelete}
+                  deleting={isPending && deletingId === tx.id}
+                />
+              ))
             )}
           </tbody>
         </table>
