@@ -44,4 +44,4 @@ export default function AIInsights({ insights = [] }) {
       </div>
     </section>
   );
-}
+} //kjbnkjnk
