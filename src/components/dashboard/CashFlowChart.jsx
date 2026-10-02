@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { ArrowLeftRight, TrendingUp } from "lucide-react";
 
 const data = [
   { month: "Jan", income: 115000, expenses: 82000, savings: 33000 },
@@ -20,41 +21,62 @@ const data = [
 
 export default function CashFlowChart() {
   return (
-    <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-      <h2 className="text-base font-semibold text-gray-900">Cash Flow Overview</h2>
-      <p className="text-xs text-gray-400 mt-0.5">Income vs Expenses vs Savings</p>
+    <section className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+            <ArrowLeftRight size={16} className="text-indigo-600" />
+            Cash Flow Radar
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5 font-medium">Income vs Expenses vs Net Savings</p>
+        </div>
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          +42.6% Surplus
+        </span>
+      </div>
 
       <div className="h-[200px] mt-4">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} barGap={2} barCategoryGap="20%">
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+          <BarChart data={data} barGap={3} barCategoryGap="22%">
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis hide />
             <Tooltip
               formatter={(v) => `₹${Number(v).toLocaleString("en-IN")}`}
-              contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}
+              contentStyle={{
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                fontSize: 12,
+                fontWeight: 600,
+                boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)",
+              }}
             />
             <Legend
               iconType="circle"
               iconSize={8}
-              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+              wrapperStyle={{ fontSize: 11, fontWeight: 500, paddingTop: 6 }}
             />
             <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" name="Expenses" fill="#f87171" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" name="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="savings" name="Savings" fill="#6366f1" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-slate-100">
         {[
-          { label: "Avg. Monthly Income", value: "₹1,21,300" },
-          { label: "Avg. Monthly Expenses", value: "₹80,172" },
-          { label: "Avg. Monthly Savings", value: "₹41,128" },
-          { label: "Savings Rate", value: "42.6%", highlight: true },
+          { label: "Avg Income", value: "₹1,21,300", color: "text-slate-900" },
+          { label: "Avg Expenses", value: "₹80,172", color: "text-slate-900" },
+          { label: "Avg Savings", value: "₹41,128", color: "text-emerald-700" },
+          { label: "Savings Rate", value: "42.6%", color: "text-indigo-600", highlight: true },
         ].map((stat) => (
-          <div key={stat.label} className="text-center">
-            <p className="text-[10px] text-gray-400 leading-tight">{stat.label}</p>
-            <p className={`text-sm font-bold mt-1 ${stat.highlight ? "text-indigo-600" : "text-gray-900"}`}>
+          <div key={stat.label} className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+            <p className={`text-sm font-extrabold mt-0.5 ${stat.color}`}>
               {stat.value}
             </p>
           </div>
@@ -63,5 +85,3 @@ export default function CashFlowChart() {
     </section>
   );
 }
-
-

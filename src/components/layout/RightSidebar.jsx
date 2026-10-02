@@ -1,116 +1,230 @@
 "use client";
 
-import { Bot, Send, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Bot, Send, Calendar, Sparkles, CheckCircle2, ChevronRight, Clock, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
-const prompts = [
-  "Can I afford a ₹20k EMI?",
-  "How to save tax this year?",
-  "Review my budget",
-  "Best ELSS funds?",
+const initialPrompts = [
+  "Can I afford a ₹25k EMI?",
+  "How to save 80C tax this year?",
+  "Review my dining budget",
+  "Is NPS worth ₹50,000 extra?",
 ];
 
-const reminders = [
-  { date: "15", month: "JUN", title: "Advance Tax – Q1", due: "Due in 29 days", urgent: false },
-  { date: "20", month: "JUN", title: "GSTR-3B Filing", due: "Due in 34 days", urgent: false },
+const promptAnswers = {
+  "Can I afford a ₹25k EMI?":
+    "Based on your ₹53.6k monthly surplus, a ₹25k EMI will consume 46% of free cash flow. This is safe, provided your 6-month emergency fund remains intact.",
+  "How to save 80C tax this year?":
+    "You have ₹45,000 unused under 80C. Investing in ELSS mutual funds before March 31 can directly save up to ₹13,900 in tax (30% slab + cess).",
+  "Review my dining budget":
+    "Your Food & Dining spend is ₹18,400 this month (84% of your ₹22,000 target). We recommend pacing weekend delivery orders to stay within budget.",
+  "Is NPS worth ₹50,000 extra?":
+    "Yes! Under Section 80CCD(1B), a ₹50,000 NPS contribution gives an exclusive deduction beyond 80C, saving ₹15,600 for taxpayers in the 30% slab.",
+};
+
+const initialReminders = [
+  { date: "15", month: "JUN", title: "Advance Tax – Q1 (15%)", due: "Due in 29 days", urgent: false },
+  { date: "05", month: "JUN", title: "HDFC Credit Card Bill", due: "Due in 3 days", urgent: true },
   { date: "31", month: "JUL", title: "ITR Filing Deadline", due: "Due in 75 days", urgent: false },
-  { date: "05", month: "JUN", title: "Credit Card Payment", due: "Due in 19 days", urgent: true },
+  { date: "20", month: "JUN", title: "GSTR-3B Quarterly Filing", due: "Due in 34 days", urgent: false },
 ];
 
 const transactions = [
-  { name: "Zomato", category: "Food & Dining", amount: "-₹485", date: "Today", emoji: "🍕", bg: "bg-red-100" },
-  { name: "Swiggy", category: "Food & Dining", amount: "-₹320", date: "Today", emoji: "🛵", bg: "bg-orange-100" },
-  { name: "Amazon Pay", category: "Shopping", amount: "-₹2,499", date: "Yesterday", emoji: "📦", bg: "bg-yellow-100" },
-  { name: "Uber", category: "Transport", amount: "-₹245", date: "Yesterday", emoji: "🚗", bg: "bg-gray-100" },
-  { name: "HDFC Salary", category: "Income", amount: "+₹85,000", date: "Yesterday", emoji: "🏦", bg: "bg-blue-100", income: true },
+  { name: "Zomato", category: "Food & Dining", amount: "-₹485", date: "Today, 1:15 PM", emoji: "🍕", bg: "bg-red-50 text-red-600 border border-red-100" },
+  { name: "Swiggy Instamart", category: "Groceries", amount: "-₹720", date: "Today, 10:20 AM", emoji: "🛵", bg: "bg-orange-50 text-orange-600 border border-orange-100" },
+  { name: "Amazon Pay", category: "Shopping", amount: "-₹2,499", date: "Yesterday", emoji: "📦", bg: "bg-amber-50 text-amber-600 border border-amber-100" },
+  { name: "Uber India", category: "Transport", amount: "-₹245", date: "Yesterday", emoji: "🚗", bg: "bg-slate-100 text-slate-700 border border-slate-200" },
+  { name: "HDFC Monthly Salary", category: "Income", amount: "+₹1,28,500", date: "01 Jun", emoji: "🏦", bg: "bg-emerald-50 text-emerald-600 border border-emerald-100", income: true },
 ];
 
 export default function RightSidebar() {
+  const [query, setQuery] = useState("");
+  const [activeAnswer, setActiveAnswer] = useState(null);
+  const [reminders, setReminders] = useState(initialReminders);
+
+  const handleAsk = (text) => {
+    const q = text || query;
+    if (!q.trim()) return;
+    setQuery(q);
+
+    // Check pre-configured answer or generate dynamic one
+    const matched = promptAnswers[q] ||
+      `Copilot analysis for "${q}": Based on your current income of ₹1.28L/month and tax breakdown, this action aligns with keeping your debt-to-income under 35%.`;
+    setActiveAnswer({ q, a: matched });
+  };
+
+  const handleDismissReminder = (index) => {
+    setReminders((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
-    <aside className="w-[280px] xl:w-[300px] shrink-0 bg-white border-l border-gray-100 min-h-screen overflow-y-auto p-4 space-y-4">
-      {/* AI Copilot */}
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100/60">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <Bot size={16} className="text-white" />
+    <aside className="w-[280px] xl:w-[310px] shrink-0 bg-white/95 backdrop-blur-xl border-l border-slate-200/80 min-h-screen min-h-[100dvh] overflow-y-auto p-4 space-y-4 scrollbar-thin">
+      {/* AI Copilot Panel */}
+      <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white rounded-2xl p-4 border border-indigo-100/80 shadow-xs relative overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-xs">
+              <Bot size={16} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                AI Copilot
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </h3>
+              <p className="text-[10px] text-slate-400">Personal finance intelligence</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">AI Copilot</h3>
-            <p className="text-[10px] text-gray-400">Ask anything about your finances</p>
-          </div>
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+            GPT-4o
+          </span>
         </div>
 
+        {/* Dynamic response card if asked */}
+        {activeAnswer && (
+          <div className="mb-3 p-3 rounded-xl bg-white border border-indigo-200 shadow-xs text-xs space-y-1.5 animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-indigo-950 text-[11px] truncate flex items-center gap-1">
+                <Sparkles size={11} className="text-indigo-600 shrink-0" />
+                {activeAnswer.q}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveAnswer(null)}
+                className="text-[10px] text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">{activeAnswer.a}</p>
+          </div>
+        )}
+
+        {/* Quick prompt chips */}
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {prompts.map((p) => (
-            <span
+          {initialPrompts.map((p) => (
+            <button
               key={p}
-              role="button"
-              tabIndex={0}
-              className="text-[10px] bg-white border border-indigo-100 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors text-left cursor-pointer"
+              type="button"
+              onClick={() => handleAsk(p)}
+              className="text-[10px] font-medium bg-white/90 border border-indigo-100/90 text-indigo-700 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left shadow-2xs hover:scale-102"
             >
               {p}
-            </span>
+            </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3 py-2">
+        {/* Input box */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAsk(query);
+          }}
+          className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3 py-1.5 shadow-2xs focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all"
+        >
           <input
             type="text"
-            placeholder="Type your question..."
-            suppressHydrationWarning
-            className="flex-1 text-xs outline-none bg-transparent text-gray-700 placeholder:text-gray-400"
+            placeholder="Ask Copilot anything..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 text-xs outline-none bg-transparent text-slate-800 placeholder:text-slate-400"
           />
-          <button type="button" suppressHydrationWarning className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center hover:bg-indigo-700 transition-colors">
-            <Send size={13} className="text-white" />
+          <button
+            type="submit"
+            className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shadow-2xs shrink-0"
+          >
+            <Send size={12} />
           </button>
-        </div>
+        </form>
       </div>
 
-      {/* Reminders */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+      {/* Upcoming Reminders */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-900">Upcoming Reminders</h3>
-          <a href="#" className="text-[10px] text-indigo-600 font-medium hover:underline">View all</a>
+          <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+            <Clock size={14} className="text-indigo-600" />
+            Upcoming Reminders
+          </h3>
+          <Link href="/reminders" className="text-[10px] text-indigo-600 font-semibold hover:underline">
+            View all ({reminders.length})
+          </Link>
         </div>
-        <div className="space-y-3">
-          {reminders.map((r) => (
-            <div key={r.title} className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex flex-col items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-indigo-600 leading-none">{r.date}</span>
-                <span className="text-[9px] text-indigo-400 font-medium">{r.month}</span>
+
+        <div className="space-y-2.5">
+          {reminders.map((r, i) => (
+            <div
+              key={r.title}
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors group"
+            >
+              <div
+                className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 border ${
+                  r.urgent
+                    ? "bg-rose-50 border-rose-100 text-rose-600"
+                    : "bg-indigo-50 border-indigo-100 text-indigo-600"
+                }`}
+              >
+                <span className="text-[11px] font-extrabold leading-none">{r.date}</span>
+                <span className="text-[8px] font-bold uppercase mt-0.5">{r.month}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-800 truncate">{r.title}</p>
-                <p className={`text-[10px] mt-0.5 ${r.urgent ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                <p className="text-xs font-semibold text-slate-800 truncate">{r.title}</p>
+                <p
+                  className={`text-[10px] font-medium mt-0.5 flex items-center gap-1 ${
+                    r.urgent ? "text-rose-600 font-semibold" : "text-slate-400"
+                  }`}
+                >
+                  {r.urgent && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />}
                   {r.due}
                 </p>
               </div>
-              <Calendar size={14} className="text-gray-300 shrink-0" />
+              <button
+                type="button"
+                onClick={() => handleDismissReminder(i)}
+                title="Mark completed"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-emerald-600"
+              >
+                <CheckCircle2 size={15} />
+              </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Recent Transactions */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+      {/* Recent Transactions Feed */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-900">Recent Transactions</h3>
-          <a href="#" className="text-[10px] text-indigo-600 font-medium hover:underline">View all</a>
+          <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+            <Sparkles size={14} className="text-indigo-600" />
+            Recent Activity
+          </h3>
+          <Link href="/transactions" className="text-[10px] text-indigo-600 font-semibold hover:underline">
+            View all →
+          </Link>
         </div>
-        <div className="space-y-3">
+
+        <div className="space-y-2.5">
           {transactions.map((t) => (
-            <div key={t.name + t.date} className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl ${t.bg} flex items-center justify-center text-base shrink-0`}>
+            <div
+              key={t.name + t.date}
+              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              <div
+                className={`w-9 h-9 rounded-xl ${t.bg} flex items-center justify-center text-sm shrink-0`}
+              >
                 {t.emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-800">{t.name}</p>
-                <p className="text-[10px] text-gray-400">{t.category}</p>
+                <p className="text-xs font-semibold text-slate-800 truncate">{t.name}</p>
+                <p className="text-[10px] text-slate-400">{t.category}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className={`text-xs font-semibold ${t.income ? "text-emerald-600" : "text-gray-800"}`}>
+                <p
+                  className={`text-xs font-bold ${
+                    t.income ? "text-emerald-600" : "text-slate-800"
+                  }`}
+                >
                   {t.amount}
                 </p>
-                <p className="text-[10px] text-gray-400">{t.date}</p>
+                <p className="text-[9px] text-slate-400">{t.date}</p>
               </div>
             </div>
           ))}
@@ -119,4 +233,3 @@ export default function RightSidebar() {
     </aside>
   );
 }
-

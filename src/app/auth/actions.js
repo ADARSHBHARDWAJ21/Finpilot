@@ -12,7 +12,7 @@ export async function signUp(email, password) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    return { error: error.message };
   }
 
   redirect("/auth/login?message=Check your email to confirm your account");
@@ -27,7 +27,7 @@ export async function signIn(email, password, nextPath = "/dashboard") {
   });
 
   if (error) {
-    throw new Error(error.message);
+    return { error: error.message };
   }
 
   const {

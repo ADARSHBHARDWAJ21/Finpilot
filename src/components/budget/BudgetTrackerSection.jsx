@@ -411,16 +411,16 @@ export default function BudgetTrackerSection({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto border-b border-gray-200 mb-6 pb-px">
+      <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-100/80 p-1.5 rounded-2xl mb-6 scrollbar-thin">
         {tabs.map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+            className={`shrink-0 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "text-indigo-600 border-indigo-600"
-                : "text-gray-500 border-transparent hover:text-gray-700"
+                ? "bg-white text-indigo-700 shadow-xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
             }`}
           >
             {tab}
@@ -428,22 +428,22 @@ export default function BudgetTrackerSection({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
             <div
               key={card.label}
-              className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"
+              className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{card.sub}</p>
+                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
+                  <p className="text-xl font-extrabold text-slate-900 mt-1">{card.value}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{card.sub}</p>
                 </div>
                 <div
-                  className={`w-9 h-9 rounded-lg ${card.iconBg} flex items-center justify-center shrink-0`}
+                  className={`w-9 h-9 rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform`}
                 >
                   <Icon size={16} className={card.iconColor} />
                 </div>

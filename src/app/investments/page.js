@@ -7,7 +7,16 @@ export default async function InvestmentsPage() {
 
   return (
     <DashboardLayout showRightSidebar={false}>
-      <ComingSoon title="Investments" />
+      <ComingSoon
+        title="Investments"
+        subtitle="Track stocks, mutual funds, EPF, and PPF with automated tax-loss harvesting and capital gains audit."
+        features={[
+          "Direct CAS (CAMS & KFintech) automatic mutual fund sync",
+          "Zerodha, Groww, & Upstox portfolio integration",
+          "Quarterly Advance Tax calculation on capital gains",
+          "Tax-loss harvesting alerts before March 31 deadline",
+        ]}
+      />
     </DashboardLayout>
   );
 }

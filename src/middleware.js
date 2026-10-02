@@ -14,7 +14,7 @@ function isOnboardingRoute(pathname) {
 }
 
 function isPublicRoute(pathname) {
-  return pathname === "/";
+  return pathname === "/" || pathname === "/templates/transactions.csv";
 }
 
 function isProtectedRoute(pathname) {

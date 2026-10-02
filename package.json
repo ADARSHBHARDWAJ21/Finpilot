@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:copilot": "node --test tests/copilot*.test.mjs",
+    "test:imports": "node --test tests/statement-import.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -18,6 +20,7 @@
     "next": "16.2.6",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "5.4.296",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",

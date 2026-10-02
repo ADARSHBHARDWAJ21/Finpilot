@@ -57,19 +57,22 @@ export default function RemindersSection({ data }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-6">
         {(data?.summaryCards ?? []).map((card) => {
           const Icon = iconMap[card.key] || Bell;
           return (
-            <div key={card.label} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+            <div
+              key={card.label}
+              className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs text-gray-500">{card.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{card.sub}</p>
+                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{card.label}</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-1">{card.value}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{card.sub}</p>
                 </div>
-                <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-                  <Icon size={16} className="text-indigo-600" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+                  <Icon size={18} />
                 </div>
               </div>
             </div>
@@ -79,15 +82,17 @@ export default function RemindersSection({ data }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
         <div className="space-y-5">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-2 overflow-x-auto">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto bg-slate-50/50 scrollbar-thin">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`shrink-0 px-3 py-1.5 rounded-lg text-sm ${
-                    activeTab === tab.id ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"
+                  className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === tab.id
+                      ? "bg-white text-indigo-700 shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                   }`}
                 >
                   {tab.label}

@@ -1,30 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CloudUpload,
-  Plus,
+  Search,
+  Filter,
+  ArrowUpDown,
+  Download,
 } from "lucide-react";
 import TransactionRow from "@/components/transactions/TransactionRow";
 import { mapTransactionToRow } from "@/components/transactions/transaction-utils";
 import { deleteTransaction } from "@/app/transactions/actions";
+import UploadStatement from "@/components/transactions/upload-csv";
 
 export default function TransactionsSection({ initialTransactions = [] }) {
   const router = useRouter();
   const [category, setCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [previousInitial, setPreviousInitial] = useState(initialTransactions);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
+  if (previousInitial !== initialTransactions) {
+    setPreviousInitial(initialTransactions);
     setTransactions(initialTransactions);
-  }, [initialTransactions]);
+  }
 
   const rows = useMemo(
     () => transactions.map((tx, i) => mapTransactionToRow(tx, i)),
@@ -36,13 +42,19 @@ export default function TransactionsSection({ initialTransactions = [] }) {
     return ["all", ...Array.from(set).sort()];
   }, [rows]);
 
-  const filtered =
-    category === "all"
-      ? rows
-      : rows.filter((tx) => tx.category === category);
+  const filtered = useMemo(() => {
+    return rows.filter((tx) => {
+      const matchCat = category === "all" || tx.category === category;
+      const matchQuery =
+        !searchQuery.trim() ||
+        tx.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.payment?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCat && matchQuery;
+    });
+  }, [rows, category, searchQuery]);
 
-  const categoryLabel =
-    category === "all" ? "All Categories" : category;
+  const categoryLabel = category === "all" ? "All Categories" : category;
 
   function handleDelete(transactionId) {
     if (!transactionId) return;
@@ -66,24 +78,40 @@ export default function TransactionsSection({ initialTransactions = [] }) {
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm mt-5 overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-6 pb-4">
+    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs mt-6 overflow-hidden">
+      {/* Header controls bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-6 pb-4 border-b border-slate-100">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Transactions</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            View, manage and import your transactions
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Transactions Ledger</h2>
+          <p className="text-xs text-slate-400 mt-0.5 font-medium">
+            Search, filter, categorize, and audit verified bank debits &amp; credits
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Search input */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search payees, tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 transition-all font-medium"
+            />
+          </div>
+
+          {/* Category filter dropdown */}
           <div className="relative">
             <button
               type="button"
               suppressHydrationWarning
               onClick={() => setDropdownOpen((open) => !open)}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs"
             >
-              {categoryLabel}
-              <ChevronDown size={16} className="text-gray-400" />
+              <Filter size={13} className="text-slate-400" />
+              <span>{categoryLabel}</span>
+              <ChevronDown size={14} className="text-slate-400" />
             </button>
             {dropdownOpen && (
               <>
@@ -93,13 +121,13 @@ export default function TransactionsSection({ initialTransactions = [] }) {
                   aria-label="Close category menu"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <ul className="absolute right-0 z-20 mt-1 min-w-[160px] max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg py-1">
+                <ul className="absolute right-0 z-20 mt-1 min-w-[170px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1 text-xs scrollbar-thin">
                   {categories.map((cat) => (
                     <li key={cat}>
                       <button
                         type="button"
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                          category === cat ? "text-indigo-600 font-medium" : "text-gray-700"
+                        className={`w-full text-left px-3.5 py-2 font-medium hover:bg-slate-50 transition-colors ${
+                          category === cat ? "text-indigo-600 font-bold bg-indigo-50/50" : "text-slate-700"
                         }`}
                         onClick={() => {
                           setCategory(cat);
@@ -117,46 +145,36 @@ export default function TransactionsSection({ initialTransactions = [] }) {
         </div>
       </div>
 
-      <div className="mx-6 mb-6 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-5 opacity-95">
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-          <div className="w-11 h-11 rounded-xl bg-indigo-100/80 flex items-center justify-center shrink-0">
-            <CloudUpload size={22} className="text-indigo-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-bold text-gray-900">Upload Bank Statement</h3>
-              <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">
-                Coming Soon 🚀
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-              Statement import (CSV, Excel, PDF, and photos) is launching soon. For now,
-              only manual entry is available.
-            </p>
-            <p className="text-xs text-indigo-700 mt-2 flex items-center gap-1.5 font-medium">
-              <Plus size={14} className="shrink-0" />
-              Use the <span className="font-semibold">Add Expense</span> button in the top
-              right to add transactions.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Upload CSV container */}
+      <UploadStatement
+        className="mx-6 my-5"
+        onImported={(saved) => {
+          setTransactions((previous) => {
+            const byId = new Map(previous.map((row) => [row.id, row]));
+            for (const row of saved) byId.set(row.id, row);
+            return [...byId.values()].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
+          });
+          setCategory("all");
+          router.refresh();
+        }}
+      />
 
       {error ? (
-        <p className="mx-6 mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+        <p className="mx-6 mb-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2 font-medium">
           {error}
         </p>
       ) : null}
 
-      <div className="overflow-x-auto">
+      {/* Table */}
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full min-w-[860px]">
           <thead>
-            <tr className="border-y border-gray-100 bg-gray-50/50">
+            <tr className="border-y border-slate-100 bg-slate-50/70">
               {["Date", "Description", "Category", "Payment Method", "Amount", "Status", ""].map(
                 (col, i) => (
                   <th
                     key={col || "actions"}
-                    className={`py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide ${
+                    className={`py-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ${
                       i === 6 ? "px-4 text-right w-14" : "px-6 text-left"
                     }`}
                   >
@@ -166,13 +184,13 @@ export default function TransactionsSection({ initialTransactions = [] }) {
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                <td colSpan={7} className="px-6 py-14 text-center text-xs text-slate-400 font-medium">
                   {rows.length === 0
-                    ? "No transactions yet. Use Add Expense above to add one manually."
-                    : "No transactions match this category."}
+                    ? "No transactions yet. Drag & drop a bank PDF statement or use Add Expense above."
+                    : "No transactions match your search filter."}
                 </td>
               </tr>
             ) : (
@@ -189,37 +207,38 @@ export default function TransactionsSection({ initialTransactions = [] }) {
         </table>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-gray-100">
-        <p className="text-sm text-gray-500">
+      {/* Pagination Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 text-xs">
+        <p className="text-slate-500 font-medium">
           {filtered.length === 0
-            ? "No transactions to show"
+            ? "No transactions found"
             : `Showing ${filtered.length} of ${rows.length} transaction${
                 rows.length === 1 ? "" : "s"
               }`}
         </p>
-        <div className="flex items-center gap-1 opacity-50 pointer-events-none">
+        <div className="flex items-center gap-1.5 opacity-60">
           <button
             type="button"
             suppressHydrationWarning
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"
             aria-label="Previous page"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
           <button
             type="button"
             suppressHydrationWarning
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium bg-indigo-600 text-white"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-xs"
           >
             1
           </button>
           <button
             type="button"
             suppressHydrationWarning
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"
             aria-label="Next page"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>

@@ -245,79 +245,79 @@ export default function TaxationOverviewSection({ taxContext, categoryProgress }
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3.5 sm:gap-4 mb-8">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">Annual CTC</p>
-              <p className="text-xl font-bold text-gray-900 mt-1">{annualCtc ? formatInr(annualCtc) : "—"}</p>
-              <Link href="/taxation/salary-documents" className="text-[11px] font-semibold text-indigo-600 mt-2 inline-block hover:underline">
-                View Salary Details →
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Annual CTC</p>
+              <p className="text-xl font-extrabold text-slate-900 mt-1">{annualCtc ? formatInr(annualCtc) : "—"}</p>
+              <Link href="/taxation/salary-documents" className="text-[11px] font-bold text-indigo-600 mt-2 inline-flex items-center gap-0.5 hover:underline">
+                Salary Details →
               </Link>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-              <Wallet size={18} className="text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+              <Wallet size={18} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium mb-2">Tax Readiness</p>
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Tax Readiness</p>
           <div className="flex items-center gap-3">
             <ReadinessRing percent={taxHealthScore} />
             <div>
-              <p className="text-xl font-bold text-gray-900">{taxHealthScore}%</p>
-              <p className="text-[11px] font-semibold text-emerald-600">Well Planned</p>
-              <p className="text-[10px] text-gray-400">Keep it up! 🎉</p>
+              <p className="text-xl font-extrabold text-slate-900">{taxHealthScore}%</p>
+              <p className="text-[11px] font-bold text-emerald-600">Well Planned</p>
+              <p className="text-[10px] text-slate-400 font-medium">Keep it up! 🎉</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">Pending Items</p>
-              <p className="text-lg font-bold text-red-500 mt-1">{missingCount} Action Required</p>
-              <Link href="/taxation" className="text-[11px] font-semibold text-indigo-600 mt-2 inline-block hover:underline">
-                View all →
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Pending Proofs</p>
+              <p className="text-lg font-extrabold text-rose-600 mt-1">{missingCount} Action Required</p>
+              <Link href="/taxation" className="text-[11px] font-bold text-indigo-600 mt-2 inline-flex items-center gap-0.5 hover:underline">
+                Resolve now →
               </Link>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-              <AlertTriangle size={18} className="text-red-500" />
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+              <AlertTriangle size={18} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">Recommended Regime</p>
-              <p className="text-2xl font-extrabold text-gray-900 mt-1 tracking-wide">{regimeLabel}</p>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Optimal Regime</p>
+              <p className="text-xl font-extrabold text-slate-900 mt-1 tracking-wide">{regimeLabel}</p>
               {liveCompare.savings > 0 && (
-                <p className="text-[11px] font-semibold text-emerald-600 mt-1 leading-snug">
-                  You save {formatInr(liveCompare.savings)} vs {isOldRecommended ? "New" : "Old"} Regime
+                <p className="text-[11px] font-bold text-emerald-600 mt-1 leading-snug">
+                  Save {formatInr(liveCompare.savings)} vs {isOldRecommended ? "New" : "Old"}
                 </p>
               )}
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-              <ShieldCheck size={18} className="text-blue-600" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+              <ShieldCheck size={18} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
                 Est. Tax ({isOldRecommended ? "Old" : "New"})
               </p>
-              <p className="text-xl font-bold text-gray-900 mt-1">
+              <p className="text-xl font-extrabold text-slate-900 mt-1">
                 {estTaxForRecommended ? formatInr(estTaxForRecommended) : "—"}
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">Incl. cess & surcharge</p>
+              <p className="text-[10px] text-slate-400 mt-1 font-medium">Incl. cess &amp; surcharge</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-              <Percent size={18} className="text-purple-600" />
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
+              <Percent size={18} />
             </div>
           </div>
         </div>

@@ -1,0 +1,64 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Length 646 >>
+stream
+BT /F1 10 Tf 30 730 Td (Date) Tj ET
+BT /F1 10 Tf 30 706 Td (01/09/2026) Tj ET
+BT /F1 10 Tf 30 658 Td (02/09/2026) Tj ET
+BT /F1 10 Tf 30 634 Td (03/09/2026) Tj ET
+BT /F1 10 Tf 160 730 Td (Particulars) Tj ET
+BT /F1 10 Tf 160 706 Td (UPI) Tj ET
+BT /F1 10 Tf 160 682 Td (ZOMATO) Tj ET
+BT /F1 10 Tf 160 658 Td (NEFT SALARY) Tj ET
+BT /F1 10 Tf 160 634 Td (ATM) Tj ET
+BT /F1 10 Tf 340 730 Td (Deposits) Tj ET
+BT /F1 10 Tf 340 658 Td (30000.00) Tj ET
+BT /F1 10 Tf 420 730 Td (Withdrawals) Tj ET
+BT /F1 10 Tf 420 682 Td (450.00) Tj ET
+BT /F1 10 Tf 505 730 Td (Balance) Tj ET
+BT /F1 10 Tf 505 682 Td (9550.00) Tj ET
+BT /F1 10 Tf 505 658 Td (39550.00) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Length 278 >>
+stream
+BT /F1 10 Tf 30 706 Td (04/09/2026) Tj ET
+BT /F1 10 Tf 160 730 Td (CASH) Tj ET
+BT /F1 10 Tf 160 706 Td (REFUND) Tj ET
+BT /F1 10 Tf 340 706 Td (100.00) Tj ET
+BT /F1 10 Tf 420 730 Td (1000.00) Tj ET
+BT /F1 10 Tf 505 730 Td (38550.00) Tj ET
+BT /F1 10 Tf 505 706 Td (38650.00) Tj ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000373 00000 n 
+0000000441 00000 n 
+0000001138 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1467
+%%EOF

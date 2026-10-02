@@ -48,15 +48,20 @@ export default async function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 min-w-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 min-w-0 pb-4 border-b border-slate-200/70">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Good morning{onboardingProfile?.full_name ? `, ${onboardingProfile.full_name.split(" ")[0]}` : ""} 👋
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Good morning{onboardingProfile?.full_name ? `, ${onboardingProfile.full_name.split(" ")[0]}` : ""} 👋
+            </h1>
+            <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ● All Systems Live
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
             {summary?.monthLabel
-              ? `Here's your financial overview for ${summary.monthLabel}`
-              : "Here's your financial overview"}
+              ? `Here's your executive financial overview for ${summary.monthLabel}`
+              : "Here's your autonomous financial overview"}
           </p>
         </div>
         <Topbar />
