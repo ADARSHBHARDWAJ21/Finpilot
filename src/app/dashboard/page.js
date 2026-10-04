@@ -1,88 +1,39 @@
 import { requireUser } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import Topbar from "@/components/layout/Topbar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import NetWorthSection from "@/components/dashboard/NetWorthSection";
 import ExpenseChart from "@/components/dashboard/ExpenseChart";
 import CashFlowChart from "@/components/dashboard/CashFlowChart";
 import BudgetTracker from "@/components/dashboard/BudgetTracker";
-import TaxSummary from "@/components/dashboard/TaxSummary";
-import AIInsights from "@/components/dashboard/AIInsights";
-import { getBudgetDashboardData } from "@/app/budget-tracker/actions";
-import { getFinancialSummary, getOnboardingProfile, getDashboardChartsData } from "@/app/dashboard/actions";
+import MonthlyActivity from "@/components/dashboard/MonthlyActivity";
+import { getDashboardOverview } from "./actions";
+import { resolveMonthKey, monthLabel } from "@/lib/dashboard/period";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }) {
   await requireUser();
-
-  let budgetCategories = [];
-  let budgetMonthLabel = "";
-  let summary = null;
-  let onboardingProfile = null;
-  let chartsData = null;
-
-  try {
-    onboardingProfile = await getOnboardingProfile();
-  } catch {
-    onboardingProfile = null;
-  }
-
-  try {
-    const budgetData = await getBudgetDashboardData();
-    budgetCategories = budgetData.dashboard?.categories ?? [];
-    budgetMonthLabel = budgetData.dashboard?.monthLabel ?? "";
-  } catch {
-    /* show empty widget */
-  }
-
-  try {
-    summary = await getFinancialSummary();
-  } catch {
-    summary = null;
-  }
-
-  try {
-    chartsData = await getDashboardChartsData();
-  } catch {
-    chartsData = null;
-  }
-
+  const params = await searchParams;
+  const now = new Date();
+  const selectedMonth = resolveMonthKey(params?.month, now);
+  let overview;
+  try { overview = await getDashboardOverview(selectedMonth); } catch { /* Keep the month picker and a retry available. */ }
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 min-w-0 pb-4 border-b border-slate-200/70">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Good morning{onboardingProfile?.full_name ? `, ${onboardingProfile.full_name.split(" ")[0]}` : ""} 👋
-            </h1>
-            <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ● All Systems Live
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-            {summary?.monthLabel
-              ? `Here's your executive financial overview for ${summary.monthLabel}`
-              : "Here's your autonomous financial overview"}
-          </p>
+    <DashboardLayout rightSidebarProps={{ recentTransactions: overview?.recentTransactions || [], monthLabel: monthLabel(selectedMonth) }}>
+      <DashboardHeader fullName={overview?.fullName} selectedMonth={selectedMonth} availableMonths={overview?.availableMonths || []} updatedAt={overview?.updatedAt || now.toISOString()} />
+      {!overview ? <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Your financial data could not be loaded. Select Refresh financial overview to try again.</div> : <>
+        <p className="text-xs text-slate-500" role="status">Showing {overview.monthLabel} · {overview.summary.transactionCount} recorded transactions. Balance includes records through this month.</p>
+        {!overview.summary.transactionCount && <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-800">No transactions recorded for {overview.monthLabel}. Choose another month or import a statement to add past activity.</div>}
+        <SummaryCards summary={overview.summary} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
+          <NetWorthSection key={selectedMonth} netWorthData={overview.netWorth} />
+          <ExpenseChart expenseData={overview.expenses} />
         </div>
-        <Topbar />
-      </div>
-
-      <SummaryCards summary={summary} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
-        <NetWorthSection netWorthData={chartsData?.netWorth} />
-        <ExpenseChart expenseData={chartsData?.expenses} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
-        <CashFlowChart />
-        <BudgetTracker categories={budgetCategories} monthLabel={budgetMonthLabel} />
-        <TaxSummary taxSummary={onboardingProfile?.ai_summary} />
-      </div>
-
-      <div className="mt-5">
-        <AIInsights insights={onboardingProfile?.ai_summary?.insights ?? []} />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-4 sm:mt-5 min-w-0">
+          <CashFlowChart cashFlowData={overview.cashFlow} />
+          <BudgetTracker categories={overview.budget.categories} monthLabel={overview.monthLabel} available={overview.budgetAvailable} />
+          <MonthlyActivity activity={overview.activity} monthLabel={overview.monthLabel} />
+        </div>
+      </>}
     </DashboardLayout>
   );
 }

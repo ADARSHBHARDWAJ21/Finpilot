@@ -9,13 +9,14 @@ export const maxDuration = 90;
 const headers = { "Cache-Control": "private, no-store" };
 const json = (data, status = 200) => Response.json(data, { status, headers });
 const messages = {
-  AI_NOT_CONFIGURED: "Copilot's AI connection is not configured yet. Your financial snapshot is still available.",
+  AI_NOT_CONFIGURED: "Copilot's Gemini connection is not configured yet. Your financial snapshot is still available.",
   AI_BUSY: "The AI service is busy. Please try again shortly.",
-  AI_CREDITS_EXHAUSTED: "The connected OpenAI account has no API credits remaining. Add credits in OpenAI billing to enable Copilot answers.",
-  AI_QUOTA_EXHAUSTED: "The connected OpenAI account has reached a billing or usage limit. Check OpenAI billing and project limits before trying again.",
+  AI_CREDITS_EXHAUSTED: "The connected Gemini project has no API credits remaining. Check the project's Google AI Studio billing settings.",
+  AI_QUOTA_EXHAUSTED: "Gemini's request or usage quota has been reached. Try again shortly. If this continues, check the project's limits in Google AI Studio.",
   AI_CONNECTION_FAILED: "Could not connect to the AI service. Please try again.",
-  AI_KEY_INVALID: "OpenAI rejected the configured API key. Please check Copilot's server settings.",
-  AI_MODEL_UNAVAILABLE: "The selected OpenAI model is unavailable. Please check Copilot's server settings.",
+  AI_KEY_INVALID: "Gemini rejected the configured API key or project access. Please check Copilot's server settings.",
+  AI_MODEL_UNAVAILABLE: "The selected Gemini model is unavailable for this project. Please check Copilot's server settings.",
+  AI_CONTENT_BLOCKED: "Gemini could not answer this question. Try rephrasing it without sensitive personal identifiers.",
   AI_INCOMPLETE_RESPONSE: "The AI answer was cut short. Please try a shorter question.",
   CHAT_INVALID: "This saved chat contains invalid data. Start a new chat to continue.",
   CHAT_INVALID_DATA: "This saved chat contains invalid data. Start a new chat to continue.",
@@ -60,7 +61,7 @@ export async function GET(req) {
       return json({ chat: await readCopilotChat(supabase, user.id, id) });
     }
     const [snapshot, history] = await Promise.all([loadCopilotContext(supabase, user.id), listCopilotChats(supabase, user.id)]);
-    return json({ snapshot: snapshot.view, ...history, aiConfigured: Boolean(process.env.OPENAI_API_KEY?.trim()) });
+    return json({ snapshot: snapshot.view, ...history, aiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()) });
   } catch (error) { return fail(error); }
 }
 
@@ -70,7 +71,7 @@ export async function POST(req) {
     if (!user) return json({ error: "Please sign in to use Copilot." }, 401);
     const parsed = chatRequestSchema.safeParse(await boundedJson(req));
     if (!parsed.success) return json({ error: "Enter a question of up to 3,000 characters." }, 400);
-    if (!process.env.OPENAI_API_KEY?.trim()) throw new CopilotError("AI_NOT_CONFIGURED");
+    if (!process.env.GEMINI_API_KEY?.trim()) throw new CopilotError("AI_NOT_CONFIGURED");
     if (!allowCopilotRequest(user.id)) return json({ error: "Please wait a minute before sending more questions." }, 429);
     const { message, conversationId } = parsed.data;
     const previous = conversationId ? await readCopilotChat(supabase, user.id, conversationId) : null;

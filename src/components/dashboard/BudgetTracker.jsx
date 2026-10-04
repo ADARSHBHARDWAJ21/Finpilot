@@ -5,15 +5,8 @@ function formatInr(value) {
   return `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
 }
 
-const SAMPLE_BUDGETS = [
-  { key: "food", name: "Food & Groceries", spent: 18400, budget: 22000, pct: 84, barColor: "bg-indigo-600" },
-  { key: "rent", name: "Rent & Maintenance", spent: 32000, budget: 32000, pct: 100, barColor: "bg-emerald-600" },
-  { key: "shopping", name: "Shopping & Lifestyle", spent: 14200, budget: 12000, pct: 118, barColor: "bg-rose-500" },
-  { key: "entertainment", name: "Dining & Outings", spent: 6800, budget: 10000, pct: 68, barColor: "bg-amber-500" },
-];
-
-export default function BudgetTracker({ categories = [], monthLabel = "" }) {
-  const displayItems = categories.length > 0 ? categories.slice(0, 5) : SAMPLE_BUDGETS;
+export default function BudgetTracker({ categories = [], monthLabel = "", available = true }) {
+  const displayItems = categories.slice(0, 5);
 
   return (
     <section className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
@@ -37,9 +30,12 @@ export default function BudgetTracker({ categories = [], monthLabel = "" }) {
       </div>
 
       <div className="space-y-3.5">
+        {!available && <p className="text-xs text-amber-700">Budget limits could not be loaded. Recorded spending is shown below.</p>}
+        {!displayItems.length && <p className="text-sm text-slate-500">No saved budgets or expenses for this month.</p>}
         {displayItems.map((item) => {
+          const hasLimit = item.budget !== null && available;
           const pct = item.budget > 0 ? Math.min(Math.round((item.spent / item.budget) * 100), 100) : 0;
-          const over = item.pct > 100 || (item.spent > item.budget && item.budget > 0);
+          const over = hasLimit && item.spent > item.budget;
           const barPct = over ? 100 : pct;
 
           return (
@@ -49,12 +45,12 @@ export default function BudgetTracker({ categories = [], monthLabel = "" }) {
                 <span className="font-medium text-slate-500">
                   <strong className="text-slate-900">{formatInr(item.spent)}</strong>
                   <span className="text-slate-300 mx-1">/</span>
-                  {formatInr(item.budget)}
+                  {hasLimit ? formatInr(item.budget) : "No saved limit"}
                 </span>
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              {hasLimit && <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     over
@@ -65,9 +61,9 @@ export default function BudgetTracker({ categories = [], monthLabel = "" }) {
                   }`}
                   style={{ width: `${barPct}%` }}
                 />
-              </div>
+              </div>}
 
-              <div className="flex items-center justify-between text-[10px] mt-1.5 font-medium">
+              {hasLimit && <div className="flex items-center justify-between text-[10px] mt-1.5 font-medium">
                 <span
                   className={
                     over
@@ -82,7 +78,7 @@ export default function BudgetTracker({ categories = [], monthLabel = "" }) {
                 <span className="text-slate-400">
                   {over ? "Exceeded" : `${formatInr(Math.max(0, item.budget - item.spent))} left`}
                 </span>
-              </div>
+              </div>}
             </div>
           );
         })}

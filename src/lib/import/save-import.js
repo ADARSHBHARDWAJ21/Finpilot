@@ -18,7 +18,12 @@ export function normalizeImportRows(transactions, userId) {
   return transactions.map((input, index) => {
     const { row, issues } = validateImportRow(input);
     if (issues.length) throw new Error(`Row ${index + 1}: ${issues.join(". ")}. Please correct it before saving.`);
-    return { ...row, user_id: userId, category: applyCategoryRules(row.description, row.category) };
+    // Reviewed categories, including Other, are explicit choices. Only suggest
+    // a category for callers that did not provide one at all.
+    const category = input.category == null || String(input.category).trim() === ""
+      ? applyCategoryRules(row.description, undefined, row.type)
+      : row.category;
+    return { ...row, user_id: userId, category };
   });
 }
 

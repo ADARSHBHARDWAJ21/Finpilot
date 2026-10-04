@@ -9,9 +9,63 @@ import { parseOcrStatementLayout, parsePositionedStatementLayout } from "../src/
 import { normalizeImportRows, removeExistingTransactions, saveImportedTransactions } from "../src/lib/import/save-import.js";
 import { parseStatementFile } from "../src/components/transactions/parse-statement-file.js";
 import { processStatement, selectStatementExtraction } from "../src/lib/ingestion/process-statement.js";
+import { detectCategory, applyCategoryRules } from "../src/lib/bank-parsers/category-rules.js";
+import { normalizeTransactions } from "../src/lib/bank-parsers/normalize-transactions.js";
+import { TRANSACTION_CATEGORY_KEYS } from "../src/lib/budget/category-meta.js";
 
 const expense = { transaction_date: "2026-09-01", description: "Finpilot import test coffee", amount: 450, type: "expense", category: "Food", payment_method: "Bank" };
 const income = { ...expense, description: "Finpilot import test salary", amount: 30000, type: "income", category: "Income" };
+
+test("category suggestions recognize merchants and bill descriptions in bank narrations", () => {
+  const examples = [
+    ["UPI/DR/123456789012/zomato@hdfcbank", "Food"],
+    ["UPI swiggyinstamart@icici", "Food"],
+    ["POS BIGBASKET Bengaluru", "Food"],
+    ["UPI/OLA CABS/123456", "Transport"],
+    ["FASTAG recharge", "Transport"],
+    ["AMAZON PRIME subscription", "Entertainment"],
+    ["POS AMAZON purchase", "Shopping"],
+    ["AIRTEL broadband bill", "Utilities"],
+    ["NEFT MONTHLY RENT", "Housing"],
+    ["UPI APOLLO PHARMACY", "Healthcare"],
+  ];
+  for (const [description, category] of examples) {
+    assert.equal(detectCategory(description, "expense"), category, description);
+    assert.ok(TRANSACTION_CATEGORY_KEYS.includes(category));
+  }
+});
+
+test("unknown beneficiaries and merchant fragments are not assigned a guessed category", () => {
+  for (const description of ["UPI/DR/KAMOLA/123456", "NEFT BIPOLAR SERVICES", "UPI/DR/RAMESH/123456", "IMPS TRANSFER", "BANK CHARGES"]) {
+    assert.equal(detectCategory(description, "expense"), "Other", description);
+  }
+  assert.equal(detectCategory("AMAZON REFUND", "income"), "Income");
+  assert.equal(applyCategoryRules("ZOMATO", "Business meals", "expense"), "Business meals");
+});
+
+test("CSV, Excel matrix and PDF text share automatic suggestions and preserve source categories", async () => {
+  const csv = "Date,Description,Debit,Credit,Category\n01/09/2026,UPI SWIGGY,450,,\n02/09/2026,NETFLIX,500,,\n03/09/2026,AMAZON REFUND,,100,\n04/09/2026,UBER,200,,Business travel\n";
+  const result = await parseStatementFile(new File([csv], "categories.csv"));
+  assert.deepEqual(result.transactions.map((row) => row.category), ["Food", "Entertainment", "Income", "Business travel"]);
+  const matrix = parseStatementMatrix([["Date", "Description", "Amount", "Type"], ["01/09/2026", "AIRTEL", 100, "expense"], ["02/09/2026", "SBINT CREDIT", 20, "income"]]);
+  assert.deepEqual(matrix.transactions.map((row) => row.category), ["Utilities", "Income"]);
+  const pdfText = parseStatementText("01/09/2026 ZOMATO 450.00 DR\n02/09/2026 SBINT 20.00 CR");
+  assert.deepEqual(pdfText.transactions.map((row) => row.category), ["Food", "Income"]);
+  assert.deepEqual(normalizeTransactions([{ date: "01/09/2026", description: "ZOMATO", amount: -50 }, { date: "02/09/2026", description: "ZOMATO REFUND", amount: 10 }]).map((row) => row.category), ["Food", "Income"]);
+});
+
+test("saving uses the reviewed dropdown category including Other without reclassifying", async () => {
+  const rows = normalizeImportRows([
+    { ...expense, description: "ZOMATO", category: "Other" },
+    { ...expense, description: "ZOMATO", category: "Housing" },
+    { ...expense, description: "ZOMATO", category: "Business meals" },
+    { ...expense, description: "ZOMATO", category: undefined },
+  ], "owner");
+  assert.deepEqual(rows.map((row) => row.category), ["Other", "Housing", "Business meals", "Food"]);
+  const db = fakeDatabase();
+  await saveImportedTransactions(db, "owner", rows);
+  assert.deepEqual(db.state.rows.map((row) => row.category), ["Other", "Housing", "Business meals", "Food"]);
+});
 
 test("dates validate calendar days and Indian date order without timezone shifts", () => {
   assert.equal(parseTransactionDate("01/10/2026"), "2026-10-01");

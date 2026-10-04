@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server-client";
 import { loadCopilotContext } from "@/lib/copilot/context";
 import { listCopilotChats } from "@/lib/copilot/chat-store";
 
-export default async function AITaxCopilotPage() {
+export default async function AITaxCopilotPage({ searchParams }) {
+  const params = await searchParams;
+  const initialQuestion = typeof params?.question === "string" ? params.question.slice(0, 3000) : "";
   const user = await requireUser();
   const supabase = await createClient();
   const [snapshotResult, historyResult] = await Promise.allSettled([
@@ -22,7 +24,8 @@ export default async function AITaxCopilotPage() {
         initialChats={history.chats}
         historyAvailable={history.available}
         initialError={snapshot?.view ? "" : "Your financial profile could not be loaded. Select Refresh data to try again."}
-        aiConfigured={Boolean(process.env.OPENAI_API_KEY?.trim())}
+        aiConfigured={Boolean(process.env.GEMINI_API_KEY?.trim())}
+        initialQuestion={initialQuestion}
       />
     </DashboardLayout>
   );

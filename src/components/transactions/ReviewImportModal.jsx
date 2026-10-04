@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Pencil, Check, AlertTriangle } from "lucide-react";
 import { validateImportRow, parseTransactionDate } from "@/lib/import/transaction-values";
+import { applyCategoryRules } from "@/lib/bank-parsers/category-rules";
+import { TRANSACTION_CATEGORY_KEYS, getCategoryMeta } from "@/lib/budget/category-meta";
 
 const PAGE_SIZE = 25;
 const inputClass = "w-full rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 focus:border-indigo-500 focus:outline-none";
@@ -10,7 +12,10 @@ const money = (value) => Number(value).toLocaleString("en-IN", { maximumFraction
 const dateLabel = (value) => parseTransactionDate(value) ? new Date(`${parseTransactionDate(value)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Not read";
 
 export default function ReviewImportModal({ transactions = [], fileName, warnings = [], onClose, onConfirm }) {
-  const [rows, setRows] = useState(() => transactions.map((row) => ({ ...row, selected: !validateImportRow(row).issues.length })));
+  const [rows, setRows] = useState(() => transactions.map((row) => {
+    const suggested = { ...row, category: applyCategoryRules(row.description, row.category, row.type) };
+    return { ...suggested, selected: !validateImportRow(suggested).issues.length };
+  }));
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -78,6 +83,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
             <h2 id="import-title" className="text-lg font-bold text-gray-900">Review extracted transactions</h2>
             <p className="mt-1 break-all text-xs text-gray-500">{fileName} · {rows.length} transactions found</p>
             <p className="mt-2 text-sm text-gray-600">Your statement details were filled automatically. Check they are correct, then click Import.</p>
+            <p className="mt-1 text-xs text-gray-500">Categories are suggested from transaction details. Use the dropdowns to change them before importing. Unrecognized transactions stay in Other.</p>
           </div>
           <button type="button" disabled={saving} aria-label="Close import review" onClick={close} className="rounded-lg p-2 hover:bg-gray-100 disabled:opacity-50"><X size={20} /></button>
         </div>
@@ -104,7 +110,12 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
                     <td className="min-w-52 px-3 py-4 font-medium text-gray-900">{edit ? <input aria-label={`Description row ${index + 1}`} disabled={saving} maxLength={500} value={row.description || ""} onChange={(event) => update(index, "description", event.target.value)} className={inputClass} /> : row.description || "Not read"}</td>
                     <td className={`whitespace-nowrap px-3 py-4 font-semibold ${row.type === "income" ? "text-emerald-600" : row.type === "expense" ? "text-red-500" : "text-gray-500"}`}>{edit ? <input aria-label={`Amount row ${index + 1}`} type="number" min="0.01" max="1000000000" step="0.01" disabled={saving} value={row.amount} onChange={(event) => update(index, "amount", event.target.value)} className={inputClass} /> : row.amount !== "" && row.amount != null ? `${row.type === "income" ? "+" : row.type === "expense" ? "−" : ""}₹${money(row.amount)}` : "Not read"}</td>
                     <td className="px-3 py-4">{edit ? <select aria-label={`Type row ${index + 1}`} disabled={saving} value={row.type || ""} onChange={(event) => update(index, "type", event.target.value)} className={inputClass}><option value="">Not read</option><option value="expense">Expense</option><option value="income">Income</option></select> : <span className={`rounded-full px-2 py-1 ${row.type === "income" ? "bg-emerald-50 text-emerald-700" : row.type === "expense" ? "bg-red-50 text-red-600" : "bg-amber-100 text-amber-800"}`}>{row.type === "income" ? "Income" : row.type === "expense" ? "Expense" : "Not read"}</span>}</td>
-                    <td className="px-3 py-4 text-gray-600">{edit ? <input aria-label={`Category row ${index + 1}`} disabled={saving} maxLength={80} value={row.category || "Other"} onChange={(event) => update(index, "category", event.target.value)} className={inputClass} /> : row.category || "Other"}</td>
+                    <td className="min-w-40 px-3 py-4 text-gray-600">
+                      <select aria-label={`Category row ${index + 1}`} disabled={saving || (editing !== null && !edit)} value={row.category || "Other"} onChange={(event) => update(index, "category", event.target.value)} className={inputClass}>
+                        {!TRANSACTION_CATEGORY_KEYS.includes(row.category || "Other") && <option value={row.category}>{row.category}</option>}
+                        {TRANSACTION_CATEGORY_KEYS.map((category) => <option key={category} value={category}>{category === "Other" ? "Other" : getCategoryMeta(category).label}</option>)}
+                      </select>
+                    </td>
                     <td className="whitespace-nowrap px-3 py-4 text-gray-600">{edit ? <input aria-label={`Payment row ${index + 1}`} disabled={saving} maxLength={80} value={row.payment_method || "Bank"} onChange={(event) => update(index, "payment_method", event.target.value)} className={inputClass} /> : row.payment_method || "Bank"}</td>
                     <td className="px-3 py-4"><button type="button" disabled={saving || (editing !== null && !edit)} aria-label={edit ? `Done editing transaction ${index + 1}` : `Edit transaction ${index + 1}`} onClick={() => edit ? finishEdit(index) : startEdit(index)} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 disabled:opacity-40">{edit ? <><Check size={13} />Done</> : <><Pencil size={13} />Edit</>}</button>{edit && <button type="button" disabled={saving} onClick={cancelEdit} className="mt-2 text-xs text-gray-500">Cancel edit</button>}</td>
                   </tr>;

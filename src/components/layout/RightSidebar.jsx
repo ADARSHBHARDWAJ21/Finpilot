@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bot, Send, Calendar, Sparkles, CheckCircle2, ChevronRight, Clock, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const initialPrompts = [
   "Can I afford a ₹25k EMI?",
@@ -10,17 +11,6 @@ const initialPrompts = [
   "Review my dining budget",
   "Is NPS worth ₹50,000 extra?",
 ];
-
-const promptAnswers = {
-  "Can I afford a ₹25k EMI?":
-    "Based on your ₹53.6k monthly surplus, a ₹25k EMI will consume 46% of free cash flow. This is safe, provided your 6-month emergency fund remains intact.",
-  "How to save 80C tax this year?":
-    "You have ₹45,000 unused under 80C. Investing in ELSS mutual funds before March 31 can directly save up to ₹13,900 in tax (30% slab + cess).",
-  "Review my dining budget":
-    "Your Food & Dining spend is ₹18,400 this month (84% of your ₹22,000 target). We recommend pacing weekend delivery orders to stay within budget.",
-  "Is NPS worth ₹50,000 extra?":
-    "Yes! Under Section 80CCD(1B), a ₹50,000 NPS contribution gives an exclusive deduction beyond 80C, saving ₹15,600 for taxpayers in the 30% slab.",
-};
 
 const initialReminders = [
   { date: "15", month: "JUN", title: "Advance Tax – Q1 (15%)", due: "Due in 29 days", urgent: false },
@@ -37,20 +27,15 @@ const transactions = [
   { name: "HDFC Monthly Salary", category: "Income", amount: "+₹1,28,500", date: "01 Jun", emoji: "🏦", bg: "bg-emerald-50 text-emerald-600 border border-emerald-100", income: true },
 ];
 
-export default function RightSidebar() {
+export default function RightSidebar({ recentTransactions, monthLabel }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
-  const [activeAnswer, setActiveAnswer] = useState(null);
   const [reminders, setReminders] = useState(initialReminders);
 
   const handleAsk = (text) => {
-    const q = text || query;
-    if (!q.trim()) return;
-    setQuery(q);
-
-    // Check pre-configured answer or generate dynamic one
-    const matched = promptAnswers[q] ||
-      `Copilot analysis for "${q}": Based on your current income of ₹1.28L/month and tax breakdown, this action aligns with keeping your debt-to-income under 35%.`;
-    setActiveAnswer({ q, a: matched });
+    const q = (text || query).trim().slice(0, 3000);
+    if (!q) return;
+    router.push(`/taxation/ai-copilot?question=${encodeURIComponent(q)}`);
   };
 
   const handleDismissReminder = (index) => {
@@ -69,35 +54,16 @@ export default function RightSidebar() {
             <div>
               <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1">
                 AI Copilot
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </h3>
               <p className="text-[10px] text-slate-400">Personal finance intelligence</p>
             </div>
           </div>
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-            GPT-4o
+            Gemini
           </span>
         </div>
 
-        {/* Dynamic response card if asked */}
-        {activeAnswer && (
-          <div className="mb-3 p-3 rounded-xl bg-white border border-indigo-200 shadow-xs text-xs space-y-1.5 animate-fadeIn">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-indigo-950 text-[11px] truncate flex items-center gap-1">
-                <Sparkles size={11} className="text-indigo-600 shrink-0" />
-                {activeAnswer.q}
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveAnswer(null)}
-                className="text-[10px] text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">{activeAnswer.a}</p>
-          </div>
-        )}
+        <p className="mb-3 text-[11px] text-slate-500">Open a saved-data conversation with Gemini.</p>
 
         {/* Quick prompt chips */}
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -123,6 +89,8 @@ export default function RightSidebar() {
         >
           <input
             type="text"
+            aria-label="Your Copilot question"
+            maxLength={3000}
             placeholder="Ask Copilot anything..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -130,6 +98,7 @@ export default function RightSidebar() {
           />
           <button
             type="submit"
+            aria-label="Open Gemini Copilot"
             className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shadow-2xs shrink-0"
           >
             <Send size={12} />
@@ -138,7 +107,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Upcoming Reminders */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+      {!recentTransactions && <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
             <Clock size={14} className="text-indigo-600" />
@@ -189,12 +158,13 @@ export default function RightSidebar() {
         </div>
       </div>
 
+      }
       {/* Recent Transactions Feed */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
             <Sparkles size={14} className="text-indigo-600" />
-            Recent Activity
+            {monthLabel ? `Activity · ${monthLabel}` : "Recent Activity"}
           </h3>
           <Link href="/transactions" className="text-[10px] text-indigo-600 font-semibold hover:underline">
             View all →
@@ -202,9 +172,10 @@ export default function RightSidebar() {
         </div>
 
         <div className="space-y-2.5">
-          {transactions.map((t) => (
+          {recentTransactions?.length === 0 && <p className="text-xs text-slate-500">No transactions recorded in this month.</p>}
+          {(recentTransactions || transactions).map((t, index) => (
             <div
-              key={t.name + t.date}
+              key={`${t.name}-${t.date}-${index}`}
               className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 transition-colors"
             >
               <div

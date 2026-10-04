@@ -7,7 +7,7 @@ import Link from "next/link";
 import Sidebar from "@/components/layout/Sidebar";
 import RightSidebar from "@/components/layout/RightSidebar";
 
-export default function DashboardLayout({ children, showRightSidebar = true }) {
+export default function DashboardLayout({ children, showRightSidebar = true, rightSidebarProps }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children, showRightSidebar = true }) {
           </main>
           {showRightSidebar && (
             <aside className="hidden xl:block shrink-0">
-              <RightSidebar />
+              <RightSidebar {...rightSidebarProps} />
             </aside>
           )}
         </div>

@@ -53,7 +53,7 @@ export function completeStatementRows(rows, { openingBalance = null, includeBala
       const difference = baseline === null ? null : row._balance - baseline;
       if (difference !== null && Math.abs(Math.abs(difference) - row.amount) < 0.005) row.type = difference > 0 ? "income" : "expense";
     }
-    row.category = applyCategoryRules(row.description, row.category || "Other");
+    row.category = applyCategoryRules(row.description, row.category || "Other", row.type);
     if (row.type === "income" && row.category === "Other") row.category = "Income";
     if (!row.payment_method || row.payment_method === "Bank") row.payment_method = inferPaymentMethod(row.description);
   }
@@ -102,7 +102,7 @@ function mapStatementRow(cells, columns) {
   const description = String(field("description")).trim();
   const currency = String(field("currency")).trim();
   if (currency && !/^(?:inr|rs\.?|₹)$/i.test(currency)) amount = null;
-  return { transaction_date: parseTransactionDate(field("date")) || String(field("date")).trim(), description, amount: amount === null ? "" : Math.abs(amount), type, category: applyCategoryRules(description, String(field("category")).trim() || (type === "income" ? "Income" : "Other")), payment_method: String(field("payment_method")).trim() || inferPaymentMethod(description), _balance: parseMoney(field("balance")) };
+  return { transaction_date: parseTransactionDate(field("date")) || String(field("date")).trim(), description, amount: amount === null ? "" : Math.abs(amount), type, category: applyCategoryRules(description, String(field("category")).trim(), type), payment_method: String(field("payment_method")).trim() || inferPaymentMethod(description), _balance: parseMoney(field("balance")) };
 }
 
 export function parseStatementMatrix(matrix, { includeBalances = false, openingBalance: startingBalance = null } = {}) {
@@ -180,7 +180,7 @@ export function parseStatementText(text, { includeBalances = false, openingBalan
     const marker = (firstMoney ? rest.slice(0, firstMoney.index) : "").match(/\b(DEBIT|CREDIT|DR|CR)\s*$/i)?.[1];
     if (!type && marker) type = parseDirection(marker);
     if (!type && hasDebitCredit && candidates.length === 2 && nonzero.length === 1) type = nonzero[0] === candidates[0] ? "expense" : "income";
-    transactions.push({ transaction_date: parseTransactionDate(dateMatch[1]), description, amount: amount === null ? "" : Math.abs(amount), type, category: applyCategoryRules(description, type === "income" ? "Income" : "Other"), payment_method: "Bank", _balance: hasBalanceColumn && moneyMatches.length > 1 ? parseMoney(lastMoney[1]) : null });
+    transactions.push({ transaction_date: parseTransactionDate(dateMatch[1]), description, amount: amount === null ? "" : Math.abs(amount), type, category: applyCategoryRules(description, undefined, type), payment_method: "Bank", _balance: hasBalanceColumn && moneyMatches.length > 1 ? parseMoney(lastMoney[1]) : null });
     if (transactions.length > MAX_IMPORT_ROWS) throw new Error("This statement has more than 1,000 rows. Split it into smaller files.");
   }
   const openingLine = lines.find((line) => /^(?:opening\s+balance|balance\s+brought\s+forward)\b/i.test(line));

@@ -1,4 +1,4 @@
-import { CATEGORY_RULES } from "@/lib/bank-parsers/category-rules";
+import { detectCategory } from "./category-rules.js";
 
 export function normalizeTransactions(transactions) {
   return transactions.map((tx) => ({
@@ -6,21 +6,9 @@ export function normalizeTransactions(transactions) {
     description: tx.description || "Unknown",
     amount: Math.abs(Number(tx.amount)),
     type: Number(tx.amount) > 0 ? "income" : "expense",
-    category: detectCategory(tx.description),
+    category: detectCategory(tx.description, Number(tx.amount) > 0 ? "income" : "expense"),
     payment_method: "Bank",
   }));
-}
-
-function detectCategory(desc = "") {
-  const upper = String(desc).toUpperCase();
-
-  for (const rule of CATEGORY_RULES) {
-    if (upper.includes(rule.keyword)) {
-      return rule.category;
-    }
-  }
-
-  return "Other";
 }
 
 function formatDate(date) {

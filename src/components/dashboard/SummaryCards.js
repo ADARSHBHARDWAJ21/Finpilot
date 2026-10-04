@@ -66,7 +66,7 @@ export default function SummaryCards({ summary }) {
     <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4 mt-4 sm:mt-5">
       {data.cards.map((card, index) => {
         const meta = CARD_META[index] || CARD_META[0];
-        const Icon = meta.icon;
+        const Icon = card.title === "Transactions" ? Receipt : meta.icon;
 
         return (
           <div

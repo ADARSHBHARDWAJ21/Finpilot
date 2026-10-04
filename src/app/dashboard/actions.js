@@ -3,6 +3,9 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { computeFinancialSummary } from "@/lib/dashboard/compute-summary";
 import { computeDashboardCharts } from "@/lib/dashboard/compute-charts";
+import { computeDashboardOverview } from "@/lib/dashboard/compute-overview";
+import { currentMonthKey, resolveMonthKey, shiftMonth } from "@/lib/dashboard/period";
+import { fetchBudgetPlanRows } from "@/lib/budget/budget-plans-db";
 
 export async function getOnboardingProfile() {
   const supabase = await createClient();
@@ -80,4 +83,35 @@ export async function getDashboardChartsData() {
   ]);
 
   return computeDashboardCharts(transactions, profile);
+}
+
+export async function getDashboardOverview(requestedMonth) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const now = new Date();
+  const selectedMonth = resolveMonthKey(requestedMonth, now);
+  const transactions = [];
+  // Read every page: Supabase's default row limit must not truncate a bank history.
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase.from("transactions")
+      .select("id, transaction_date, description, amount, type, category")
+      .eq("user_id", user.id)
+      .lt("transaction_date", `${shiftMonth(currentMonthKey(now), 1)}-01`)
+      .order("transaction_date", { ascending: true }).order("id", { ascending: true })
+      .range(offset, offset + 999);
+    if (error) throw new Error("Dashboard transactions could not be loaded.");
+    transactions.push(...(data || []));
+    if ((data?.length || 0) < 1000) break;
+  }
+  const [profileResult, budgetResult] = await Promise.allSettled([
+    supabase.from("onboarding_profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
+    fetchBudgetPlanRows(supabase, user.id, selectedMonth),
+  ]);
+  return {
+    ...computeDashboardOverview(transactions, budgetResult.status === "fulfilled" ? budgetResult.value : [], selectedMonth, now),
+    fullName: profileResult.status === "fulfilled" ? profileResult.value.data?.full_name : "",
+    budgetAvailable: budgetResult.status === "fulfilled",
+    updatedAt: now.toISOString(),
+  };
 }

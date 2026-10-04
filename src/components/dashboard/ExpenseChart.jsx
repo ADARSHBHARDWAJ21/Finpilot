@@ -5,19 +5,11 @@ import { EXPENSE_CHART_COLORS } from "@/lib/dashboard/compute-charts";
 import { Tag, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-const FALLBACK_EXPENSES = [
-  { name: "Housing & Rent", value: 35000, pct: 44, color: "#6366f1" },
-  { name: "Food & Dining", value: 16500, pct: 21, color: "#10b981" },
-  { name: "Shopping & Lifestyle", value: 12000, pct: 15, color: "#f59e0b" },
-  { name: "Transport & Fuel", value: 8500, pct: 11, color: "#ec4899" },
-  { name: "Utilities & Bills", value: 7200, pct: 9, color: "#06b6d4" },
-];
-
 export default function ExpenseChart({ expenseData }) {
   const hasRealData = expenseData?.hasData ?? false;
-  const data = hasRealData && expenseData?.data?.length ? expenseData.data : FALLBACK_EXPENSES;
-  const totalFormatted = hasRealData ? expenseData.totalFormatted : "₹79,200";
-  const monthLabel = expenseData?.monthLabel ?? "May 2026";
+  const data = expenseData?.data || [];
+  const totalFormatted = expenseData?.totalFormatted || "₹0";
+  const monthLabel = expenseData?.monthLabel || "";
 
   return (
     <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
@@ -30,7 +22,7 @@ export default function ExpenseChart({ expenseData }) {
           <p className="text-xs text-slate-400 mt-0.5 font-medium">Monthly expenditure analysis</p>
         </div>
         <span className="border border-slate-200 px-3 py-1 rounded-xl text-xs font-semibold text-slate-700 bg-slate-50 flex items-center gap-1">
-          {monthLabel} ▾
+          {monthLabel}
         </span>
       </div>
 
@@ -76,6 +68,7 @@ export default function ExpenseChart({ expenseData }) {
 
         {/* Category list with visual bars */}
         <div className="flex-1 w-full space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+          {!hasRealData && <p className="text-sm text-slate-500">No expenses recorded for this month.</p>}
           {data.map((item, index) => {
             const barColor = EXPENSE_CHART_COLORS[index % EXPENSE_CHART_COLORS.length];
             return (

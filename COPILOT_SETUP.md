@@ -1,13 +1,13 @@
 # Finpilot AI Finance & Tax Copilot
 
-The `/taxation/ai-copilot` screen supports questions, personalised insights, promotion/rent/deduction scenarios, loan EMI calculations, and private saved chat history. The Copilot uses OpenAI, as requested. Bank-statement import uses local parsing and OCR independently of the Copilot. No new npm packages are needed.
+The `/taxation/ai-copilot` screen supports questions, personalised insights, promotion/rent/deduction scenarios, loan EMI calculations, and private saved chat history. The Copilot uses Google Gemini. Dashboard Copilot prompts open this same live chat instead of showing canned answers. Bank-statement import uses local parsing and OCR independently of the Copilot. No new npm packages are needed.
 
 ## Enable it on your existing app
 
-The changes are installed in `C:\Users\adars\Downloads\Finpilot-main\Finpilot-main`.
+Run the commands below from the project root containing `package.json`. See [README.md](README.md) for the full application setup.
 
-1. Keep your existing `.env.local` and Supabase settings. Add a server-only `OPENAI_API_KEY`. Optionally set `OPENAI_COPILOT_MODEL`; the default is `gpt-5.4-mini`. `.env.example` shows the variable names. Keep keys out of chat and source control; never use a `NEXT_PUBLIC_` prefix for an AI key. Restart the development server after changing environment settings.
-2. In your existing Supabase project, run **only** `supabase/migrations/20261001_copilot_chats.sql` to create the chat table and row-level security. Do not replay the unrelated historical reset migration: it drops onboarding profiles.
+1. Keep your existing `.env.local` and Supabase settings. Add a server-only `GEMINI_API_KEY` from Google AI Studio. Optionally set `GEMINI_COPILOT_MODEL`; the default is `gemini-3.8-flash`. The separate legacy `GEMINI_MODEL` setting does not control Copilot. `.env.example` shows the variable names. Keep keys out of chat and source control; never use a `NEXT_PUBLIC_` prefix for an AI key. Restart the development server after changing environment settings.
+2. If your database already has the Copilot chat migration, no database changes are required for the Gemini switch. Otherwise, on your existing application schema, run **only** `supabase/migrations/20261001_copilot_chats.sql` to create the chat table and row-level security. Do not replay the unrelated historical reset migration: it drops onboarding profiles.
 3. Run `npm run test:copilot`, then `npm run dev`. Sign in and complete/update your profile. Open `/taxation/ai-copilot`. Dependencies are already present locally; a fresh checkout needs `npm ci` first.
 4. For hosting, set the same environment variables on your server and redeploy. The API route needs a Node runtime and a request duration of up to 90 seconds.
 
@@ -25,13 +25,13 @@ This is an update to an existing app/database. The original repository does not 
 
 ## How it works
 
-`/api/copilot` authenticates the user on every request. It loads the user's current profile, latest salary record, deduction records, six months of spending, current budget and goals server-side. The request accepts only the question and optional owned chat ID. Contact details, account identifiers and merchant descriptions are omitted from model context. Questions and the financial summary are sent to OpenAI.
+`/api/copilot` authenticates the user on every request. It loads the user's current profile, latest salary record, deduction records, six months of spending, current budget and goals server-side. The request accepts only the question and optional owned chat ID. Contact details, account identifiers and merchant descriptions are omitted from model context. Questions and the financial summary are sent to Google Gemini.
 
-OpenAI's Responses API interprets questions and explains results. `compare_tax` and `calculate_emi` execute validated server-side calculations through strict function schemas. Hypothetical changes never update the saved financial profile. Model tool calls are bounded, have timeouts, and cannot modify records or access other accounts. Stored/user text is treated as data, not instructions. Explicit personal tax/EMI amount claims without a matching tool call trigger a repair attempt; this check does not guarantee narrative accuracy. The calculation cards display server results.
+Gemini's `generateContent` API interprets questions and explains results. `compare_tax` and `calculate_emi` execute validated server-side calculations through JSON function schemas and strict server-side input validation. Hypothetical changes never update the saved financial profile. Model tool calls are bounded, have timeouts, and cannot modify records or access other accounts. Stored/user text is treated as data, not instructions. Explicit personal tax/EMI amount claims without a matching tool call trigger a repair attempt; this check does not guarantee narrative accuracy. The calculation cards display server results.
 
 Chats are stored in `copilot_chats`, scoped by the authenticated user in queries and protected with RLS. The Copilot never uses a service-role key. A chat supports 20 exchanges; the model receives the full stored conversation text. Users can start a new chat, reopen past chats or delete them. Simultaneous updates are detected using the chat's prior update timestamp. Saved content is validated before use.
 
-OpenAI requests set `store: false` and do not create provider-side conversations. This disables response application-state storage, but it is not a zero-data-retention guarantee. The user's question and financial summary still go to OpenAI; its account data controls and abuse-monitoring policy apply. See [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data) and [function calling](https://developers.openai.com/api/docs/guides/function-calling).
+Gemini requests use a server-only API key in the `x-goog-api-key` header. The app makes stateless REST calls; it replays full model turns, including thought signatures, during calculator calls. Chats stay in Supabase. This does not guarantee zero provider retention: the question and financial summary are processed by Google, and data handling depends on the project's paid or unpaid service terms. Unpaid services can use submitted content to improve Google products; use appropriate paid-service data controls before handling sensitive financial information. See [Gemini service terms](https://ai.google.dev/gemini-api/terms), [function calling](https://ai.google.dev/gemini-api/docs/function-calling) and [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash).
 
 ## Calculation scope and source verification
 
@@ -49,20 +49,18 @@ Official references:
 - [New-regime provisions in the Income-tax Act, 2025](https://www.incometaxindia.gov.in/w/section-202-78)
 - [Budget 2025 rebate and marginal-relief FAQs](https://incometaxindia.gov.in/Documents/Budget/budget-2025/faqs-budget-2025.pdf)
 
-The older dashboard/taxation engine is unchanged and can disagree with the corrected Copilot estimates. Bring the rest of the app onto the verified calculator before presenting a single consistent tax recommendation throughout the SaaS.
+The legacy taxation screens use a separate calculation path and can disagree with the Copilot estimates. The monthly dashboard shows transaction-derived amounts rather than an annual tax estimate. Align the remaining taxation screens with the Copilot calculator before presenting one consistent recommendation throughout the app.
 
 Monthly TDS is not proof of annual deposited tax. The Copilot does not invent paid-TDS totals or actual refunds. Document flags are not document contents; file upload, document analysis and voice input are not part of this chat integration.
 
 ## Validation and deployment limits
 
-`npm run test:copilot` tests promotion timing, slab years, rebate boundaries and rounding, zero overrides, HRA/NPS, privacy filtering, invalid inputs, scoped data access, chat ownership/concurrency, EMI, provider failures and mocked OpenAI function calls. These mocks do not verify a live OpenAI account, model availability, prompt adherence, Supabase RLS execution or database migrations. Verify those against your configured staging environment before production.
+`npm run test:copilot` tests promotion timing, slab years, rebate boundaries and rounding, zero overrides, HRA/NPS, privacy filtering, invalid inputs, scoped data access, chat ownership/concurrency, EMI, provider failures and mocked Gemini function calls. These mocks do not verify a live Gemini project, model availability, prompt adherence, Supabase RLS execution or database migrations. Verify those against your configured staging environment before production.
 
 The API has an eight-request/minute per-account process-local burst limit. A production deployment with multiple instances needs shared rate limiting, spending quotas and monitoring. The AI connection must be configured to answer questions. Stored chats can contain sensitive financial text; apply your product's retention and privacy policy.
 
-## Local setup status — 1 October 2026
+## Migration verification — 4 October 2026
 
-The Copilot migration has been applied successfully to the existing Finpilot Supabase project. An OpenAI key named **Finpilot Copilot App**, limited to the Responses endpoint, is saved in the existing local environment file. No real user financial records were sent in the live provider check.
+The Copilot provider has been migrated to Gemini. Existing Supabase chat storage, ownership rules, saved conversations and tax/EMI calculators are preserved. OpenAI settings are no longer used by Copilot; an old local key does not need to be deleted to use Gemini.
 
-All 37 Copilot tests, targeted lint checks and the production build passed. Five live database validator checks passed using synthetic messages, including rejection of malformed messages and acceptance of genuine calculator results. Account-to-account RLS behavior still needs an authenticated staging check.
-
-The live check returned `credit_balance_exhausted`. Adding credits has been deferred at your request; setup remains ready. When ready, add API credits to the **adarsh** OpenAI organization, refresh the app and retry. The app reports billing/credit failures separately from temporary rate limits. Local Copilot is available at `http://localhost:3002/taxation/ai-copilot`; sign in with your existing app account.
+In the development environment, a server-only Gemini key was configured and the app was rebuilt. API keys are not included in this repository; each deployment needs its own environment settings. A live greeting and a fictional EMI calculator conversation both succeeded; the fictional ₹5 lakh / 10% / 36-month case returned ₹16,134 monthly EMI. No personal profile or account records were sent in these checks. All 38 Copilot tests, targeted lint and the production build passed. The dashboard shortcut opens the Gemini chat with the selected question ready to review and send. Open `/taxation/ai-copilot` on your running app and sign in with your account.

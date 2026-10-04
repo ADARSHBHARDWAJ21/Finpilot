@@ -11,15 +11,8 @@ import {
 } from "recharts";
 import { ArrowLeftRight, TrendingUp } from "lucide-react";
 
-const data = [
-  { month: "Jan", income: 115000, expenses: 82000, savings: 33000 },
-  { month: "Feb", income: 120000, expenses: 78000, savings: 42000 },
-  { month: "Mar", income: 125000, expenses: 81000, savings: 44000 },
-  { month: "Apr", income: 118000, expenses: 85000, savings: 33000 },
-  { month: "May", income: 128500, expenses: 74860, savings: 53640 },
-];
-
-export default function CashFlowChart() {
+export default function CashFlowChart({ cashFlowData }) {
+  const data = cashFlowData?.data || [];
   return (
     <section className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-2">
@@ -28,14 +21,15 @@ export default function CashFlowChart() {
             <ArrowLeftRight size={16} className="text-indigo-600" />
             Cash Flow Radar
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5 font-medium">Income vs Expenses vs Net Savings</p>
+          <p className="text-xs text-slate-400 mt-0.5 font-medium">{cashFlowData?.rangeLabel || "Recorded income and expenses"}</p>
         </div>
         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-          +42.6% Surplus
+          6 months
         </span>
       </div>
 
       <div className="h-[200px] mt-4">
+        {!cashFlowData?.hasData ? <p className="flex h-full items-center justify-center text-sm text-slate-500">No transactions in this six-month period.</p> :
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barGap={3} barCategoryGap="22%">
             <XAxis
@@ -64,15 +58,15 @@ export default function CashFlowChart() {
             <Bar dataKey="expenses" name="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="savings" name="Savings" fill="#6366f1" radius={[4, 4, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer>}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-slate-100">
         {[
-          { label: "Avg Income", value: "₹1,21,300", color: "text-slate-900" },
-          { label: "Avg Expenses", value: "₹80,172", color: "text-slate-900" },
-          { label: "Avg Savings", value: "₹41,128", color: "text-emerald-700" },
-          { label: "Savings Rate", value: "42.6%", color: "text-indigo-600", highlight: true },
+          { label: "Avg Income", value: cashFlowData?.averageIncome || "₹0", color: "text-slate-900" },
+          { label: "Avg Expenses", value: cashFlowData?.averageExpenses || "₹0", color: "text-slate-900" },
+          { label: "Avg Savings", value: cashFlowData?.averageSavings || "₹0", color: "text-emerald-700" },
+          { label: "Savings Rate", value: cashFlowData?.savingsRate || "—", color: "text-indigo-600" },
         ].map((stat) => (
           <div key={stat.label} className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>

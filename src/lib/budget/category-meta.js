@@ -74,6 +74,12 @@ export const DEFAULT_CATEGORY_KEYS = [
   "Other",
 ];
 
+export const TRANSACTION_CATEGORY_KEYS = [
+  ...DEFAULT_CATEGORY_KEYS.filter((category) => category !== "Other"),
+  "Income",
+  "Other",
+];
+
 export function normalizeCategoryName(category) {
   const raw = String(category || "Other").trim();
   const map = {
