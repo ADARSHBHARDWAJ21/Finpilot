@@ -4,6 +4,7 @@ import AITaxCopilotSection from "@/components/taxation/AITaxCopilotSection";
 import { createClient } from "@/lib/supabase/server-client";
 import { loadCopilotContext } from "@/lib/copilot/context";
 import { listCopilotChats } from "@/lib/copilot/chat-store";
+import { resolveFinancialYear } from "@/lib/finance/model";
 
 export default async function AITaxCopilotPage({ searchParams }) {
   const params = await searchParams;
@@ -11,7 +12,7 @@ export default async function AITaxCopilotPage({ searchParams }) {
   const user = await requireUser();
   const supabase = await createClient();
   const [snapshotResult, historyResult] = await Promise.allSettled([
-    loadCopilotContext(supabase, user.id),
+    loadCopilotContext(supabase, user.id, new Date(), params?.year),
     listCopilotChats(supabase, user.id),
   ]);
   const snapshot = snapshotResult.status === "fulfilled" ? snapshotResult.value : null;
@@ -20,6 +21,8 @@ export default async function AITaxCopilotPage({ searchParams }) {
   return (
     <DashboardLayout showRightSidebar={false}>
       <AITaxCopilotSection
+        key={snapshot?.view?.financialYear || resolveFinancialYear(params?.year)}
+        financialYear={snapshot?.view?.financialYear || resolveFinancialYear(params?.year)}
         initialSnapshot={snapshot?.view || null}
         initialChats={history.chats}
         historyAvailable={history.available}

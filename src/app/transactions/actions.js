@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server-client";
 import { saveImportedTransactions } from "@/lib/import/save-import";
+import { deleteOwnedTransactions, deleteAllOwnedTransactions } from "@/lib/transactions/records";
+
+function refreshTransactionPages() {
+  for (const path of ["/transactions", "/dashboard", "/budget-tracker", "/reports", "/net-worth", "/taxation", "/taxation/ai-copilot"]) revalidatePath(path);
+}
 
 export async function saveTransactions(transactions) {
   const supabase = await createClient();
@@ -10,48 +15,34 @@ export async function saveTransactions(transactions) {
   if (error || !user) throw new Error("Please sign in again before importing transactions.");
   const result = await saveImportedTransactions(supabase, user.id, transactions);
   if (result.count) {
-    for (const path of ["/transactions", "/dashboard", "/budget-tracker", "/reports", "/net-worth", "/taxation/ai-copilot"]) revalidatePath(path);
+    refreshTransactionPages();
   }
   return result;
 }
 
 export async function deleteTransaction(transactionId) {
-  if (!transactionId) {
-    throw new Error("Transaction not found");
-  }
+  const result = await deleteTransactions([transactionId]);
+  if (result.error) throw new Error(result.error);
+  if (!result.count) throw new Error("Transaction not found or already deleted");
+  return { success: true, id: result.deletedIds[0] };
+}
 
+export async function deleteTransactions(transactionIds) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Please sign in again to delete transactions.");
+  const result = await deleteOwnedTransactions(supabase, user.id, transactionIds);
+  refreshTransactionPages();
+  return result;
+}
 
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .delete()
-    .eq("id", transactionId)
-    .eq("user_id", user.id)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data) {
-    throw new Error("Transaction not found or already deleted");
-  }
-
-  revalidatePath("/transactions");
-  revalidatePath("/dashboard");
-  revalidatePath("/budget-tracker");
-  revalidatePath("/reports");
-  revalidatePath("/net-worth");
-
-  return { success: true, id: data.id };
+export async function deleteAllTransactions() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Please sign in again to delete transactions.");
+  const result = await deleteAllOwnedTransactions(supabase, user.id);
+  refreshTransactionPages();
+  return result;
 }
 
 export async function addManualTransaction(input) {

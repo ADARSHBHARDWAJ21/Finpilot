@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { yearSchema } from "../finance/model.js";
 
 export const chatRequestSchema = z.object({
   message: z.string().trim().min(1).max(3000),
   conversationId: z.string().uuid().nullable().optional(),
+  financialYear: yearSchema.optional(),
 }).strict();
 
 const money = z.number().finite().min(0).max(100000000);

@@ -1,19 +1,29 @@
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server-client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import CalendarSection from "@/components/calendar/CalendarSection";
-import { loadTaxContext } from "@/lib/taxation/load-tax-context";
-import { buildCalendarData } from "@/lib/planner/realtime-events";
-
-export default async function CalendarPage() {
+import PlannerSection from "@/components/finance/PlannerSection";
+import { readOwnedRows, goalEvents } from "@/lib/finance/data";
+import { indiaToday } from "@/lib/finance/model";
+export default async function PlannerPage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const taxContext = await loadTaxContext(supabase, user.id);
-  const calendarData = buildCalendarData(taxContext);
-
+  const [events, profile] = await Promise.all([
+    readOwnedRows(supabase, "finance_events", user.id),
+    supabase
+      .from("onboarding_profiles")
+      .select("documents")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+  if (profile.error)
+    throw new Error("Could not load goal reminders. Please refresh.");
   return (
     <DashboardLayout showRightSidebar={false}>
-      <CalendarSection data={calendarData} />
+      <PlannerSection
+        mode="calendar"
+        initialEvents={[...events, ...goalEvents(profile.data)]}
+        today={indiaToday()}
+      />
     </DashboardLayout>
   );
 }

@@ -5,6 +5,7 @@ import Topbar from "@/components/layout/Topbar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import TransactionsSection from "@/components/transactions/TransactionsSection";
 import { computeFinancialSummary } from "@/lib/dashboard/compute-summary";
+import { loadOwnedTransactions } from "@/lib/transactions/records";
 
 export default async function TransactionsPage() {
   await requireUser();
@@ -18,14 +19,12 @@ export default async function TransactionsPage() {
     throw new Error("Unauthorized");
   }
 
-  const { data: transactions, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("transaction_date", { ascending: false });
-
-  if (error) {
-    console.error("Failed to load transactions:", error.message);
+  let transactions = [];
+  let loadError = "";
+  try {
+    transactions = await loadOwnedTransactions(supabase, user.id);
+  } catch (error) {
+    loadError = error.message;
   }
 
   const summary = computeFinancialSummary(transactions ?? []);
@@ -46,7 +45,7 @@ export default async function TransactionsPage() {
 
       <SummaryCards summary={summary} />
 
-      <TransactionsSection initialTransactions={transactions ?? []} />
+      <TransactionsSection initialTransactions={transactions} loadError={loadError} />
     </DashboardLayout>
   );
 }

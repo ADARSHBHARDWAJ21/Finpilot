@@ -137,9 +137,10 @@ test("conflicting deductions remain unavailable until all relevant annual totals
   assert.equal(confirmed.scenario.old.deductions.personalNps, 20000);
   assert.equal(deductionConflicts.length, 3);
 });
-test("unsupported age/income and unconfirmed loans are not silently calculated", () => {
-  assert.equal(estimateTax({ ...inputs(), age: 65 }).available, false);
-  assert.equal(estimateTax({ ...inputs(), annualSalary: 5000001 }).available, false);
+test("supported senior and surcharge estimates still exclude unconfirmed loan claims", () => {
+  assert.equal(estimateTax({ ...inputs(), age: 65 }).available, true);
+  assert.equal(estimateTax({ ...inputs(), annualSalary: 6000000 }).available, true);
+  assert.equal(estimateTax({ ...inputs(), annualSalary: 100000001 }).available, false);
   const tax = estimateTax(profileTaxInputs({ ...profile, home_loan_interest: 200000, education_loan_interest: 30000 }));
   assert.equal(tax.old.deductions.homeLoanInterest, 0);
   assert.equal(tax.old.deductions.educationLoanInterest, 0);

@@ -1,8 +1,9 @@
 import { Trash2 } from "lucide-react";
 
-export default function TransactionRow({ tx, onDelete, deleting = false }) {
+export default function TransactionRow({ tx, onDelete, onToggle, selected = false, deleting = false }) {
   return (
-    <tr className="hover:bg-slate-50/70 transition-colors group">
+    <tr className={`transition-colors group ${selected ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}>
+      <td className="pl-6 pr-2 py-4"><input type="checkbox" checked={selected} onChange={() => onToggle?.(tx.id)} disabled={deleting || !tx.id} aria-label={`Select ${tx.name} on ${tx.date}, ${tx.amount}`} className="h-4 w-4 rounded accent-indigo-600 disabled:cursor-not-allowed" /></td>
       <td className="px-6 py-4 text-xs font-medium text-slate-500 whitespace-nowrap">{tx.date}</td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">

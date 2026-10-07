@@ -20,6 +20,8 @@ Built with Next.js, React and Supabase. This is an actively developed applicatio
 ### Transactions and bank-statement imports
 
 - Add income or expenses manually, filter transactions, and delete entries.
+- Select individual rows or all matching search/category results, then delete the selection after confirmation. Changing filters clears the selection.
+- Delete all transactions in your account with a separate confirmation, including records hidden by filters. Financial summaries refresh afterward. Large selected deletions run in batches (up to 10,000 selected rows); if a request fails, completed deletions are reported and the remaining records reload.
 - Import CSV, Excel, digital PDFs, scanned PDFs, and PNG/JPEG/WebP statement images.
 - Automatically extract dates, descriptions, amounts, transaction direction, categories and payment methods.
 - Review detected rows before saving; every row has an editable category dropdown before **Import**.
@@ -46,8 +48,10 @@ See [Copilot setup and calculation scope](COPILOT_SETUP.md) for provider configu
 - **Budget tracker:** Monthly category limits and spending from recorded transactions.
 - **Taxation:** Salary information, deductions, regime comparison, liability tracking and scenario views.
 - **Goals:** Saved financial goals and related calendar entries.
-- **Calendar and reminders:** Financial and tax planning views derived from the saved workspace.
-- **Reports:** Financial and tax report views based on the available profile and transactions.
+- **Rent & HRA, Banking & Investments, Filing:** Editable details and manually reviewed checklists saved per financial year. HRA uses actual rent, eligible salary components, rental period and the applicable city limit. Filing status is explicit, never inferred from onboarding.
+- **Private proof documents:** Upload, download and remove PDF, image, CSV and XLSX proofs (10 MB per file). Files stay in a private Supabase bucket with account ownership enforced. Uploading proof does not automatically import ledger transactions or verify a tax claim.
+- **Calendar and reminders:** Add, edit, complete, reopen, postpone and delete reminders. Both views share saved records; month/year navigation uses the full due date. Goal milestones link back to Goals. Export pending reminders as an ICS calendar. Notifications are in-app; email/push delivery is not configured.
+- **Reports:** April–March cashflow and category totals from recorded transactions, saved filing declarations and salary-only tax estimates. Download a real PDF, transactions CSV or ZIP package containing original proofs (50 MB package limit). Historical years do not reuse the current profile's salary or deductions.
 - **Settings:** Update profile and financial declarations.
 
 Some older workspace calculations and UI elements still need production validation. Investments, external portfolio connections and the standalone Net Worth aggregator are not implemented integrations.
@@ -119,6 +123,7 @@ Available migration files include:
 - [Monthly budget plans](supabase/migrations/20260526_budget_plans.sql).
 - [Onboarding profiles](supabase/migrations/20260527_onboarding_profiles.sql).
 - [Private Copilot chat storage](supabase/migrations/20261001_copilot_chats.sql).
+- [Finance workspaces and private documents](supabase/migrations/20261005_finance_workspaces.sql) — required for reminders, calendar, yearly tax sections and reports. Creates `finance_events`, `tax_workspace_sections`, `tax_documents` and the private `tax-proofs` bucket with owner-only policies. No service-role key is needed by these features.
 - An optional confidence-score alteration for an existing transaction table.
 
 Review and apply only the migrations your project needs. **Do not blindly run every migration:** `20260527_reset_onboarding_profiles_option_a.sql` is a destructive reset that drops onboarding profiles. Keep row-level security configured for each user's records.
@@ -206,7 +211,7 @@ The main statement-upload flow parses statements locally on the app server and s
 
 Copilot sends the question, conversation text and a limited financial summary to Google Gemini. Contact details, account identifiers and merchant descriptions are omitted from its generated snapshot. Provider data handling depends on the Gemini project's service terms; see [COPILOT_SETUP.md](COPILOT_SETUP.md) before processing sensitive financial information.
 
-Copilot tax calculations cover ordinary salary estimates for resident individuals below 60, income up to ₹50 lakh and the supported financial years 2024–25 through 2026–27. They do not establish deposited TDS, an actual tax refund, investment returns or loan approval. CTC can differ from taxable salary. The legacy taxation screens use a separate calculation path and can differ from Copilot.
+All routed tax screens, Reports and Gemini Copilot share one calculator and year-specific declarations. It covers ordinary Indian salary estimates up to ₹10 crore for FY 2024–25 through 2026–27, resident age bands, nonresident salary slabs, surcharge and marginal relief. Save annual salary and eligible deductions for each year, compare regimes, reconcile declared payments, run temporary what-if scenarios, manage private proofs and export reports. Missing annual TDS stays unknown; excess payments do not establish an approved refund. Banking interest, capital gains and other non-salary income are excluded from the salary estimate. CTC can differ from taxable salary. See [Finance workspaces](FINANCE_WORKSPACES.md) for setup, supported features and limits.
 
 No bank account is connected automatically, no tax return is filed, and no investment is purchased by this app. Statement extraction may need correction for unfamiliar layouts or poor scans. Review imported transactions and important financial estimates before relying on them.
 

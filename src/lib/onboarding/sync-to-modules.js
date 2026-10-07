@@ -1,4 +1,4 @@
-import { compareRegimes } from "@/lib/tax/compare-regimes";
+import { estimateTax, profileTaxInputs } from "../copilot/tax-engine.js";
 import { computeOnboardingFinancialSummary } from "@/lib/onboarding/compute-financial-summary";
 
 function n(value) {
@@ -20,7 +20,7 @@ export async function syncOnboardingToModules(supabase, userId, profile) {
   const summary = computeOnboardingFinancialSummary(profile);
   const regime = summary.chosenRegime === "old" ? "old" : "new";
 
-  await supabase.from("salary_profiles").insert({
+  const { error: salaryError } = await supabase.from("salary_profiles").insert({
     user_id: userId,
     annual_ctc: n(profile.annual_ctc),
     basic_salary: n(profile.basic_salary),
@@ -32,39 +32,19 @@ export async function syncOnboardingToModules(supabase, userId, profile) {
     tax_regime: regime,
   });
 
-  const deductionRows = [
-    { key: "80C", amount: Math.min(150000, section80cTotal(profile)) },
-    { key: "80D", amount: n(profile.health_insurance) + n(profile.parents_health_insurance) },
-    { key: "80CCD_1B", amount: n(profile.nps_contribution) },
-  ].filter((d) => d.amount > 0);
+  if (salaryError) throw new Error("Your profile was saved, but salary records could not be updated. Please retry.");
 
-  if (deductionRows.length) {
-    await supabase.from("deductions").insert(
-      deductionRows.map((d) => ({ user_id: userId, key: d.key, amount: d.amount }))
-    );
+  // Onboarding is a declaration source, not a new deduction transaction.
+  // Do not insert duplicate deduction rows whenever Settings is saved.
+  const tax = estimateTax(profileTaxInputs(profile));
+  if (tax.available) {
+    const { error } = await supabase.from("tax_calculations").upsert({
+      user_id: userId, old_regime_tax: tax.old.tax, new_regime_tax: tax.new.tax,
+      old_taxable_income: tax.old.taxableIncome, new_taxable_income: tax.new.taxableIncome,
+      recommended_regime: tax.recommended === "equal" ? regime : tax.recommended, tax_savings: tax.difference,
+    }, { onConflict: "user_id" });
+    if (error) throw new Error("Your profile was saved, but the tax summary could not be updated. Please retry.");
   }
-
-  const taxCompare = compareRegimes({
-    annual_ctc: n(profile.annual_ctc),
-    section80c: Math.min(150000, section80cTotal(profile)),
-    nps: n(profile.nps_contribution) + n(profile.employer_nps),
-    hra_exemption: profile.paying_rent
-      ? Math.min(n(profile.monthly_rent) * 12, n(profile.hra) * 12)
-      : 0,
-  });
-
-  await supabase.from("tax_calculations").upsert(
-    {
-      user_id: userId,
-      old_regime_tax: taxCompare.oldResult.tax,
-      new_regime_tax: taxCompare.newResult.tax,
-      old_taxable_income: taxCompare.oldResult.taxableIncome,
-      new_taxable_income: taxCompare.newResult.taxableIncome,
-      recommended_regime: taxCompare.recommended,
-      tax_savings: taxCompare.savings,
-    },
-    { onConflict: "user_id" }
-  );
 
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");

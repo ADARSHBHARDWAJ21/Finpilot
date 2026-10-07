@@ -24,7 +24,7 @@ function taxEstimate(value) {
   for (const regime of ["old", "new"]) {
     if (!object(value[regime])) invalid();
     result[regime] = { tax: amount(value[regime].tax), taxableIncome: amount(value[regime].taxableIncome) };
-    for (const key of ["baseTax", "rebate", "marginalRelief"]) if (value[regime][key] !== undefined) result[regime][key] = amount(value[regime][key]);
+    for (const key of ["baseTax", "rebate", "marginalRelief", "surcharge", "surchargeRelief", "cess"]) if (value[regime][key] !== undefined) result[regime][key] = amount(value[regime][key]);
     if (value[regime].deductions !== undefined) {
       if (!object(value[regime].deductions)) invalid();
       result[regime].deductions = {};

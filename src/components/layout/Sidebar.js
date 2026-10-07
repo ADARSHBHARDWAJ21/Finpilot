@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import SignOutButton from "@/components/auth/SignOutButton";
 import {
   LayoutDashboard,
@@ -38,7 +38,7 @@ const menuItems = [
 const taxationSubItems = [
   { label: "Overview", href: "/taxation" },
   { label: "Salary Documents", href: "/taxation/salary-documents" },
-  { label: "Tax Saving Proofs", href: "/taxation/deductions" },
+  { label: "Tax Saving Proofs", href: "/taxation/tax-saving-proofs" },
   { label: "Rent & HRA", href: "/taxation/rent-hra" },
   { label: "Banking & Investments", href: "/taxation/banking-investments" },
   { label: "Compliance & Filing", href: "/taxation/compliance-filing" },
@@ -47,6 +47,8 @@ const taxationSubItems = [
 
 export default function Sidebar({ onNavigate }) {
   const pathname = usePathname();
+  const year = useSearchParams().get("year");
+  const taxHref = (href) => /^20\d{2}-\d{2}$/.test(year || "") ? `${href}?year=${year}` : href;
   const isTaxationSection = pathname.startsWith("/taxation");
   const isAICopilot = pathname === "/taxation/ai-copilot";
 
@@ -103,7 +105,7 @@ export default function Sidebar({ onNavigate }) {
         {/* Taxation Group */}
         <div>
           <Link
-            href="/taxation"
+            href={taxHref("/taxation")}
             onClick={handleNav}
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-medium w-full ${
               isTaxationSection
@@ -136,7 +138,7 @@ export default function Sidebar({ onNavigate }) {
                   return (
                     <Link
                       key={sub.label}
-                      href={sub.href}
+                      href={taxHref(sub.href)}
                       onClick={handleNav}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-xs font-semibold ${
                         isAICopilot
@@ -164,7 +166,7 @@ export default function Sidebar({ onNavigate }) {
                 return (
                   <Link
                     key={sub.label}
-                    href={sub.href}
+                    href={taxHref(sub.href)}
                     onClick={handleNav}
                     className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       isActive && !isAICopilot
@@ -217,40 +219,10 @@ export default function Sidebar({ onNavigate }) {
         <SignOutButton />
       </div>
 
-      {/* Premium Upgrade Card */}
-      <div className="p-4 m-3 mt-1 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-2xl shadow-lg relative overflow-hidden border border-indigo-800/40">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <Crown size={16} className="text-amber-400" />
-            <span className="text-xs font-bold text-white">FinCopilot VIP</span>
-          </div>
-          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
-            PRO
-          </span>
-        </div>
-        <p className="text-[11px] text-slate-300 leading-snug mb-3">
-          Unlimited AI tax optimizations &amp; real-time Form 16 audit.
-        </p>
-
-        {/* Credit Meter */}
-        <div className="mb-3">
-          <div className="flex justify-between text-[10px] text-slate-300 mb-1">
-            <span>AI Copilot Power</span>
-            <span className="font-bold text-emerald-400">85% Active</span>
-          </div>
-          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-400 to-indigo-400 rounded-full w-[85%]" />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          suppressHydrationWarning
-          className="w-full py-2 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/30"
-        >
-          Manage Plan
-        </button>
+      <div className="m-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+        <p className="text-sm font-semibold text-indigo-950">Your tax workspace</p>
+        <p className="my-3 text-xs leading-relaxed text-indigo-700">Yearly salary estimates, private proof documents and filing checklists in one place.</p>
+        <Link href={taxHref("/taxation")} onClick={handleNav} className="inline-flex rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Open tax overview</Link>
       </div>
     </aside>
   );

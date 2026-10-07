@@ -11,7 +11,7 @@ Answer finance questions in the user's language with clear, practical explanatio
 A promotion changes income, slabs, deductions or rebate eligibility, not the tax law. Ask for the raise amount/new annual gross salary and effective month if missing. Ask which tax year if it is missing. Never invent a promotion amount.
 Use the financialYear tool argument when the user specifies a different supported year. Financial/tax years run April–March; an assessment year is the following year. Clarify ambiguous year labels. Do not silently use a different year from the question.
 Call compare_tax for ANY personal tax/regime/refund/salary-change calculation. Call calculate_emi for loan calculations. Copy computed figures exactly and respect unavailable results. Distinguish gross salary from CTC and take-home. Do not invent net salary. If a tool reports an unsupported case, explain it without improvising exact tax.
-The calculator supports ordinary salary only for resident people below 60 and income up to Rs 50 lakh, tax years 2024-25 through 2026-27. CTC is a labelled proxy unless confirmed gross salary is supplied. Do not extrapolate rules to other years, countries, capital gains, business income, foreign assets, senior citizens or surcharge cases. For those, explain the issue generally, identify required records and recommend verification with current official guidance/a qualified professional before action. You have no live web search and must not claim current market prices, verified investment returns or fresh legislative updates.
+The calculator supports ordinary Indian salary income up to Rs 10 crore for tax years 2024-25 through 2026-27. It includes resident senior age bands, nonresident salary slabs without resident rebates, surcharge and marginal relief. Follow the supplied calculator result and warnings. CTC is a labelled proxy unless confirmed gross salary is supplied. Do not extrapolate to other years, countries, capital gains, business income or foreign assets. For excluded income, explain the issue generally, identify required records and recommend verification with current official guidance/a qualified professional before action. You have no live web search and must not claim current market prices, verified investment returns or fresh legislative updates. Year-specific saved salary and deduction declarations override legacy profile declarations for tax; current cashflow remains a separate, explicitly dated summary.
 Salary/basic/HRA, employer NPS and side income have their units in the snapshot. Onboarding employer NPS is monthly; the salary workspace has inconsistent units. Respect employerNpsUnconfirmed and ask for the annual amount when ambiguous; own NPS is annual. Never add the same deduction from onboarding and separate records. Separate deduction rows may be duplicate synchronization records. Respect deductionConflicts and ask the user to confirm eligible annual totals before calculating; never silently sum both sources. When current gross salary differs from saved CTC, use baselineAnnualSalary for the confirmed current gross amount before modelling a promotion.
 Monthly TDS is a declaration, not evidence of tax actually deposited. You cannot give an actual refund or tax-credit reconciliation without verified annual TDS/tax statements. Explain how to verify those; a refund is recovered overpayment, not new tax savings.
 Document flags are not uploaded document contents. You have not read Form 16, AIS, receipts or attachments. Ask users to provide relevant figures, never invent missing document details. The user may paste figures; do not ask for passwords, OTPs, full PAN or bank account numbers.
@@ -26,6 +26,28 @@ function functionTools() {
 }
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+
+async function requestGemini(url, options, { fetchImpl, sleepImpl, deadline, retries }) {
+  for (;;) {
+    if (Date.now() >= deadline) throw new CopilotError("AI_CONNECTION_FAILED");
+    let response;
+    let networkError;
+    try {
+      response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(Math.max(1, Math.min(30000, deadline - Date.now()))) });
+    } catch (error) { networkError = error; }
+    const temporary = networkError || [500, 502, 503, 504].includes(response.status);
+    const delay = 750 * (2 ** (2 - retries.remaining));
+    if (!temporary || retries.remaining === 0 || Date.now() + delay + 1000 >= deadline) {
+      if (networkError) throw new CopilotError("AI_CONNECTION_FAILED");
+      return response;
+    }
+    retries.remaining--;
+    // Only retry transient failures. Keys, billing, quota and safety errors
+    // remain distinct. The total deadline and retry budget span all tool turns.
+    try { await response?.body?.cancel(); } catch { /* Ignore cleanup failure. */ }
+    await sleepImpl(delay);
+  }
+}
 
 function providerFailure(status, error) {
   const invalidKey = error?.details?.some?.((detail) => ["API_KEY_INVALID", "API_KEY_EXPIRED"].includes(detail?.reason));
@@ -50,6 +72,7 @@ function uncalculatedAmount(answer, calculations) {
 }
 
 export async function generateCopilotAnswer({ message, history = [], context, fetchImpl = fetch,
+  sleepImpl = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
   apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_COPILOT_MODEL || DEFAULT_GEMINI_MODEL }) {
   if (!apiKey?.trim() || !/^gemini-[a-zA-Z0-9._-]{1,90}$/.test(model)) throw new CopilotError("AI_NOT_CONFIGURED");
   if (!Array.isArray(history) || history.length > 40 || history.some((item) => !item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || item.content.length > 16000)) {
@@ -65,19 +88,19 @@ export async function generateCopilotAnswer({ message, history = [], context, fe
   const calculations = [];
   let toolCallCount = 0;
   const deadline = Date.now() + 65000;
+  const retries = { remaining: 2 };
   for (let round = 0; round < 4; round++) {
     let payload;
     try {
       if (Date.now() >= deadline) throw new CopilotError("AI_CONNECTION_FAILED");
-      const response = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      const response = await requestGemini(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey.trim() },
-        signal: AbortSignal.timeout(Math.max(1, Math.min(30000, deadline - Date.now()))),
         body: JSON.stringify({ systemInstruction, contents, tools: functionTools(),
           toolConfig: { functionCallingConfig: { mode: "AUTO" } },
           generationConfig: { maxOutputTokens: 8192, ...(model.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}) },
         }),
-      });
+      }, { fetchImpl, sleepImpl, deadline, retries });
       if (!response.ok) {
         let providerError;
         try { providerError = (await response.json()).error; } catch { /* Non-JSON provider errors are handled by status. */ }

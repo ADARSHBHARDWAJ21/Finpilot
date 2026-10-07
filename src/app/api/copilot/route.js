@@ -1,3 +1,4 @@
+import { yearSchema } from "@/lib/finance/model";
 import { createClient } from "@/lib/supabase/server-client";
 import { loadCopilotContext } from "@/lib/copilot/context";
 import { chatRequestSchema, allowCopilotRequest } from "@/lib/copilot/validation";
@@ -10,7 +11,7 @@ const headers = { "Cache-Control": "private, no-store" };
 const json = (data, status = 200) => Response.json(data, { status, headers });
 const messages = {
   AI_NOT_CONFIGURED: "Copilot's Gemini connection is not configured yet. Your financial snapshot is still available.",
-  AI_BUSY: "The AI service is busy. Please try again shortly.",
+  AI_BUSY: "Gemini is temporarily overloaded. We retried automatically, but it is still unavailable. Your question has not been lost; please try again shortly.",
   AI_CREDITS_EXHAUSTED: "The connected Gemini project has no API credits remaining. Check the project's Google AI Studio billing settings.",
   AI_QUOTA_EXHAUSTED: "Gemini's request or usage quota has been reached. Try again shortly. If this continues, check the project's limits in Google AI Studio.",
   AI_CONNECTION_FAILED: "Could not connect to the AI service. Please try again.",
@@ -60,7 +61,9 @@ export async function GET(req) {
       if (!chatRequestSchema.shape.conversationId.unwrap().unwrap().safeParse(id).success) return json({ error: "Invalid chat." }, 400);
       return json({ chat: await readCopilotChat(supabase, user.id, id) });
     }
-    const [snapshot, history] = await Promise.all([loadCopilotContext(supabase, user.id), listCopilotChats(supabase, user.id)]);
+    const year = new URL(req.url).searchParams.get("year") || undefined;
+    if (year && !yearSchema.safeParse(year).success) return json({ error: "Choose a valid financial year." }, 400);
+    const [snapshot, history] = await Promise.all([loadCopilotContext(supabase, user.id, new Date(), year), listCopilotChats(supabase, user.id)]);
     return json({ snapshot: snapshot.view, ...history, aiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()) });
   } catch (error) { return fail(error); }
 }
@@ -73,12 +76,12 @@ export async function POST(req) {
     if (!parsed.success) return json({ error: "Enter a question of up to 3,000 characters." }, 400);
     if (!process.env.GEMINI_API_KEY?.trim()) throw new CopilotError("AI_NOT_CONFIGURED");
     if (!allowCopilotRequest(user.id)) return json({ error: "Please wait a minute before sending more questions." }, 429);
-    const { message, conversationId } = parsed.data;
+    const { message, conversationId, financialYear } = parsed.data;
     const previous = conversationId ? await readCopilotChat(supabase, user.id, conversationId) : null;
     const storage = await listCopilotChats(supabase, user.id);
     if (!storage.available) throw new CopilotError("CHAT_STORAGE_UNAVAILABLE");
     if ((previous?.messages || []).length >= 40) return json({ error: "This chat has reached its limit. Start a new chat to continue." }, 409);
-    const snapshot = await loadCopilotContext(supabase, user.id);
+    const snapshot = await loadCopilotContext(supabase, user.id, new Date(), financialYear);
     const result = await generateCopilotAnswer({ message, history: previous?.messages || [], context: snapshot.context });
     const chat = await saveCopilotChat(supabase, user.id, previous, message, result);
     return json({ chat, snapshot: snapshot.view });

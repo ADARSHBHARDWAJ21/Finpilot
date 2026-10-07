@@ -55,7 +55,7 @@ export const TAX_CATEGORIES = [
       { id: "rent_receipts", label: "Rent receipts", hint: "Landlord PAN if rent > ₹1L/yr" },
       { id: "lease", label: "Rent agreement", hint: "Address & tenure match Form 16" },
       { id: "hra_declared", label: "HRA in salary structure", hint: "From Form 16 / payslip" },
-      { id: "paying_rent", label: "Rent status in profile", hint: "Marked in onboarding" },
+      { id: "paying_rent", label: "Rent details reviewed", hint: "Amounts and period checked for this year" },
     ],
   },
   {
@@ -73,6 +73,7 @@ export const TAX_CATEGORIES = [
       { id: "capital_gains", label: "Capital gains statement", hint: "Broker / mutual fund" },
       { id: "demat", label: "Demat holding statement", hint: "Equity & MF holdings" },
       { id: "sip", label: "SIP / investment summary", hint: "From onboarding SIP amount" },
+      { id: "bank_statement", label: "Bank statement", hint: "Statement for this financial year" },
     ],
   },
   {
@@ -84,12 +85,12 @@ export const TAX_CATEGORIES = [
     iconColor: "text-red-600",
     border: "hover:border-red-200",
     badgeBg: "bg-red-50 text-red-700",
-    subtitle: "ITR readiness, regime recommendation, and filing checklist for FY 2024-25.",
+    subtitle: "Keep your filing details, tax declarations and documents together for the selected year.",
     checklist: [
       { id: "ais", label: "AIS / TIS downloaded", hint: "Annual Information Statement" },
       { id: "regime", label: "Regime selected", hint: "Old vs new comparison done" },
       { id: "tax_paid", label: "Advance tax / TDS reconciled", hint: "Match challans & Form 26AS" },
-      { id: "itr", label: "ITR filed / draft ready", hint: "e-Filing portal" },
+      { id: "itr", label: "ITR reviewed", hint: "Check filing and e-verification status on the e-Filing portal" },
     ],
   },
 ];

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Field,
   TextInput,
@@ -40,7 +42,7 @@ function toStr(v) {
 }
 
 function formatInr(value) {
-  return `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
+  return value == null ? "Not calculated" : `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
 }
 
 function jsonDownload(filename, obj) {
@@ -62,16 +64,19 @@ const tabs = [
   { id: "data", label: "Data & Backup" },
   { id: "preferences", label: "Preferences" },
 ];
+const emptyProfile = {};
 
-export default function SettingsSection({ taxContext }) {
+export default function SettingsSection({ taxContext: initialTaxContext }) {
+  const [taxContext, setTaxContext] = useState(initialTaxContext);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("account");
   const [status, setStatus] = useState(null);
   const [isSaving, startTransition] = useTransition();
   const [editPersonal, setEditPersonal] = useState(false);
   const [editEmployment, setEditEmployment] = useState(false);
 
-  const onboarding = taxContext?.onboardingProfile ?? {};
-  const salary = taxContext?.salaryProfile ?? {};
+  const onboarding = taxContext?.onboardingProfile ?? emptyProfile;
+  const salary = taxContext?.salaryProfile ?? emptyProfile;
 
   const initialForm = useMemo(
     () => ({
@@ -123,7 +128,6 @@ export default function SettingsSection({ taxContext }) {
   );
 
   const [form, setForm] = useState(initialForm);
-  useEffect(() => setForm(initialForm), [initialForm]);
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -133,7 +137,8 @@ export default function SettingsSection({ taxContext }) {
     setStatus({ type: "pending" });
     startTransition(async () => {
       try {
-        await updateSettingsAndSync(form);
+        const result = await updateSettingsAndSync(form);
+        setTaxContext(result.taxContext);
         setStatus({ type: "success" });
       } catch (e) {
         setStatus({ type: "error", message: e?.message ?? "Failed to save" });
@@ -247,9 +252,9 @@ export default function SettingsSection({ taxContext }) {
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <ActionBtn icon={Sparkles} title="Recalculate Tax" subtitle="Update calculations with latest inputs" onClick={handleSave} />
-                  <ActionBtn icon={Eye} title="Tax Preview" subtitle="See updated tax estimate before saving" />
+                  <ActionBtn icon={Eye} title="Tax Preview" subtitle="Explore saved yearly tax inputs" onClick={() => router.push(`/taxation/simulation?year=${taxContext.financialYear}`)} />
                   <ActionBtn icon={Download} title="Download Report" subtitle="Download your tax summary report" onClick={() => jsonDownload("finpilot-settings-report.json", { form, taxContext, exportedAt: new Date().toISOString() })} />
-                  <ActionBtn icon={RotateCcw} title="Reset All Inputs" subtitle="Clear all inputs and start fresh" onClick={() => setForm(initialForm)} />
+                  <ActionBtn icon={RotateCcw} title="Discard Unsaved Edits" subtitle="Restore your last saved profile" onClick={() => setForm(initialForm)} />
                 </div>
               </section>
 
@@ -266,44 +271,13 @@ export default function SettingsSection({ taxContext }) {
             </>
           )}
 
-          {activeTab === "tax" && (
-            <SettingsFormCard title="Salary & Tax Regime Inputs">
-              <GridFields
-                fields={[
-                  ["annual_ctc", "Annual CTC (₹)"],
-                  ["monthly_inhand_salary", "Monthly In-Hand (₹)"],
-                  ["basic_salary", "Basic Salary / month (₹)"],
-                  ["hra", "HRA / month (₹)"],
-                  ["special_allowance", "Special Allowance / month (₹)"],
-                  ["bonus", "Bonus / year (₹)"],
-                  ["employer_pf", "Employer PF / month (₹)"],
-                  ["employer_nps", "Employer NPS / month (₹)"],
-                  ["monthly_tds", "Monthly TDS (₹)"],
-                ]}
-                form={form}
-                setField={setField}
-              />
-            </SettingsFormCard>
-          )}
-
-          {activeTab === "deductions" && (
-            <SettingsFormCard title="Investments & Deductions Inputs">
-              <GridFields
-                fields={[
-                  ["elss_investments", "ELSS Investments (₹/year)"],
-                  ["ppf", "PPF (₹/year)"],
-                  ["epf", "EPF (₹/year)"],
-                  ["tax_saver_fd", "Tax Saver FD (₹/year)"],
-                  ["life_insurance", "Life Insurance (₹/year)"],
-                  ["health_insurance", "Health Insurance (₹)"],
-                  ["parents_health_insurance", "Parents Health Insurance (₹)"],
-                  ["nps_contribution", "NPS (80CCD) (₹)"],
-                  ["home_loan_interest", "Home Loan Interest (₹)"],
-                  ["education_loan_interest", "Education Loan Interest (₹)"],
-                ]}
-                form={form}
-                setField={setField}
-              />
+          {(activeTab === "tax" || activeTab === "deductions") && (
+            <SettingsFormCard title={activeTab === "tax" ? "Salary & Tax Regime" : "Investments & Deductions"}>
+              <p className="text-sm leading-relaxed text-slate-500">Tax inputs are saved for each financial year. Edit them in the year workspace so Taxation, Reports and Copilot use the same confirmed amounts.</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white" href={`/taxation/${activeTab === "tax" ? "salary-documents" : "tax-saving-proofs"}?year=${taxContext.financialYear}`}>Edit {activeTab === "tax" ? "salary" : "deductions"} for FY {taxContext.financialYear}</Link>
+                <Link className="rounded-xl border border-slate-200 px-4 py-3 text-sm" href={`/taxation/compare-regimes?year=${taxContext.financialYear}`}>Compare and choose regime</Link>
+              </div>
             </SettingsFormCard>
           )}
 
@@ -465,4 +439,3 @@ function Shortcut({ icon: Icon, label, sub }) {
     </button>
   );
 }
-

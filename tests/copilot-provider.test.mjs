@@ -7,7 +7,29 @@ const context = () => buildCopilotContext({ profile: { financial_year: "2026-27"
 const text = (answer) => ({ text: answer });
 const call = (args = {}, name = "compare_tax", id = "call_1") => ({ functionCall: { name, id, args }, thoughtSignature: "signed-thought" });
 const response = (parts, finishReason = "STOP") => ({ ok: true, json: async () => ({ candidates: [{ finishReason, content: { role: "model", parts } }] }) });
-const config = () => ({ message: "What changes after a 20% promotion for six months?", context: context(), apiKey: "test-secret" });
+const config = () => ({ message: "What changes after a 20% promotion for six months?", context: context(), apiKey: "test-secret", sleepImpl: async () => {} });
+
+test("temporary Gemini overload retries the same request and recovers without duplicate calculations", async () => {
+  const requests = [];
+  const delays = [];
+  const result = await generateCopilotAnswer({ ...config(), sleepImpl: async (delay) => delays.push(delay), fetchImpl: async (_url, options) => {
+    requests.push(JSON.parse(options.body));
+    if (requests.length < 3) return { ok: false, status: 503 };
+    return response([text("Please confirm your salary and the effective month.")]);
+  } });
+  assert.equal(requests.length, 3);
+  assert.deepEqual(requests[0], requests[2]);
+  assert.deepEqual(delays, [750, 1500]);
+  assert.equal(result.calculations.length, 0);
+});
+
+test("retries are bounded and quota or key failures are never repeatedly submitted", async () => {
+  for (const status of [503, 429, 403]) {
+    let count = 0;
+    await assert.rejects(generateCopilotAnswer({ ...config(), fetchImpl: async () => { count++; return { ok: false, status }; } }));
+    assert.equal(count, status === 503 ? 3 : 1);
+  }
+});
 
 test("Gemini replays signed model content and returns server-calculated promotion figures", async () => {
   const requests = [];

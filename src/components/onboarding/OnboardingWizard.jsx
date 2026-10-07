@@ -337,7 +337,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
             </div>
             <div className="bg-white border border-gray-100 rounded-xl p-4">
               <p className="text-[10px] text-gray-500 uppercase font-medium">Expected refund</p>
-              <p className="text-lg font-bold text-emerald-600 mt-1">{formatInr(summary.expectedRefund)}</p>
+              <p className="text-lg font-bold text-emerald-600 mt-1">Not calculated</p>
             </div>
             <div className="bg-white border border-gray-100 rounded-xl p-4">
               <p className="text-[10px] text-gray-500 uppercase font-medium">Unused 80C</p>

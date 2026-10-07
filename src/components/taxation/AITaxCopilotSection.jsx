@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import FinancialYearSelect from "@/components/finance/FinancialYearSelect";
 import { Sparkles, Send, RefreshCw, Plus, Trash2, User, IndianRupee, Wallet, TrendingUp, Info, ArrowUpRight, LoaderCircle } from "lucide-react";
 
 const prompts = ["Which tax regime is better for me?", "What changes if I get a promotion?", "Where is most of my spending going?", "Am I missing any eligible deductions?", "Can I afford a new EMI?"];
@@ -52,7 +53,7 @@ function Calculation({ result }) {
   </div>;
 }
 
-export default function AITaxCopilotSection({ initialSnapshot, initialChats = [], historyAvailable = true, initialError = "", aiConfigured = false, initialQuestion = "" }) {
+export default function AITaxCopilotSection({ financialYear, initialSnapshot, initialChats = [], historyAvailable = true, initialError = "", aiConfigured = false, initialQuestion = "" }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [chats, setChats] = useState(initialChats);
   const [activeId, setActiveId] = useState(null);
@@ -104,7 +105,7 @@ export default function AITaxCopilotSection({ initialSnapshot, initialChats = []
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setError(""); setNotice("");
     try {
-      const data = await request("/api/copilot");
+      const data = await request(`/api/copilot?year=${encodeURIComponent(snapshot?.financialYear || financialYear || "")}`);
       setSnapshot(data.snapshot); setChats(Array.isArray(data.chats) ? data.chats : []); setStorageAvailable(Boolean(data.available));
       if (typeof data.aiConfigured === "boolean") setProviderReady(data.aiConfigured);
       setProfileError(data.snapshot ? "" : "Your financial profile could not be loaded. Select Refresh data to try again.");
@@ -130,7 +131,7 @@ export default function AITaxCopilotSection({ initialSnapshot, initialChats = []
     if (message.length > 3000) { setError("Please keep your question under 3,000 characters."); return; }
     inFlight.current = true; setBusy(true); setError(""); setNotice(""); setPendingMessage(message);
     try {
-      const data = await request("/api/copilot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, conversationId: activeId }) });
+      const data = await request("/api/copilot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, conversationId: activeId, financialYear: snapshot?.financialYear || financialYear || undefined }) });
       const chat = readChat(data);
       setActiveId(chat.id); setMessages(chat.messages); setSnapshot(data.snapshot); setStorageAvailable(true);
       setProfileError(data.snapshot ? "" : "Your financial profile could not be loaded. Select Refresh data to try again.");
@@ -174,7 +175,7 @@ export default function AITaxCopilotSection({ initialSnapshot, initialChats = []
   ];
   const assumptions = [...textList(tax?.warnings), ...textList(snapshot?.dataWarnings)];
   return <div className="flex flex-col min-h-[calc(100dvh-8rem)] lg:min-h-[calc(100vh-3rem)]">
-    <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5"><div><div className="flex items-center gap-2"><h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Finance & Tax Copilot</h1><span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-1 rounded-full">Gemini</span></div><p className="text-sm text-gray-500 mt-1">Answers and what-if scenarios based on your saved financial data.</p><p className="text-xs text-gray-500 mt-1">{snapshot?.financialYear ? `Saved profile tax year ${snapshot.financialYear}` : "Tax year not selected"}{snapshot?.asOf ? ` · Data refreshed ${snapshot.asOf}` : ""}</p></div><div className="flex items-center gap-2"><button type="button" disabled={busy} onClick={refresh} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 disabled:opacity-50"><RefreshCw size={14} />Refresh data</button><button type="button" disabled={busy} onClick={newChat} className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs text-white disabled:opacity-50"><Plus size={14} />New chat</button></div></header>
+    <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5"><div><div className="flex items-center gap-2"><h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Finance & Tax Copilot</h1><span className="text-[10px] font-semibold bg-violet-100 text-violet-700 px-2 py-1 rounded-full">Gemini</span></div><p className="text-sm text-gray-500 mt-1">Answers and what-if scenarios based on your saved financial data.</p><p className="text-xs text-gray-500 mt-1">{snapshot?.financialYear ? `Tax workspace year ${snapshot.financialYear}` : "Tax year not selected"}{snapshot?.asOf ? ` · Data refreshed ${snapshot.asOf}` : ""}</p></div><div className="flex flex-wrap items-center gap-2">{snapshot?.financialYear && <FinancialYearSelect year={snapshot.financialYear} />}<button type="button" disabled={busy} onClick={refresh} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 disabled:opacity-50"><RefreshCw size={14} />Refresh data</button><button type="button" disabled={busy} onClick={newChat} className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs text-white disabled:opacity-50"><Plus size={14} />New chat</button></div></header>
     {!providerReady && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">AI answers are waiting for setup</p><p className="text-xs text-amber-800 mt-1">Your financial snapshot and saved chats are still available. Ask the app administrator to connect Google Gemini, then select Refresh data.</p></div>}
     {!storageAvailable && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Saved chats need to be set up before you can ask a question. Ask the app administrator to finish Copilot setup, then select Refresh data.</div>}
     {profileError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{profileError}</div>}

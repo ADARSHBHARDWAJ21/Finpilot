@@ -1,4 +1,7 @@
 import { estimateTax, profileTaxInputs, number, inr } from "./tax-engine.js";
+import { applyTaxWorkspace } from "../taxation/year-inputs.js";
+import { loadTaxWorkspace } from "../finance/data.js";
+import { resolveFinancialYear } from "../finance/model.js";
 
 function indiaDate(now) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
@@ -21,7 +24,7 @@ async function readTransactions(supabase, userId, start, today) {
   return { data: rows, truncated: true };
 }
 
-export async function loadCopilotContext(supabase, userId, now = new Date()) {
+export async function loadCopilotContext(supabase, userId, now = new Date(), selectedYear) {
   const today = indiaDate(now);
   const [year, month] = today.split("-").map(Number);
   const start = new Date(Date.UTC(year, month - 6, 1)).toISOString().slice(0, 10);
@@ -33,13 +36,15 @@ export async function loadCopilotContext(supabase, userId, now = new Date()) {
     readTransactions(supabase, userId, start, today),
   ]);
   if (profileResult.error) throw new Error("PROFILE_UNAVAILABLE");
-  return buildCopilotContext({ profile: profileResult.data || {}, salary: salaryResult.data, deductions: deductionResult.data, budgets: budgetResult.data, transactions: txResult.data, warnings: [salaryResult.error && "Salary workspace is unavailable; using onboarding declarations.", deductionResult.error && "Deduction workspace is unavailable.", budgetResult.error && "Budget plans are unavailable.", txResult.error && "Transaction history is unavailable.", txResult.truncated && "Spending summary is limited to the latest 10,000 records."].filter(Boolean), today, start });
+  const workspace = await loadTaxWorkspace(supabase, userId, resolveFinancialYear(selectedYear, profileResult.data?.financial_year));
+  return buildCopilotContext({ workspace, profile: profileResult.data || {}, salary: salaryResult.data, deductions: deductionResult.data, budgets: budgetResult.data, transactions: txResult.data, warnings: [salaryResult.error && "Salary workspace is unavailable; using onboarding declarations.", deductionResult.error && "Deduction workspace is unavailable.", budgetResult.error && "Budget plans are unavailable.", txResult.error && "Transaction history is unavailable.", txResult.truncated && "Spending summary is limited to the latest 10,000 records."].filter(Boolean), today, start });
 }
 
-export function buildCopilotContext({ profile = {}, salary = null, deductions = null, budgets = null, transactions = null, warnings = [], today, start }) {
+export function buildCopilotContext({ profile = {}, salary = null, deductions = null, budgets = null, transactions = null, warnings = [], today, start, workspace = null }) {
   warnings = [...warnings];
-  const taxInputs = profileTaxInputs(profile, salary);
-  const deductionRecords = (deductions || []).map((row) => ({ key: String(row.key || "").trim().toUpperCase().slice(0, 40), amount: number(row.amount) }));
+  const historical = workspace && workspace.year !== profile.financial_year;
+  let taxInputs = historical ? profileTaxInputs({ financial_year: workspace.year }) : profileTaxInputs(profile, salary);
+  const deductionRecords = (historical ? [] : deductions || []).map((row) => ({ key: String(row.key || "").trim().toUpperCase().slice(0, 40), amount: number(row.amount) }));
   const deductionSources = [
     { key: "80C", profileDeclaredAmount: taxInputs.section80c, profileAmount: Math.min(150000, taxInputs.section80c), confirmationInputs: ["section80c"] },
     { key: "80D", profileDeclaredAmount: taxInputs.healthInsurance + taxInputs.parentsHealthInsurance, profileAmount: taxInputs.healthInsurance + taxInputs.parentsHealthInsurance, profileSelfFamilyAmount: taxInputs.healthInsurance, profileParentsAmount: taxInputs.parentsHealthInsurance, confirmationInputs: ["healthInsurance", "parentsHealthInsurance"] },
@@ -53,6 +58,13 @@ export function buildCopilotContext({ profile = {}, salary = null, deductions = 
     return { ...source, workspaceAmounts, distinctWorkspaceAmounts, duplicateCount, requiresConfirmation: differs || duplicateCount > 0, reason: duplicateCount > 0 ? "Multiple workspace rows may repeat onboarding synchronization or represent separate expenses; their annual total is unconfirmed." : differs ? "The saved workspace amount differs from the onboarding declaration." : null };
   });
   taxInputs.deductionConflicts = deductionSources.filter((source) => source.requiresConfirmation);
+  taxInputs = applyTaxWorkspace(taxInputs, workspace, profile, salary);
+  if (workspace?.sections["tax-saving-proofs"]?.details?.eligibilityConfirmed) {
+    for (const source of deductionSources) {
+      source.requiresConfirmation = false;
+      source.reason = "Confirmed annual totals in the selected year's Tax Saving Proofs replace these legacy declarations. Use taxInputs for the calculation.";
+    }
+  }
   for (const conflict of taxInputs.deductionConflicts) {
     const rowPreview = conflict.workspaceAmounts.slice(0, 5).map(inr).join(", ");
     const rowCount = conflict.workspaceAmounts.length;
@@ -88,7 +100,7 @@ export function buildCopilotContext({ profile = {}, salary = null, deductions = 
   const cashflow = { declaredMonthlyTakeHome: number(profile.monthly_inhand_salary), declaredMonthlySideIncome: number(profile.side_income), declaredMonthlyCommitted: monthlyCommitted, existingMonthlyEmi: number(profile.emi_obligations), monthlySip: number(profile.sip_amount), monthlySavingsGoal: number(profile.savings_goal), note: "Declared expenses may overlap; affordability estimates need confirmation of all obligations and emergency savings." };
   const savedGoals = profile.documents?.goals_workspace?.goals;
   const goals = (Array.isArray(savedGoals) ? savedGoals : []).slice(0, 15).map((goal) => ({ name: String(goal.name || goal.title || "Financial goal").slice(0, 100), targetAmount: number(goal.targetAmount), currentSaved: number(goal.currentSaved), monthlyRequiredSaving: number(goal.monthlyRequiredSaving), targetDate: String(goal.targetDate || "").slice(0, 20), purchaseMode: String(goal.purchaseMode || "").slice(0, 20) }));
-  const context = { asOf: today, financialYear: taxInputs.financialYear, taxInputs, tax, spending, budget, cashflow, goals, deductionRecords, deductionSources, dataWarnings: warnings, documentAvailability: "The current SaaS stores document flags, not document contents. No Form 16, AIS, rent receipt or bank document has been read by this Copilot." };
+  const context = { asOf: today, financialYear: taxInputs.financialYear, taxInputs, tax, spending, budget, cashflow, goals, deductionRecords, deductionSources, dataWarnings: warnings, documentAvailability: "Proof documents uploaded to the private tax workspace are not read by or sent to this Copilot. No Form 16, AIS, rent receipt or bank document has been read by this Copilot." };
   const insights = [];
   if (tax.available) insights.push({ text: tax.recommended === "equal" ? "Both regimes have the same salary-only estimate." : `${tax.recommended === "old" ? "Old" : "New"} regime estimates ${inr(tax.difference)} less annual tax. Confirm gross salary and eligibility.`, prompt: "Compare both tax regimes using my saved profile and explain the assumptions." });
   if (spending.available && spending.topCategories[0]) insights.push({ text: `${spending.topCategories[0].category} is your largest recorded expense category this month.`, prompt: "Where is most of my spending going this month, and how could I reduce it?" });
