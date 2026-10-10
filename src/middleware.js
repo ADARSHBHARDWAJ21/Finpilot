@@ -28,6 +28,10 @@ function isProtectedRoute(pathname) {
 }
 
 export async function middleware(request) {
+  if (request.nextUrl.pathname === "/api/health") {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

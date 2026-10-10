@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { processStatement } from "@/lib/ingestion/process-statement";
 import { MAX_FILE_BYTES, validateFile } from "@/lib/import/transaction-values";
+import { isAllowedUploadOrigin } from "@/lib/security/request-origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -31,8 +32,7 @@ async function readUploadForm(req) {
 export async function POST(req) {
   let started = false;
   try {
-    const origin = req.headers.get("origin");
-    if (origin && origin !== new URL(req.url).origin) return reply({ success: false, error: "Please upload from the Finpilot app." }, 403);
+    if (!isAllowedUploadOrigin(req)) return reply({ success: false, error: "Please upload from the Finpilot app." }, 403);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return reply({ success: false, error: "Please sign in again before importing." }, 401);

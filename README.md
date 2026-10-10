@@ -195,6 +195,8 @@ Repository-wide lint currently includes legacy React hook violations; it is not 
 
 ## Deployment
 
+For the prepared **Render free preview**, follow [Render deployment and future updates](RENDER_DEPLOYMENT.md). The included `render.yaml` deploys the frontend and backend together, reuses the existing Supabase project, and enables automatic deployments from `main` when GitHub is connected.
+
 ```bash
 npm ci
 npm run build

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
+import { safeNextPath } from "@/lib/security/next-path";
 
 export async function signUp(email, password) {
   const supabase = await createClient();
@@ -44,12 +45,7 @@ export async function signIn(email, password, nextPath = "/dashboard") {
     redirect("/onboarding");
   }
 
-  const safeNext =
-    typeof nextPath === "string" && nextPath.startsWith("/") && !nextPath.startsWith("/auth")
-      ? nextPath
-      : "/dashboard";
-
-  redirect(safeNext);
+  redirect(safeNextPath(nextPath));
 }
 
 export async function signOut() {

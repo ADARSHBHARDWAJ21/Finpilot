@@ -1,0 +1,25 @@
+# Frontend and API/server actions run together in this free Next.js service.
+# The existing Supabase project keeps authentication, records, and proof files.
+services:
+  - type: web
+    name: finpilot-preview
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci --include=dev --include=optional && node scripts/check-render-runtime.mjs && npm run build
+    startCommand: npm start -- --hostname 0.0.0.0 --port "$PORT"
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 180
+    envVars:
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_COPILOT_MODEL
+        value: gemini-3.8-flash
