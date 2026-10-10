@@ -60,6 +60,8 @@ Some older workspace calculations and UI elements still need production validati
 
 ### Interface and design system
 
+The public homepage includes product walkthroughs, a section for Indian salaried users, and an early-user invitation. A public sample workspace at `/demo` lets visitors explore three illustrative months, review and recategorise transactions, see linked spending/budget summaries, and try calculated Copilot examples before signing up. `?view=transactions` and `?view=copilot` open those sample views directly. The demo uses only bundled illustrative records and temporary React state; it makes no database writes or Gemini calls, and resets on reload. The production workspace continues to require authentication.
+
 The interface uses a warm ivory background, forest-green actions, soft sage accents, restrained charts and consistent line icons. Shared theme tokens and reusable surface, button, input and typography classes live in `src/app/globals.css`. `BrandMark` supplies the shared identity; `DashboardLayout` provides desktop navigation, breadcrumbs and a keyboard-accessible mobile drawer.
 
 The landing page, authentication, onboarding, dashboard, transactions, budgets, goals, tax workspaces, Copilot, reports, calendar, reminders and settings share this visual language. Product previews are labeled, and unavailable investment/net-worth integrations remain marked as coming soon. Dialogs and controls retain their existing data actions; the redesign does not add new financial integrations.

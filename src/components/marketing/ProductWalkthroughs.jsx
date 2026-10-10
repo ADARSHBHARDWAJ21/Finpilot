@@ -71,7 +71,7 @@ const walkthroughs = [
 ];
 
 export default function ProductWalkthroughs() {
-  return <div className={styles.walkthroughs}>{walkthroughs.map(({ number, icon: Icon, label, title, body, points, link, Preview }, index) => <article key={number} className={styles.walkthrough} data-reverse={index % 2 === 1}>
+  return <div className={styles.walkthroughs}>{walkthroughs.map(({ number, icon: Icon, label, title, body, points, link, Preview }, index) => <article key={number} id={index === 1 ? "tax-workspace" : undefined} className={styles.walkthrough} data-reverse={index % 2 === 1}>
     <div className={styles.copy} data-reveal><span className={styles.featureKicker}><Icon size={15} />{label}</span><h3>{title}</h3><p>{body}</p><ul>{points.map(point => <li key={point}><Check size={14} />{point}</li>)}</ul><Link href="/auth/signup" className={styles.featureLink}>{link}<ArrowRight size={16} /></Link></div>
     <div className={styles.visual} data-reveal style={{ "--reveal-delay": "100ms" }}><span className={styles.visualNumber} aria-hidden="true">{number}</span><Preview /></div>
   </article>)}</div>;

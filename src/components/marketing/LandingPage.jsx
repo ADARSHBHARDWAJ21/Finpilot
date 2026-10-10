@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/layout/BrandMark";
 import ProductWalkthroughs, { ImportJourney } from "./ProductWalkthroughs";
+import { AudienceSection, EarlyUserSection } from "./MarketingAdditions";
 import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, Menu, MessageSquare, Pause, Play, RotateCcw, ShieldCheck, Sparkles, Target, Wallet, X } from "lucide-react";
 import styles from "./LandingPage.module.css";
 
@@ -194,7 +195,7 @@ function CopilotPreview() {
               <div className={styles.answerSource} data-visible={complete}><FileText size={12} />Financial profile & transaction summary</div>
             </article>
           </div>
-          <div className={styles.demoFooter}><div className={styles.demoControls}>{!reduced && <button type="button" onClick={togglePause} aria-label={paused ? "Play Copilot demo" : "Pause Copilot demo"}>{paused ? <Play size={14} /> : <Pause size={14} />}<span>{paused ? "Play" : "Pause"}</span></button>}{!reduced && <button className={styles.demoReplay} type="button" onClick={replay} aria-label="Replay Copilot demo"><RotateCcw size={14} /></button>}{reduced && <span>Sample conversation</span>}</div><Link href="/taxation/ai-copilot" className={styles.demoLink}>Try Copilot <ArrowUpRight size={14} /></Link></div>
+          <div className={styles.demoFooter}><div className={styles.demoControls}>{!reduced && <button type="button" onClick={togglePause} aria-label={paused ? "Play Copilot demo" : "Pause Copilot demo"}>{paused ? <Play size={14} /> : <Pause size={14} />}<span>{paused ? "Play" : "Pause"}</span></button>}{!reduced && <button className={styles.demoReplay} type="button" onClick={replay} aria-label="Replay Copilot demo"><RotateCcw size={14} /></button>}{reduced && <span>Sample conversation</span>}</div><Link href="/demo?view=copilot" className={styles.demoLink}>Try Copilot sample <ArrowUpRight size={14} /></Link></div>
           <div className={styles.demoProgress} aria-hidden="true"><span style={{ transform: `scaleX(${reduced ? 1 : scene.elapsed / DEMO_DURATION})` }} /></div>
         </div>
       </div>
@@ -212,7 +213,7 @@ export default function LandingPage() {
   return (
     <div ref={rootRef} className={styles.landing}>
       <div className={styles.scrollProgress} aria-hidden="true" />
-      <header className={styles.header} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}><div className={styles.headerInner}><Brand /><nav className={styles.nav} aria-label="Main navigation"><a href="#features">The workspace</a><a href="#how-it-works">How it works</a><a href="#faq">Questions</a></nav><div className={styles.headerActions}><Link href="/auth/login" className={styles.signIn}>Sign in</Link><Link href="/auth/signup" className={styles.smallButton}>Get started <ArrowUpRight size={16} /></Link><button ref={menuButton} type="button" className={styles.menuButton} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} aria-controls="public-mobile-nav" onClick={() => setMenuOpen(current => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div><nav id="public-mobile-nav" className={styles.mobileNav} aria-label="Mobile navigation" data-open={menuOpen} aria-hidden={!menuOpen} inert={!menuOpen}>{[{ href: "#features", label: "The workspace" }, { href: "#how-it-works", label: "How it works" }, { href: "#faq", label: "Questions" }].map(link => <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}<ArrowRight size={15} /></a>)}<Link href="/auth/signup" onClick={() => setMenuOpen(false)}>Create your workspace<ArrowUpRight size={15} /></Link></nav></header>
+      <header className={styles.header} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}><div className={styles.headerInner}><Brand /><nav className={styles.nav} aria-label="Main navigation"><a href="#features">The workspace</a><a href="#who-its-for">Who it’s for</a><Link href="/demo">Try a sample</Link><a href="#faq">Questions</a></nav><div className={styles.headerActions}><Link href="/auth/login" className={styles.signIn}>Sign in</Link><Link href="/auth/signup" className={styles.smallButton}>Get started <ArrowUpRight size={16} /></Link><button ref={menuButton} type="button" className={styles.menuButton} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} aria-controls="public-mobile-nav" onClick={() => setMenuOpen(current => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div><nav id="public-mobile-nav" className={styles.mobileNav} aria-label="Mobile navigation" data-open={menuOpen} aria-hidden={!menuOpen} inert={!menuOpen}>{[{ href: "#features", label: "The workspace" }, { href: "#who-its-for", label: "Who it’s for" }, { href: "#how-it-works", label: "How it works" }, { href: "#faq", label: "Questions" }].map(link => <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}<ArrowRight size={15} /></a>)}<Link href="/demo" onClick={() => setMenuOpen(false)}>Try a sample workspace<ArrowRight size={15} /></Link><Link href="/auth/signup" onClick={() => setMenuOpen(false)}>Create your workspace<ArrowUpRight size={15} /></Link></nav></header>
       <main>
         <section className={styles.hero}>
           <div className={styles.heroOrb} aria-hidden="true" /><div className={styles.heroDots} aria-hidden="true" />
@@ -220,7 +221,8 @@ export default function LandingPage() {
             <p className={styles.eyebrow}><span /> Your personal finance workspace</p>
             <h1>Money, with a<br /><span>little more clarity.<svg viewBox="0 0 480 18" aria-hidden="true" preserveAspectRatio="none"><path d="M3 12C126 1 350 2 476 11" /></svg></span></h1>
             <p className={styles.heroDescription}>Your spending, taxes, and future plans. Thoughtfully brought together, so you can feel more in control of what comes next.</p>
-            <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create workspace <ArrowRight size={18} /></Link><a href="#features" className={styles.secondaryButton}>Explore <ArrowDown size={16} /></a></div>
+            <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create workspace <ArrowRight size={18} /></Link><Link href="/demo" className={styles.secondaryButton}>Try a sample workspace <ArrowUpRight size={16} /></Link></div>
+            <p className={styles.sampleHint}>Explore with sample data. No signup needed.</p>
             <div className={styles.trustNotes}><span><Check size={14} /> Built for Indian finances</span><span><Check size={14} /> Start with your own records</span></div>
             <div className={styles.heroPrivacy}><ShieldCheck size={17} strokeWidth={1.5} /><div><p>Private tax proofs. Review imports before saving.</p><a href="#data-use" onClick={() => setOpenFaq(4)}>How your data is used<ArrowUpRight size={12} /></a></div></div>
           </div>
@@ -228,6 +230,7 @@ export default function LandingPage() {
           <a href="#features" className={styles.scrollCue}><span className={styles.scrollMouse} aria-hidden="true"><i /></span> A clearer view awaits <ArrowDown size={13} /></a>
         </section>
         <div className={styles.connectionStrip} data-reveal><span>One space. A little less scattered.</span><div>{[{ icon: Wallet, text: "Everyday money" }, { icon: FileText, text: "Your tax year" }, { icon: Target, text: "Future plans" }].map(({ icon: Icon, text }) => <span key={text}><Icon size={17} strokeWidth={1.6} />{text}</span>)}</div></div>
+        <div className={styles.container}><AudienceSection /></div>
         <section id="features" className={styles.features}><div className={styles.container}>
           <div className={styles.sectionHeading} data-reveal><div><p className={styles.eyebrow}>One thoughtfully connected space</p><h2>Less scattered.<br /><span>More considered.</span></h2></div><p>Small everyday decisions and bigger financial plans deserve the same clear view.</p></div>
           <ProductWalkthroughs />
@@ -239,6 +242,7 @@ export default function LandingPage() {
           <ImportJourney />
         </section>
         <section id="faq" className={styles.faqSection}><div className={`${styles.container} ${styles.faqGrid}`}><div data-reveal><CircleHelp size={28} strokeWidth={1.5} className={styles.faqIcon} /><h2>A few good questions.</h2><p className={styles.sectionDescription}>A little more clarity before you begin.</p></div><div data-reveal>{faqs.map((faq, i) => <div key={faq.q} id={i === 4 ? "data-use" : undefined} className={styles.faqItem} data-open={openFaq === i}><button id={`faq-question-${i}`} type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i} aria-controls={`faq-answer-${i}`}><span>{faq.q}</span><span><ChevronDown size={17} /></span></button><div id={`faq-answer-${i}`} className={styles.faqAnswer} aria-hidden={openFaq !== i} inert={openFaq !== i} role="region" aria-labelledby={`faq-question-${i}`}><div><p>{faq.a}</p></div></div></div>)}</div></div></section>
+        <div className={styles.container}><EarlyUserSection /></div>
         <section className={`${styles.container} ${styles.ctaSection}`}><div className={styles.cta} data-reveal><div className={styles.ctaOrb} aria-hidden="true" /><div className={styles.ctaCopy}><p className={styles.eyebrow}>Your next chapter</p><h2>Make room for<br />a clearer financial life.</h2><p>A thoughtful space for your money. And everything ahead.</p></div><Link href="/auth/signup" className={styles.ctaButton}>Start with Finpilot <ArrowUpRight size={18} /></Link></div></section>
       </main>
       <footer className={styles.footer}><div className={styles.container}><Brand /><p>A little clarity goes a long way.</p><p>© {new Date().getFullYear()} Finpilot</p></div></footer>

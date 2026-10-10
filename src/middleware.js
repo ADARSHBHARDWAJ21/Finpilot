@@ -15,7 +15,7 @@ function isOnboardingRoute(pathname) {
 }
 
 function isPublicRoute(pathname) {
-  return pathname === "/" || pathname === "/templates/transactions.csv";
+  return pathname === "/" || pathname === "/demo" || pathname === "/templates/transactions.csv";
 }
 
 function isProtectedRoute(pathname) {
@@ -29,7 +29,7 @@ function isProtectedRoute(pathname) {
 }
 
 export async function middleware(request) {
-  if (request.nextUrl.pathname === "/api/health" || request.nextUrl.pathname === "/auth/callback") {
+  if (request.nextUrl.pathname === "/api/health" || request.nextUrl.pathname === "/auth/callback" || request.nextUrl.pathname === "/demo") {
     return NextResponse.next();
   }
 
