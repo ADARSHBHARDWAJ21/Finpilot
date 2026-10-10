@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/layout/BrandMark";
-import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, MessageSquare, Pause, Play, RotateCcw, Send, Sparkles, Target, Wallet } from "lucide-react";
+import ProductWalkthroughs, { ImportJourney } from "./ProductWalkthroughs";
+import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, Menu, MessageSquare, Pause, Play, RotateCcw, ShieldCheck, Sparkles, Target, Wallet, X } from "lucide-react";
 import styles from "./LandingPage.module.css";
 
 const features = [
-  { icon: Wallet, label: "A clearer everyday", title: "Know where your money goes.", body: "Import your bank statement, review the transactions, and bring your spending into one organised view." },
-  { icon: FileText, label: "A calmer tax season", title: "Keep the whole year together.", body: "Compare salary tax regimes, organise your proofs, and revisit the numbers for each financial year." },
   { icon: Target, label: "Room for what matters", title: "Make a plan you can follow.", body: "Set budgets and savings goals. Explore how a planned purchase or EMI could fit into your monthly cash flow." },
-  { icon: MessageSquare, label: "A little guidance", title: "Ask your financial Copilot.", body: "Explore questions about your saved financial information with AI explanations and built-in calculations." },
   { icon: CalendarDays, label: "Less to remember", title: "Give important dates a home.", body: "Keep reminders and goal milestones in your calendar, with an export for the calendar you already use." },
   { icon: LayoutDashboard, label: "The bigger picture", title: "Look back. Move forward.", body: "Browse previous months and download reports to understand the progress behind your everyday decisions." },
 ];
@@ -19,6 +17,7 @@ const faqs = [
   { q: "How do I add my transactions?", a: "Add them manually or import a CSV, Excel file, PDF statement, or statement image. You can review extracted transactions and change their categories before importing. Document layouts and image quality can affect extraction." },
   { q: "Does Finpilot file my tax return?", a: "Finpilot helps you organise tax information, estimate salary tax, compare regimes, and export your records. It does not submit a tax return or replace a professional review of complex income." },
   { q: "Do I need to connect my bank account?", a: "No. You can start with a statement upload or manual transactions. Live bank feeds are not required for the current workspace." },
+  { q: "How is my financial information used?", a: "Statement imports are processed on the app server to prepare a transaction preview. You review the extracted details before saving them to your account. Tax proof files are stored privately with access restricted to their owner. When you use Copilot, your question, conversation and a limited financial summary are sent to Google Gemini to prepare an answer. The statement import flow does not send your original statement to Gemini." },
 ];
 const copilotExamples = [
   {
@@ -37,17 +36,13 @@ const copilotExamples = [
   },
 ];
 const DEMO_DURATION = 15000;
-const steps = [
-  { title: "Bring your records", body: "Start with a bank statement, add your income, or enter a few transactions.", icon: FileText },
-  { title: "Review the details", body: "Check imported records, choose categories, and fill in the information that matters to you.", icon: Check },
-  { title: "Find your next step", body: "Explore your month, organise tax proofs, and make space for your next goal.", icon: Sparkles },
-];
 
 function useLandingMotion(rootRef) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const journey = root.querySelector("[data-journey]");
     let observer;
     let scrollFrame = 0;
     function updateScroll() {
@@ -56,6 +51,11 @@ function useLandingMotion(rootRef) {
       root.style.setProperty("--page-progress", String(Math.min(1, window.scrollY / distance)));
       root.style.setProperty("--hero-shift", `${Math.min(window.scrollY, 650) * 0.045}px`);
       root.dataset.scrolled = String(window.scrollY > 24);
+      if (journey) {
+        const bounds = journey.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, (window.innerHeight * 0.85 - bounds.top) / Math.max(1, bounds.height * 0.8)));
+        root.style.setProperty("--journey-progress", String(preference.matches ? 1 : progress));
+      }
     }
     function onScroll() {
       if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateScroll);
@@ -185,7 +185,7 @@ function CopilotPreview() {
           <p id="copilot-demo-description" className={styles.demoCaption}>See it in action · Illustrative answers with sample data</p>
           <div className="sr-only"><p>{example.question}</p><p>{example.answer}</p><p>{example.takeaway}</p></div>
           <div key={scene.index} className={styles.demoConversation} aria-hidden="true">
-            <div className={styles.demoQuestion} data-visible={asked}><span>You</span><p>{example.question}</p></div>
+            <div className={styles.demoQuestion} data-visible="true"><span>You</span><p><span className={styles.answerReservation}>{example.question}</span><span>{typedQuestion || "Ask about your money…"}{!asked && <i className={styles.typingCursor} />}</span></p></div>
             <div className={styles.demoThinking} data-visible={asked && !answering}><span className={styles.thinkingDots}><i /><i /><i /></span>Checking sample financial data…</div>
             <article className={styles.demoAnswer} data-visible={answering}>
               <div className={styles.answerHeading}><Sparkles size={14} /><span>Finpilot Copilot</span><span className={styles.answerBadge}><Check size={10} />Sample context</span></div>
@@ -193,14 +193,11 @@ function CopilotPreview() {
               <div className={styles.demoFigures} data-visible={complete} data-kind={scene.index === 0 ? "emi" : "spending"}>{example.figures.map(figure => <div key={figure.label}><span>{figure.label}</span><strong>{figure.value}</strong>{figure.share && <span className={styles.spendingTrack}><i style={{ "--share": `${figure.share}%` }} /></span>}</div>)}</div>
               <div className={styles.answerSource} data-visible={complete}><FileText size={12} />Financial profile & transaction summary</div>
             </article>
-            <p className={styles.demoTakeaway} data-visible={complete}><Check size={12} />{example.takeaway}</p>
           </div>
-          <div className={styles.demoComposer} aria-hidden="true"><span>{asked ? "What else would you like to explore?" : typedQuestion || "Ask about your money…"}{!asked && <i className={styles.typingCursor} />}</span><span className={styles.demoSend} data-ready={asked}><Send size={14} /></span></div>
-          <div className={styles.demoFooter}><div className={styles.demoControls}>{!reduced && <button type="button" onClick={togglePause} aria-label={paused ? "Play Copilot demo" : "Pause Copilot demo"}>{paused ? <Play size={13} /> : <Pause size={13} />}</button>}{!reduced && <button type="button" onClick={replay} aria-label="Replay Copilot demo"><RotateCcw size={13} /></button>}<span>{reduced ? "Sample conversation" : paused ? "Paused" : "Playing demo"}</span></div><Link href="/taxation/ai-copilot" className={styles.demoLink}>Try Copilot <ArrowUpRight size={13} /></Link></div>
+          <div className={styles.demoFooter}><div className={styles.demoControls}>{!reduced && <button type="button" onClick={togglePause} aria-label={paused ? "Play Copilot demo" : "Pause Copilot demo"}>{paused ? <Play size={14} /> : <Pause size={14} />}<span>{paused ? "Play" : "Pause"}</span></button>}{!reduced && <button className={styles.demoReplay} type="button" onClick={replay} aria-label="Replay Copilot demo"><RotateCcw size={14} /></button>}{reduced && <span>Sample conversation</span>}</div><Link href="/taxation/ai-copilot" className={styles.demoLink}>Try Copilot <ArrowUpRight size={14} /></Link></div>
           <div className={styles.demoProgress} aria-hidden="true"><span style={{ transform: `scaleX(${reduced ? 1 : scene.elapsed / DEMO_DURATION})` }} /></div>
         </div>
       </div>
-      <div className={styles.floatingNote}><span><Sparkles size={15} /></span><div><strong>Your numbers. A clearer next step.</strong><p>Meet your personal financial Copilot.</p></div></div>
       <div className={styles.floatingSpark} aria-hidden="true"><Sparkles size={21} strokeWidth={1.4} /></div>
     </section>
   );
@@ -209,11 +206,13 @@ function CopilotPreview() {
 export default function LandingPage() {
   const rootRef = useRef(null);
   const [openFaq, setOpenFaq] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef(null);
   useLandingMotion(rootRef);
   return (
     <div ref={rootRef} className={styles.landing}>
       <div className={styles.scrollProgress} aria-hidden="true" />
-      <header className={styles.header}><div className={styles.headerInner}><Brand /><nav className={styles.nav} aria-label="Main navigation"><a href="#features">The workspace</a><a href="#how-it-works">How it works</a><a href="#faq">Questions</a></nav><div className={styles.headerActions}><Link href="/auth/login" className={styles.signIn}>Sign in</Link><Link href="/auth/signup" className={styles.smallButton}>Get started <ArrowUpRight size={16} /></Link></div></div></header>
+      <header className={styles.header} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}><div className={styles.headerInner}><Brand /><nav className={styles.nav} aria-label="Main navigation"><a href="#features">The workspace</a><a href="#how-it-works">How it works</a><a href="#faq">Questions</a></nav><div className={styles.headerActions}><Link href="/auth/login" className={styles.signIn}>Sign in</Link><Link href="/auth/signup" className={styles.smallButton}>Get started <ArrowUpRight size={16} /></Link><button ref={menuButton} type="button" className={styles.menuButton} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} aria-controls="public-mobile-nav" onClick={() => setMenuOpen(current => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div><nav id="public-mobile-nav" className={styles.mobileNav} aria-label="Mobile navigation" data-open={menuOpen} aria-hidden={!menuOpen} inert={!menuOpen}>{[{ href: "#features", label: "The workspace" }, { href: "#how-it-works", label: "How it works" }, { href: "#faq", label: "Questions" }].map(link => <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}<ArrowRight size={15} /></a>)}<Link href="/auth/signup" onClick={() => setMenuOpen(false)}>Create your workspace<ArrowUpRight size={15} /></Link></nav></header>
       <main>
         <section className={styles.hero}>
           <div className={styles.heroOrb} aria-hidden="true" /><div className={styles.heroDots} aria-hidden="true" />
@@ -221,8 +220,9 @@ export default function LandingPage() {
             <p className={styles.eyebrow}><span /> Your personal finance workspace</p>
             <h1>Money, with a<br /><span>little more clarity.<svg viewBox="0 0 480 18" aria-hidden="true" preserveAspectRatio="none"><path d="M3 12C126 1 350 2 476 11" /></svg></span></h1>
             <p className={styles.heroDescription}>Your spending, taxes, and future plans. Thoughtfully brought together, so you can feel more in control of what comes next.</p>
-            <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create your workspace <ArrowRight size={18} /></Link><a href="#features" className={styles.secondaryButton}>Take a look <ArrowDown size={16} /></a></div>
+            <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create workspace <ArrowRight size={18} /></Link><a href="#features" className={styles.secondaryButton}>Explore <ArrowDown size={16} /></a></div>
             <div className={styles.trustNotes}><span><Check size={14} /> Built for Indian finances</span><span><Check size={14} /> Start with your own records</span></div>
+            <div className={styles.heroPrivacy}><ShieldCheck size={17} strokeWidth={1.5} /><div><p>Private tax proofs. Review imports before saving.</p><a href="#data-use" onClick={() => setOpenFaq(4)}>How your data is used<ArrowUpRight size={12} /></a></div></div>
           </div>
           <CopilotPreview />
           <a href="#features" className={styles.scrollCue}><span className={styles.scrollMouse} aria-hidden="true"><i /></span> A clearer view awaits <ArrowDown size={13} /></a>
@@ -230,13 +230,15 @@ export default function LandingPage() {
         <div className={styles.connectionStrip} data-reveal><span>One space. A little less scattered.</span><div>{[{ icon: Wallet, text: "Everyday money" }, { icon: FileText, text: "Your tax year" }, { icon: Target, text: "Future plans" }].map(({ icon: Icon, text }) => <span key={text}><Icon size={17} strokeWidth={1.6} />{text}</span>)}</div></div>
         <section id="features" className={styles.features}><div className={styles.container}>
           <div className={styles.sectionHeading} data-reveal><div><p className={styles.eyebrow}>One thoughtfully connected space</p><h2>Less scattered.<br /><span>More considered.</span></h2></div><p>Small everyday decisions and bigger financial plans deserve the same clear view.</p></div>
-          <div className={styles.featureGrid}>{features.map(({ icon: Icon, label, title, body }, index) => <article key={title} className={styles.featureCard} data-reveal style={{ "--reveal-delay": `${index % 3 * 75}ms` }}><span className={styles.featureIcon}><Icon size={23} strokeWidth={1.6} /></span><span className={styles.featureNumber} aria-hidden="true">0{index + 1}</span><p className={styles.featureLabel}>{label}</p><h3>{title}</h3><p className={styles.featureDescription}>{body}</p></article>)}</div>
+          <ProductWalkthroughs />
+          <div className={styles.moreFeaturesHeading} data-reveal><p className={styles.eyebrow}>And room for everything ahead</p><h3>A few more things, thoughtfully connected.</h3></div>
+          <div className={styles.featureGrid}>{features.map(({ icon: Icon, label, title, body }, index) => <article key={title} className={styles.featureCard} data-reveal style={{ "--reveal-delay": `${index * 75}ms` }}><span className={styles.featureIcon}><Icon size={23} strokeWidth={1.6} /></span><span className={styles.featureNumber} aria-hidden="true">0{index + 4}</span><p className={styles.featureLabel}>{label}</p><h3>{title}</h3><p className={styles.featureDescription}>{body}</p></article>)}</div>
         </div></section>
         <section id="how-it-works" className={`${styles.container} ${styles.howItWorks}`}>
-          <div className={styles.stepsIntro} data-reveal><p className={styles.eyebrow}>Make yourself at home</p><h2>A fresh perspective.<br /><span>A familiar starting point.</span></h2><p>From scattered records to a considered plan. Just take it one step at a time.</p><Link href="/auth/signup" className={styles.textLink}>Let’s get organised <ArrowRight size={17} /></Link><div className={styles.organisedIllustration} aria-hidden="true"><span><FileText size={22} /></span><span><Wallet size={22} /></span><span><Target size={22} /></span><i><Check size={15} /></i></div></div>
-          <div className={styles.steps}>{steps.map(({ title, body, icon: Icon }, i) => <div key={title} className={styles.step} data-reveal style={{ "--reveal-delay": `${i * 90}ms` }}><span className={styles.stepNumber}>0{i + 1}</span><div><span className={styles.stepIcon}><Icon size={20} strokeWidth={1.5} /></span><h3>{title}</h3><p>{body}</p></div></div>)}</div>
+          <div className={styles.journeyHeading} data-reveal><p className={styles.eyebrow}>A familiar starting point</p><h2>From a statement<br /><span>to a little more clarity.</span></h2><p>Three considered steps. A clearer view of your everyday money.</p></div>
+          <ImportJourney />
         </section>
-        <section id="faq" className={styles.faqSection}><div className={`${styles.container} ${styles.faqGrid}`}><div data-reveal><CircleHelp size={28} strokeWidth={1.5} className={styles.faqIcon} /><h2>A few good questions.</h2><p className={styles.sectionDescription}>A little more clarity before you begin.</p></div><div data-reveal>{faqs.map((faq, i) => <div key={faq.q} className={styles.faqItem} data-open={openFaq === i}><button id={`faq-question-${i}`} type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i} aria-controls={`faq-answer-${i}`}><span>{faq.q}</span><span><ChevronDown size={17} /></span></button><div id={`faq-answer-${i}`} className={styles.faqAnswer} aria-hidden={openFaq !== i} inert={openFaq !== i} role="region" aria-labelledby={`faq-question-${i}`}><div><p>{faq.a}</p></div></div></div>)}</div></div></section>
+        <section id="faq" className={styles.faqSection}><div className={`${styles.container} ${styles.faqGrid}`}><div data-reveal><CircleHelp size={28} strokeWidth={1.5} className={styles.faqIcon} /><h2>A few good questions.</h2><p className={styles.sectionDescription}>A little more clarity before you begin.</p></div><div data-reveal>{faqs.map((faq, i) => <div key={faq.q} id={i === 4 ? "data-use" : undefined} className={styles.faqItem} data-open={openFaq === i}><button id={`faq-question-${i}`} type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i} aria-controls={`faq-answer-${i}`}><span>{faq.q}</span><span><ChevronDown size={17} /></span></button><div id={`faq-answer-${i}`} className={styles.faqAnswer} aria-hidden={openFaq !== i} inert={openFaq !== i} role="region" aria-labelledby={`faq-question-${i}`}><div><p>{faq.a}</p></div></div></div>)}</div></div></section>
         <section className={`${styles.container} ${styles.ctaSection}`}><div className={styles.cta} data-reveal><div className={styles.ctaOrb} aria-hidden="true" /><div className={styles.ctaCopy}><p className={styles.eyebrow}>Your next chapter</p><h2>Make room for<br />a clearer financial life.</h2><p>A thoughtful space for your money. And everything ahead.</p></div><Link href="/auth/signup" className={styles.ctaButton}>Start with Finpilot <ArrowUpRight size={18} /></Link></div></section>
       </main>
       <footer className={styles.footer}><div className={styles.container}><Brand /><p>A little clarity goes a long way.</p><p>© {new Date().getFullYear()} Finpilot</p></div></footer>
