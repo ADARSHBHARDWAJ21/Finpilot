@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/layout/BrandMark";
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, MessageSquare, Target, Wallet } from "lucide-react";
+import { ArrowDown, ArrowDownLeft, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, MessageSquare, Sparkles, Target, Wallet } from "lucide-react";
+import styles from "./LandingPage.module.css";
 
 const features = [
   { icon: Wallet, label: "A clearer everyday", title: "Know where your money goes.", body: "Import your bank statement, review the transactions, and bring your spending into one organised view." },
@@ -13,50 +14,189 @@ const features = [
   { icon: CalendarDays, label: "Less to remember", title: "Give important dates a home.", body: "Keep reminders and goal milestones in your calendar, with an export for the calendar you already use." },
   { icon: LayoutDashboard, label: "The bigger picture", title: "Look back. Move forward.", body: "Browse previous months and download reports to understand the progress behind your everyday decisions." },
 ];
-
 const faqs = [
   { q: "Who is Finpilot for?", a: "Finpilot brings spending, budgets, goals, and Indian salary tax planning into one workspace. It is especially useful when you want to organise your own records and review them before making a decision." },
   { q: "How do I add my transactions?", a: "Add them manually or import a CSV, Excel file, PDF statement, or statement image. You can review extracted transactions and change their categories before importing. Document layouts and image quality can affect extraction." },
   { q: "Does Finpilot file my tax return?", a: "Finpilot helps you organise tax information, estimate salary tax, compare regimes, and export your records. It does not submit a tax return or replace a professional review of complex income." },
   { q: "Do I need to connect my bank account?", a: "No. You can start with a statement upload or manual transactions. Live bank feeds are not required for the current workspace." },
 ];
+const months = [
+  { name: "Apr", income: 78000, spending: 38600 },
+  { name: "May", income: 85000, spending: 43200 },
+  { name: "Jun", income: 82000, spending: 39500 },
+  { name: "Jul", income: 91000, spending: 57800 },
+  { name: "Aug", income: 88000, spending: 41700 },
+  { name: "Sep", income: 92500, spending: 41800 },
+];
+const steps = [
+  { title: "Bring your records", body: "Start with a bank statement, add your income, or enter a few transactions.", icon: FileText },
+  { title: "Review the details", body: "Check imported records, choose categories, and fill in the information that matters to you.", icon: Check },
+  { title: "Find your next step", body: "Explore your month, organise tax proofs, and make space for your next goal.", icon: Sparkles },
+];
+const money = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
+
+function useLandingMotion(rootRef) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let observer;
+    let scrollFrame = 0;
+    function updateScroll() {
+      scrollFrame = 0;
+      const distance = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      root.style.setProperty("--page-progress", String(Math.min(1, window.scrollY / distance)));
+      root.style.setProperty("--hero-shift", `${Math.min(window.scrollY, 650) * 0.045}px`);
+      root.dataset.scrolled = String(window.scrollY > 24);
+    }
+    function onScroll() {
+      if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateScroll);
+    }
+    function configureMotion() {
+      observer?.disconnect();
+      root.dataset.motion = preference.matches ? "reduced" : "on";
+      if (preference.matches || !("IntersectionObserver" in window)) {
+        root.querySelectorAll("[data-reveal]").forEach(element => { element.dataset.visible = "true"; });
+        return;
+      }
+      observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.dataset.visible = "true";
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -24px 0px" });
+      root.querySelectorAll("[data-reveal]").forEach(element => observer.observe(element));
+    }
+    configureMotion();
+    updateScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    preference.addEventListener("change", configureMotion);
+    return () => {
+      observer?.disconnect();
+      window.cancelAnimationFrame(scrollFrame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      preference.removeEventListener("change", configureMotion);
+    };
+  }, [rootRef]);
+}
+
+function Amount({ value }) {
+  const [display, setDisplay] = useState(value);
+  const previous = useRef(value);
+  useEffect(() => {
+    const from = previous.current;
+    if (from === value) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame;
+    let started;
+    const animate = time => {
+      started ??= time;
+      const progress = reduced ? 1 : Math.min(1, (time - started) / 650);
+      const amount = Math.round(from + (value - from) * (1 - Math.pow(1 - progress, 3)));
+      previous.current = amount;
+      setDisplay(amount);
+      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [value]);
+  return <span className={styles.amount} aria-label={`₹${money.format(value)}`}><span aria-hidden="true">₹{money.format(display)}</span></span>;
+}
 
 function Brand() {
-  return <Link href="/" className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#202a25]" aria-label="Finpilot home"><BrandMark />finpilot<span className="text-[#8ba88e]">.</span></Link>;
+  return <Link href="/" className={styles.brand} aria-label="Finpilot home"><BrandMark />finpilot<span>.</span></Link>;
 }
 
 function WorkspacePreview() {
+  const [selected, setSelected] = useState(5);
+  const month = months[selected];
+  const frameRef = useRef(null);
+  const pointerFrame = useRef(0);
+  useEffect(() => () => window.cancelAnimationFrame(pointerFrame.current), []);
+  function movePreview(event) {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const box = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - box.left) / box.width - 0.5;
+    const y = (event.clientY - box.top) / box.height - 0.5;
+    window.cancelAnimationFrame(pointerFrame.current);
+    pointerFrame.current = window.requestAnimationFrame(() => {
+      frameRef.current?.style.setProperty("--tilt-x", `${-y * 3}deg`);
+      frameRef.current?.style.setProperty("--tilt-y", `${x * 3}deg`);
+    });
+  }
+  function resetPreview() {
+    window.cancelAnimationFrame(pointerFrame.current);
+    frameRef.current?.style.setProperty("--tilt-x", "0deg");
+    frameRef.current?.style.setProperty("--tilt-y", "0deg");
+  }
   return (
-    <div className="relative mx-auto w-full max-w-[560px]">
-      <div className="rounded-[24px] border border-[#dbe3da] bg-white p-5 sm:p-7">
-        <div className="mb-7 flex items-center justify-between border-b border-[#edf0eb] pb-5"><div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-lg bg-[#edf2eb] text-[#214d43]"><LayoutDashboard size={16} strokeWidth={1.7} /></span><span className="text-sm font-medium">Your overview</span></div><span className="rounded-full border border-[#e3e8df] px-2.5 py-1 text-[10px] uppercase tracking-[.12em] text-[#738078]">Sample workspace</span></div>
-        <p className="text-xs text-[#738078]">Available this month</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><p className="text-[38px] font-medium leading-none tracking-[-.045em] sm:text-[44px]">₹50,700<span className="text-[#a5afa5]">.00</span></p><span className="rounded-full bg-[#edf2eb] px-2.5 py-1 text-[11px] font-medium text-[#214d43]">Income − spending</span></div>
-        <div className="mt-6 grid grid-cols-2 gap-4"><div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-full bg-[#edf2eb] text-[#527759]"><ArrowDownLeft size={15} /></span><div><p className="text-[11px] text-[#738078]">Income</p><p className="text-sm font-medium">₹92,500</p></div></div><div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-full bg-[#f6eee9] text-[#a67860]"><ArrowUpRight size={15} /></span><div><p className="text-[11px] text-[#738078]">Spending</p><p className="text-sm font-medium">₹41,800</p></div></div></div>
-        <div className="mt-7 rounded-2xl bg-[#f6f7f4] px-4 pb-3 pt-5"><div className="flex justify-between text-[11px] text-[#738078]"><span>Monthly cash flow</span><span>Income / spending</span></div><div className="mt-5 flex h-28 items-end justify-between gap-4 px-2" aria-hidden="true">{[[68, 43], [86, 50], [75, 44], [97, 68], [83, 47], [100, 45]].map(([income, spend], i) => <div key={i} className="flex h-full flex-1 items-end justify-center gap-1.5"><div className="w-3.5 rounded-t-md bg-[#214d43] sm:w-5" style={{ height: income + "%" }} /><div className="w-3.5 rounded-t-md bg-[#cfdbc9] sm:w-5" style={{ height: spend + "%" }} /></div>)}</div><div className="mt-3 flex justify-between px-1 text-[10px] text-[#89938a]">{["Apr", "May", "Jun", "Jul", "Aug", "Sep"].map(month => <span key={month}>{month}</span>)}</div></div>
-        <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#e3e8df] p-3.5"><div className="flex items-center gap-3"><span className="flex size-9 items-center justify-center rounded-xl bg-[#edf2eb] text-[#214d43]"><Target size={17} strokeWidth={1.7} /></span><div><p className="text-xs font-medium">A little closer to your goals</p><p className="mt-0.5 text-[11px] text-[#738078]">Your progress, all in one place.</p></div></div><ArrowUpRight size={16} className="text-[#738078]" /></div>
+    <div className={styles.previewScene} data-reveal style={{ "--reveal-delay": "180ms" }}>
+      <div className={styles.previewHalo} aria-hidden="true" />
+      <div className={styles.previewPointer} onPointerMove={movePreview} onPointerLeave={resetPreview}>
+        <div ref={frameRef} className={styles.previewCard}>
+          <div className={styles.previewHeader}><div><span className={styles.miniIcon}><LayoutDashboard size={16} /></span><span>Your overview</span></div><span className={styles.sampleLabel}>Interactive sample</span></div>
+          <div className={styles.balanceLabel}>Available in {month.name}<span className={styles.liveDot} aria-hidden="true" /></div>
+          <div className={styles.balance}><Amount value={month.income - month.spending} /><span>.00</span></div>
+          <div className={styles.summary}>
+            <div><span className={styles.incomeIcon}><ArrowDownLeft size={16} /></span><div><span>Income</span><strong><Amount value={month.income} /></strong></div></div>
+            <div><span className={styles.spendingIcon}><ArrowUpRight size={16} /></span><div><span>Spending</span><strong><Amount value={month.spending} /></strong></div></div>
+          </div>
+          <span className="sr-only" aria-live="polite">{month.name} sample: available ₹{money.format(month.income - month.spending)}, income ₹{money.format(month.income)}, spending ₹{money.format(month.spending)}.</span>
+          <div className={styles.chart}>
+            <div className={styles.chartHeading}><span>Monthly cash flow</span><span><i /> Income <i /> Spending</span></div>
+            <div className={styles.chartGrid} aria-hidden="true"><span /><span /><span /></div>
+            <div className={styles.chartBars}>
+              {months.map((item, i) => <button key={item.name} type="button" className={styles.monthColumn} aria-pressed={selected === i} aria-label={`Show ${item.name} sample: income ₹${money.format(item.income)}, spending ₹${money.format(item.spending)}`} onClick={() => setSelected(i)}><span className={styles.barPair} aria-hidden="true"><span className={styles.incomeBar} style={{ "--bar-height": `${item.income / 1000}%`, "--bar-delay": `${i * 65}ms` }} /><span className={styles.spendingBar} style={{ "--bar-height": `${item.spending / 1000}%`, "--bar-delay": `${i * 65 + 50}ms` }} /></span><span className={styles.monthName}>{item.name}</span></button>)}
+            </div>
+          </div>
+          <p className={styles.previewHint}>Choose a month. See the bigger picture.</p>
+          <div className={styles.goalRow}><span className={styles.miniIcon}><Target size={18} /></span><div><strong>Your next adventure</strong><span>Sample savings goal</span></div><span className={styles.goalRing}>68%</span></div>
+        </div>
       </div>
-      <div className="ml-5 mt-4 flex items-center gap-3 rounded-2xl border border-[#dbe3da] bg-[#edf2eb] px-4 py-3.5 sm:ml-12"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-[#214d43]"><Check size={15} /></span><p className="text-xs leading-relaxed text-[#526459]">A place for your money today.<br /><span className="font-medium text-[#214d43]">And the plans you are making for tomorrow.</span></p></div>
+      <div className={styles.floatingNote}><span><Check size={15} /></span><div><strong>A little more organised.</strong><p>Your records, all in one place.</p></div></div>
+      <div className={styles.floatingSpark} aria-hidden="true"><Sparkles size={21} strokeWidth={1.4} /></div>
     </div>
   );
 }
 
 export default function LandingPage() {
+  const rootRef = useRef(null);
   const [openFaq, setOpenFaq] = useState(null);
+  useLandingMotion(rootRef);
   return (
-    <div className="min-h-screen bg-[#f6f7f4] text-[#202a25] selection:bg-[#cfdbc9]">
-      <header className="border-b border-[#e2e7de] bg-[#f6f7f4]/95"><div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12"><Brand /><nav className="hidden items-center gap-8 text-sm text-[#647268] md:flex" aria-label="Main navigation"><a className="transition-colors hover:text-[#214d43]" href="#features">The workspace</a><a className="transition-colors hover:text-[#214d43]" href="#how-it-works">How it works</a><a className="transition-colors hover:text-[#214d43]" href="#faq">Questions</a></nav><div className="flex items-center gap-2 sm:gap-5"><Link href="/auth/login" className="px-2 py-2.5 text-sm font-medium hover:text-[#526f59]">Sign in</Link><Link href="/auth/signup" className="hidden items-center gap-2 rounded-xl bg-[#214d43] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#193e35] sm:inline-flex">Get started <ArrowUpRight size={16} /></Link></div></div></header>
+    <div ref={rootRef} className={styles.landing}>
+      <div className={styles.scrollProgress} aria-hidden="true" />
+      <header className={styles.header}><div className={styles.headerInner}><Brand /><nav className={styles.nav} aria-label="Main navigation"><a href="#features">The workspace</a><a href="#how-it-works">How it works</a><a href="#faq">Questions</a></nav><div className={styles.headerActions}><Link href="/auth/login" className={styles.signIn}>Sign in</Link><Link href="/auth/signup" className={styles.smallButton}>Get started <ArrowUpRight size={16} /></Link></div></div></header>
       <main>
-        <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:px-12 lg:py-24">
-          <div><div className="mb-7 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.2em] text-[#617a63]"><span className="h-px w-7 bg-[#819982]" /> Your personal finance workspace</div><h1 className="max-w-xl text-[48px] font-medium leading-[1.08] tracking-[-.055em] sm:text-[60px] lg:text-[66px]">Money, with a<br /><span className="text-[#6e856c]">little more clarity.</span></h1><p className="mt-7 max-w-md text-base leading-[1.8] text-[#738078]">Your spending, taxes, and future plans. Thoughtfully brought together, so you can feel more in control of what comes next.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/auth/signup" className="inline-flex items-center justify-center gap-4 rounded-xl bg-[#214d43] px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[#193e35]">Create your workspace <ArrowRight size={17} strokeWidth={1.7} /></Link><a href="#features" className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#dbe3da] px-5 py-3.5 text-sm font-medium hover:bg-white">Take a look <ArrowDownLeft size={16} className="-rotate-45" /></a></div><div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-[#738078]"><span className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#527759]" /> Built for Indian finances</span><span className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#527759]" /> Start with your own records</span></div></div>
+        <section className={styles.hero}>
+          <div className={styles.heroOrb} aria-hidden="true" /><div className={styles.heroDots} aria-hidden="true" />
+          <div className={styles.heroCopy} data-reveal>
+            <p className={styles.eyebrow}><span /> Your personal finance workspace</p>
+            <h1>Money, with a<br /><span>little more clarity.<svg viewBox="0 0 480 18" aria-hidden="true" preserveAspectRatio="none"><path d="M3 12C126 1 350 2 476 11" /></svg></span></h1>
+            <p className={styles.heroDescription}>Your spending, taxes, and future plans. Thoughtfully brought together, so you can feel more in control of what comes next.</p>
+            <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create your workspace <ArrowRight size={18} /></Link><a href="#features" className={styles.secondaryButton}>Take a look <ArrowDown size={16} /></a></div>
+            <div className={styles.trustNotes}><span><Check size={14} /> Built for Indian finances</span><span><Check size={14} /> Start with your own records</span></div>
+          </div>
           <WorkspacePreview />
+          <a href="#features" className={styles.scrollCue}><span className={styles.scrollMouse} aria-hidden="true"><i /></span> A clearer view awaits <ArrowDown size={13} /></a>
         </section>
-        <section id="features" className="scroll-mt-8 border-y border-[#e2e7de] bg-white"><div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="text-[11px] font-medium uppercase tracking-[.18em] text-[#738078]">One thoughtfully connected space</p><h2 className="mt-3 text-3xl font-medium tracking-[-.04em] sm:text-4xl">Less scattered.<br />More considered.</h2></div><p className="max-w-sm text-sm leading-relaxed text-[#738078]">Small everyday decisions and bigger financial plans deserve the same clear view.</p></div><div className="grid gap-x-8 gap-y-1 md:grid-cols-2 lg:grid-cols-3">{features.map(({ icon: Icon, label, title, body }) => <article key={title} className="border-t border-[#e4e9e1] py-7"><span className="mb-6 flex size-11 items-center justify-center rounded-2xl bg-[#edf2eb] text-[#214d43]"><Icon size={21} strokeWidth={1.7} /></span><p className="mb-2 text-[10px] uppercase tracking-[.15em] text-[#738078]">{label}</p><h3 className="text-lg font-medium tracking-tight">{title}</h3><p className="mt-3 text-sm leading-[1.8] text-[#738078]">{body}</p></article>)}</div></div></section>
-        <section id="how-it-works" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr]"><div><p className="text-[11px] font-medium uppercase tracking-[.18em] text-[#738078]">Make yourself at home</p><h2 className="mt-3 max-w-sm text-3xl font-medium leading-tight tracking-[-.04em] sm:text-4xl">A fresh perspective.<br />A familiar starting point.</h2><Link href="/auth/signup" className="mt-7 inline-flex items-center gap-3 text-sm font-medium text-[#214d43]">Let’s get organised <ArrowRight size={16} /></Link></div><div>{[{ title: "Bring your records", body: "Start with a bank statement, add your income, or enter a few transactions." }, { title: "Review the details", body: "Check imported records, choose categories, and fill in the information that matters to you." }, { title: "Find your next step", body: "Explore your month, organise tax proofs, and make space for your next goal." }].map((step, i) => <div key={step.title} className="flex gap-5 border-b border-[#dfe5db] py-6 first:pt-0"><span className="text-xs text-[#879580]">0{i + 1}</span><div><h3 className="text-lg font-medium tracking-tight">{step.title}</h3><p className="mt-2 max-w-lg text-sm leading-relaxed text-[#738078]">{step.body}</p></div></div>)}</div></div></section>
-        <section id="faq" className="border-t border-[#e2e7de] bg-white"><div className="mx-auto grid max-w-7xl gap-9 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[.8fr_1.2fr] lg:px-12"><div><CircleHelp size={26} strokeWidth={1.5} className="mb-4 text-[#7b9077]" /><h2 className="text-3xl font-medium tracking-[-.04em]">A few good questions.</h2><p className="mt-3 text-sm text-[#738078]">A little more clarity before you begin.</p></div><div>{faqs.map((faq, i) => <div key={faq.q} className="border-b border-[#e4e9e1]"><button type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i} aria-controls={"faq-answer-" + i} className="flex w-full items-center justify-between gap-4 py-5 text-left text-sm font-medium"><span>{faq.q}</span><ChevronDown size={17} className={"shrink-0 text-[#738078] transition-transform " + (openFaq === i ? "rotate-180" : "")} /></button>{openFaq === i && <p id={"faq-answer-" + i} className="pb-5 text-sm leading-[1.8] text-[#738078]">{faq.a}</p>}</div>)}</div></div></section>
-        <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-12"><div className="flex flex-col justify-between gap-8 rounded-[24px] bg-[#214d43] px-7 py-10 text-white sm:px-12 sm:py-12 md:flex-row md:items-center"><div><p className="mb-3 text-[11px] uppercase tracking-[.18em] text-[#c0d1bf]">Your next chapter</p><h2 className="text-3xl font-medium leading-tight tracking-[-.04em] sm:text-4xl">Make room for<br />a clearer financial life.</h2></div><Link href="/auth/signup" className="inline-flex w-fit items-center gap-5 rounded-xl bg-[#edf2eb] px-6 py-3.5 text-sm font-medium text-[#214d43] transition-colors hover:bg-white">Start with Finpilot <ArrowUpRight size={17} /></Link></div></section>
+        <div className={styles.connectionStrip} data-reveal><span>One space. A little less scattered.</span><div>{[{ icon: Wallet, text: "Everyday money" }, { icon: FileText, text: "Your tax year" }, { icon: Target, text: "Future plans" }].map(({ icon: Icon, text }) => <span key={text}><Icon size={17} strokeWidth={1.6} />{text}</span>)}</div></div>
+        <section id="features" className={styles.features}><div className={styles.container}>
+          <div className={styles.sectionHeading} data-reveal><div><p className={styles.eyebrow}>One thoughtfully connected space</p><h2>Less scattered.<br /><span>More considered.</span></h2></div><p>Small everyday decisions and bigger financial plans deserve the same clear view.</p></div>
+          <div className={styles.featureGrid}>{features.map(({ icon: Icon, label, title, body }, index) => <article key={title} className={styles.featureCard} data-reveal style={{ "--reveal-delay": `${index % 3 * 75}ms` }}><span className={styles.featureIcon}><Icon size={23} strokeWidth={1.6} /></span><span className={styles.featureNumber} aria-hidden="true">0{index + 1}</span><p className={styles.featureLabel}>{label}</p><h3>{title}</h3><p className={styles.featureDescription}>{body}</p></article>)}</div>
+        </div></section>
+        <section id="how-it-works" className={`${styles.container} ${styles.howItWorks}`}>
+          <div className={styles.stepsIntro} data-reveal><p className={styles.eyebrow}>Make yourself at home</p><h2>A fresh perspective.<br /><span>A familiar starting point.</span></h2><p>From scattered records to a considered plan. Just take it one step at a time.</p><Link href="/auth/signup" className={styles.textLink}>Let’s get organised <ArrowRight size={17} /></Link><div className={styles.organisedIllustration} aria-hidden="true"><span><FileText size={22} /></span><span><Wallet size={22} /></span><span><Target size={22} /></span><i><Check size={15} /></i></div></div>
+          <div className={styles.steps}>{steps.map(({ title, body, icon: Icon }, i) => <div key={title} className={styles.step} data-reveal style={{ "--reveal-delay": `${i * 90}ms` }}><span className={styles.stepNumber}>0{i + 1}</span><div><span className={styles.stepIcon}><Icon size={20} strokeWidth={1.5} /></span><h3>{title}</h3><p>{body}</p></div></div>)}</div>
+        </section>
+        <section id="faq" className={styles.faqSection}><div className={`${styles.container} ${styles.faqGrid}`}><div data-reveal><CircleHelp size={28} strokeWidth={1.5} className={styles.faqIcon} /><h2>A few good questions.</h2><p className={styles.sectionDescription}>A little more clarity before you begin.</p></div><div data-reveal>{faqs.map((faq, i) => <div key={faq.q} className={styles.faqItem} data-open={openFaq === i}><button id={`faq-question-${i}`} type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i} aria-controls={`faq-answer-${i}`}><span>{faq.q}</span><span><ChevronDown size={17} /></span></button><div id={`faq-answer-${i}`} className={styles.faqAnswer} aria-hidden={openFaq !== i} inert={openFaq !== i} role="region" aria-labelledby={`faq-question-${i}`}><div><p>{faq.a}</p></div></div></div>)}</div></div></section>
+        <section className={`${styles.container} ${styles.ctaSection}`}><div className={styles.cta} data-reveal><div className={styles.ctaOrb} aria-hidden="true" /><div className={styles.ctaCopy}><p className={styles.eyebrow}>Your next chapter</p><h2>Make room for<br />a clearer financial life.</h2><p>A thoughtful space for your money. And everything ahead.</p></div><Link href="/auth/signup" className={styles.ctaButton}>Start with Finpilot <ArrowUpRight size={18} /></Link></div></section>
       </main>
-      <footer className="border-t border-[#e2e7de]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-5 px-5 py-8 sm:flex-row sm:items-center sm:px-8 lg:px-12"><Brand /><p className="text-xs text-[#738078]">A little clarity goes a long way.</p><p className="text-xs text-[#8a958b]">© {new Date().getFullYear()} Finpilot</p></div></footer>
+      <footer className={styles.footer}><div className={styles.container}><Brand /><p>A little clarity goes a long way.</p><p>© {new Date().getFullYear()} Finpilot</p></div></footer>
     </div>
   );
 }
