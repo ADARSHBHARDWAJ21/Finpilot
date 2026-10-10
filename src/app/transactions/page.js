@@ -36,7 +36,7 @@ export default async function TransactionsPage() {
         <Topbar />
       </PageHeader>
 
-      <SummaryCards summary={summary} />
+      <SummaryCards summary={summary} omitTitles={["Total Savings","Tax Liability (Est.)"]} />
 
       <TransactionsSection initialTransactions={transactions} loadError={loadError} />
     </DashboardLayout>

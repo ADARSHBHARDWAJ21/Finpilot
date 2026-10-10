@@ -40,6 +40,7 @@ import {
 } from "@/components/budget/BudgetModals";
 import CategoryIcon from "@/components/budget/CategoryIcon";
 import ClientOnly from "@/components/budget/ClientOnly";
+import { ProgressLine } from "@/components/layout/WorkspaceUI";
 
 const chartColors = ["#214d43", "#91a787", "#c9d7c5", "#bda78a", "#6e8574", "#d6d4c7"];
 
@@ -84,7 +85,7 @@ function CategoryTable({ categories, onEditCategory }) {
       <div className="px-5 py-4 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground">Budget by Category</h2>
       </div>
-      <div className="overflow-x-auto">
+      <div className="fp-table-scroll hidden md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-muted-foreground border-b border-border bg-muted/50">
@@ -159,6 +160,7 @@ function CategoryTable({ categories, onEditCategory }) {
           </tbody>
         </table>
       </div>
+      <div className="space-y-4 p-4 md:hidden">{categories.length ? categories.map(cat=><div key={cat.key} className="rounded-xl border border-border p-4"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="text-sm font-medium">{cat.name}</h3><button type="button" className="fp-button !px-3" onClick={()=>onEditCategory(cat)} aria-label={`Edit ${cat.name} budget`}>Edit</button></div><p className="mb-3 text-sm text-muted-foreground">{formatInr(cat.spent)} spent of {formatInr(cat.budget)}</p><ProgressLine value={Math.min(100,cat.pct)} label={cat.status}/><p className="mt-3 text-sm">{formatInr(Math.abs(cat.remaining))} {cat.remaining < 0 ? "over budget" : "remaining"}</p></div>) : <p className="py-5 text-sm text-muted-foreground">Add a spending category or record transactions to start your plan.</p>}</div>
     </div>
   );
 }
@@ -375,7 +377,7 @@ export default function BudgetTrackerSection({
       <ClientOnly>
         {!budgetPlansAvailable && (
           <div className="mb-3 text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-            Could not reach budget_plans table. Check Supabase RLS policies and that you are logged in.
+            Your saved budget could not be loaded. Refresh the page to try again.
           </div>
         )}
         {toast && (
@@ -387,7 +389,7 @@ export default function BudgetTrackerSection({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 min-w-0">
         <div>
-          <h1 className="text-3xl tracking-[-.04em] font-semibold text-foreground">Budget</h1>
+          <p className="fp-eyebrow mb-2">A plan for your month</p><h1 className="text-3xl tracking-[-.04em] font-medium text-foreground">Budgets</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Your spending plan for {d.monthLabel}
           </p>
@@ -396,6 +398,7 @@ export default function BudgetTrackerSection({
           <div className="relative">
             <select
               value={d.monthKey}
+              aria-label="Budget month"
               onChange={(e) => handleMonthChange(e.target.value)}
               className="appearance-none flex items-center gap-2 bg-white border border-border pl-3 pr-8 py-2 rounded-xl text-sm text-foreground"
             >
@@ -412,6 +415,8 @@ export default function BudgetTrackerSection({
           </div>
         </div>
       </div>
+      <section className="mb-6 flex flex-wrap items-center justify-between gap-6 rounded-[22px] border border-primary/10 bg-secondary p-6 sm:p-7" aria-label="Monthly budget remaining"><div><p className="text-sm text-muted-foreground">{d.remaining < 0 ? "Over your plan this month" : "Remaining this month"}</p><p className={`mt-3 text-4xl font-medium tracking-tight tabular-nums ${d.remaining<0 ? "text-[#a45f4b]" : "text-primary"}`}>{formatInr(Math.abs(d.remaining))}</p><p className="mt-3 text-sm text-muted-foreground">{formatInr(d.totalSpent)} spent of {formatInr(d.totalBudget)} planned.</p></div><div className="w-full space-y-4 sm:max-w-sm"><ProgressLine value={Math.min(100,d.spentPct)} label={`${d.spentPct}% of the plan used`} /><button type="button" onClick={()=>setModal("planner")} className="fp-primary-link">Edit monthly plan<ChevronRight size={16}/></button></div></section>
+      {d.categories.some(cat=>cat.pct>=80&&cat.budget>0) && <div className="mb-6 rounded-xl border border-amber-200/60 bg-amber-50/60 p-4 text-sm text-[#866640]"><p className="font-medium">Categories to watch</p><p className="mt-2">{d.categories.filter(cat=>cat.pct>=80&&cat.budget>0).map(cat=>`${cat.name}: ${cat.pct}% used`).join(" · ")}</p></div>}
 
       <div className="flex items-center gap-1.5 overflow-x-auto bg-muted/80 p-1.5 rounded-2xl mb-6 scrollbar-thin">
         {tabs.map((tab) => (
@@ -419,6 +424,7 @@ export default function BudgetTrackerSection({
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
+            aria-pressed={activeTab === tab}
             className={`shrink-0 px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap ${
               activeTab === tab
                 ? "bg-white text-primary "
@@ -430,8 +436,8 @@ export default function BudgetTrackerSection({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
-        {summaryCards.map((card) => {
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+        {summaryCards.filter(card=>card.label !== "Remaining Budget").map((card) => {
           const Icon = card.icon;
           return (
             <div

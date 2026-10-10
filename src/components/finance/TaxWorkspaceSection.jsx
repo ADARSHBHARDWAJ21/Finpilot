@@ -12,6 +12,8 @@ import {
 } from "@/app/finance/actions";
 import FinancialYearSelect from "./FinancialYearSelect";
 import DownloadButton from "./DownloadButton";
+import { ProgressLine } from "@/components/layout/WorkspaceUI";
+import { PreparationJourney } from "@/components/taxation/TaxVisuals";
 
 const card = "fp-card p-5 sm:p-6";
 const input =
@@ -39,6 +41,7 @@ export default function TaxWorkspaceSection({
     workspace.documents.filter((d) => d.section === slug),
   );
   const [proofKey, setProofKey] = useState(category.checklist[0].id);
+  const [panel, setPanel] = useState("details");
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [dirty, setDirty] = useState(false),
@@ -152,6 +155,11 @@ export default function TaxWorkspaceSection({
         </div>
         <FinancialYearSelect year={year} />
       </header>
+      {slug === "compliance-filing" && <PreparationJourney report={{...report, filing:details}} filingChecklist={checklist} />}
+      <nav aria-label="Section workspace" className="flex flex-wrap gap-2 border-b border-border pb-3">
+        <button type="button" onClick={()=>setPanel("details")} aria-pressed={panel === "details"} className={`fp-button ${panel === "details" ? "!bg-primary !text-white !border-primary" : ""}`}>{slug === "salary-documents" ? "Salary details" : slug === "banking-investments" ? "Income declarations" : "Details & calculations"}</button>
+        <button type="button" onClick={()=>setPanel("documents")} aria-pressed={panel === "documents"} className={`fp-button ${panel === "documents" ? "!bg-primary !text-white !border-primary" : ""}`}>Documents & review<span className="rounded-full bg-black/5 px-2 py-0.5 text-xs">{documents.length}</span></button>
+      </nav>
       {message && (
         <p
           role="status"
@@ -167,24 +175,10 @@ export default function TaxWorkspaceSection({
       )}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-5">
+          <div hidden={panel !== "details"} className="space-y-5">
           {slug === "rent-hra" && (
             <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["Rent / month", money(details.rentMonthly)],
-                  ["Rental period", `${details.months} months`],
-                  [
-                    "Old-regime HRA estimate",
-                    hra.available ? money(hra.exemption) : "Check details",
-                  ],
-                ].map(([label, value]) => (
-                  <div key={label} className={card}>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="mt-2 text-lg font-medium tracking-tight">{value}</p>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={save} className={`${card} space-y-5`}>
+              <form id="tax-details-form" onSubmit={save} className={`${card} space-y-5`}>
                 <h2 className="text-lg font-medium tracking-tight">Rent & HRA calculator</h2>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -233,20 +227,6 @@ export default function TaxWorkspaceSection({
                     </select>
                   </label>
                 </div>
-                {hra.available && (
-                  <div className="space-y-1 rounded-xl bg-muted p-4 text-sm text-muted-foreground">
-                    <p>The exemption is the lowest of:</p>
-                    <p>HRA received: {money(hra.annualHra)}</p>
-                    <p>
-                      Rent less 10% of eligible salary:{" "}
-                      {money(hra.rentLessSalary)}
-                    </p>
-                    <p>
-                      {hra.rate * 100}% of eligible salary:{" "}
-                      {money(hra.salaryLimit)}
-                    </p>
-                  </div>
-                )}
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Old-regime estimate for one period with unchanged amounts. The
                   new regime does not allow this HRA exemption. If amounts or
@@ -276,7 +256,7 @@ export default function TaxWorkspaceSection({
             </>
           )}
           {slug === "banking-investments" && (
-            <form onSubmit={save} className={`${card} space-y-5`}>
+            <form id="tax-details-form" onSubmit={save} className={`${card} space-y-5`}>
               <h2 className="text-lg font-medium tracking-tight">
                 Banking & investment details
               </h2>
@@ -284,13 +264,12 @@ export default function TaxWorkspaceSection({
                 Record amounts for FY {year}. These declarations are separate
                 from your transaction ledger.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {field("monthlySip", "Monthly SIP (₹)")}
-                {field("monthlyEmi", "Monthly EMI obligations (₹)")}
-                {field("monthlySideIncome", "Monthly side income (₹)")}
+              <fieldset className="space-y-4"><legend className="mb-3 font-medium">Income declarations</legend><div className="grid gap-4 sm:grid-cols-2">
                 {field("annualInterest", "Annual FD / savings interest (₹)")}
                 {field("capitalGains", "Annual capital gains / losses (₹)", "number", { min: -100000000 })}
-              </div>
+                {field("monthlySideIncome", "Monthly side income (₹)")}
+              </div></fieldset>
+              <fieldset className="border-t border-border pt-5"><legend className="mb-3 font-medium">Monthly commitments</legend><div className="grid gap-4 sm:grid-cols-2">{field("monthlySip", "Monthly SIP (₹)")}{field("monthlyEmi", "Monthly EMI obligations (₹)")}</div></fieldset>
               <label className="block text-sm text-muted-foreground">
                 Notes
                 <textarea
@@ -345,7 +324,7 @@ export default function TaxWorkspaceSection({
                   ? "Estimates use saved details. See assumptions and exclusions in Reports."
                   : tax.reason}
               </p>
-              <form onSubmit={save} className={`${card} space-y-5`}>
+              <form id="tax-details-form" onSubmit={save} className={`${card} space-y-5`}>
                 <h2 className="text-lg font-medium tracking-tight">Your filing record</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="text-sm text-muted-foreground">
@@ -451,7 +430,7 @@ export default function TaxWorkspaceSection({
             </>
           )}
           {slug === "salary-documents" && (
-            <form onSubmit={save} className={card + " space-y-5"}>
+            <form id="tax-details-form" onSubmit={save} className={card + " space-y-5"}>
               <h2 className="text-lg font-medium tracking-tight">Annual salary for FY {year}</h2>
               <p className="text-sm text-muted-foreground">Use gross salary from your salary records, including taxable allowances, bonus and perquisites. All amounts here are annual. Saving confirms these figures for this year; they replace older profile estimates.</p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -469,7 +448,7 @@ export default function TaxWorkspaceSection({
             </form>
           )}
           {slug === "tax-saving-proofs" && (
-            <form onSubmit={save} className={card + " space-y-5"}>
+            <form id="tax-details-form" onSubmit={save} className={card + " space-y-5"}>
               <h2 className="text-lg font-medium tracking-tight">Annual deductions for FY {year}</h2>
               <p className="text-sm text-muted-foreground">Enter eligible annual totals once. Saving replaces old profile deduction estimates for this year, resolving duplicate or conflicting declarations.</p>
               {!!report.dataWarnings?.length && <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950"><p className="font-semibold">Review conflicting declarations</p><ul className="mt-2 list-disc space-y-2 pl-4">{report.dataWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
@@ -488,6 +467,8 @@ export default function TaxWorkspaceSection({
               <button disabled={busy} className="rounded-xl bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save deductions"}</button>
             </form>
           )}
+          </div>
+          <div hidden={panel !== "documents"} className="space-y-5">
           <div className={card}>
             <h2 className="text-lg font-medium tracking-tight">Review checklist</h2>
             <p className="mb-4 mt-1 text-xs text-muted-foreground">
@@ -595,6 +576,7 @@ export default function TaxWorkspaceSection({
                         }{" "}
                         · {(doc.size_bytes / 1024).toFixed(1)} KB
                       </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{checklist[doc.proof_key] ? "Checklist item reviewed · self-reported" : "Stored privately · awaiting your review"}</p>
                     </div>
                     <DownloadButton
                       url={`/api/tax-documents/${doc.id}`}
@@ -619,8 +601,15 @@ export default function TaxWorkspaceSection({
               )}
             </div>
           </div>
+          </div>
         </div>
         <aside className="space-y-4 xl:sticky xl:top-24">
+          <div className={`${card} fp-tax-surface`}><p className="fp-eyebrow">FY {year} · Your section</p><h2 className="mt-2 text-lg font-medium">A little more organised.</h2><div className="mt-5"><ProgressLine value={done / category.checklist.length * 100} label={`${done}/${category.checklist.length} items reviewed`} /></div><p className="mt-4 text-sm text-muted-foreground">{documents.length} private document{documents.length === 1 ? "" : "s"} attached.</p>
+          {slug === "salary-documents" && <dl className="mt-5 space-y-3 text-sm">{[["Gross salary",details.annualSalary],["Basic salary",details.annualBasic],["HRA received",details.annualHra]].map(([label,value])=><div key={label} className="flex justify-between gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="tabular-nums">{value === "" ? "Not supplied" : money(value)}</dd></div>)}</dl>}
+          {slug === "rent-hra" && <div className="mt-5 border-t border-border pt-5"><p className="text-xs text-muted-foreground">Eligible HRA · current inputs</p><p role="status" className="mt-2 text-3xl font-medium tabular-nums">{hra.available ? money(hra.exemption) : "Check inputs"}</p><p className="mt-3 text-xs leading-relaxed text-muted-foreground">{details.months} month(s) · {details.city} · old regime</p>{hra.available ? <dl className="mt-5 space-y-3 text-xs">{[["HRA received",hra.annualHra],["Rent less 10% of salary",hra.rentLessSalary],[`${hra.rate * 100}% of eligible salary`,hra.salaryLimit]].map(([label,value])=><div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 text-sm tabular-nums">{money(value)}</dd></div>)}</dl> : <p className="mt-2 text-xs text-amber-800">{hra.reason}</p>}</div>}
+          {slug === "tax-saving-proofs" && <div className="mt-5 space-y-4 border-t border-border pt-5"><p className="text-xs text-muted-foreground">Saved eligible amounts · old regime</p>{[["80C pool","section80c","80c"],["80D insurance","healthInsurance","80d"],["Extra NPS","personalNps","nps"]].map(([label,key,proof])=><div key={key}><div className="flex justify-between gap-3 text-sm"><span>{label}</span><strong className="font-medium tabular-nums">{tax.available ? money(tax.old.deductions[key]) : "—"}</strong></div><p className="mt-1 text-xs text-muted-foreground">{documents.filter(doc=>doc.proof_key === proof).length} proof(s) attached</p></div>)}<Link className="fp-inline-link inline-block" href={`/taxation/deductions?year=${year}`}>Review all eligible deductions</Link><p className="text-xs text-muted-foreground">Save edits to update eligible amounts.</p></div>}
+          {slug === "banking-investments" && <p className="mt-5 text-xs leading-relaxed text-muted-foreground">Interest, capital gains and side income are separate declarations. They are outside the current salary-only tax estimate.</p>}
+          <button type="button" className="fp-button mt-5 w-full" onClick={()=>setPanel(panel === "documents" ? "details" : "documents")}>{panel === "documents" ? "Review details" : "Review your proofs"}</button><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Checklist progress records your review. Uploads are stored without automatic verification.</p></div>
           <div className={card}>
             <h2 className="mb-4 font-semibold">Other tax sections</h2>
             <nav className="space-y-1">
@@ -661,6 +650,7 @@ export default function TaxWorkspaceSection({
           </div>
         </aside>
       </div>
+      {dirty && <div className="fp-saving-bar"><p className="text-sm text-muted-foreground">Unsaved details · FY {year}</p><div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className="fp-button" onClick={()=>{setDetails({...defaultDetails(slug,base.profile,base.salary,year),...record?.details});setDirty(false);setMessage("");}}>Discard edits</button>{panel === "details" ? <button type="submit" form="tax-details-form" disabled={busy} className="fp-primary-link">{busy ? "Saving…" : "Save details"}</button> : <button type="button" className="fp-primary-link" onClick={()=>setPanel("details")}>Review & save details</button>}</div></div>}
       {deleting && (
         <div
           role="alertdialog"

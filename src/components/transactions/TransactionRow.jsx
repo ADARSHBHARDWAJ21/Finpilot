@@ -1,6 +1,6 @@
-import { Trash2, ArrowDownLeft, ArrowUpRight, CreditCard, Smartphone } from "lucide-react";
+import { Trash2, ArrowDownLeft, ArrowUpRight, CreditCard, Smartphone, ArrowRight } from "lucide-react";
 
-export default function TransactionRow({ tx, onDelete, onToggle, selected = false, deleting = false }) {
+export default function TransactionRow({ tx, onDelete, onToggle, onView, selected = false, deleting = false }) {
   return (
     <tr className={`transition-colors group ${selected ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}>
       <td className="pl-6 pr-2 py-4"><input type="checkbox" checked={selected} onChange={() => onToggle?.(tx.id)} disabled={deleting || !tx.id} aria-label={`Select ${tx.name} on ${tx.date}, ${tx.amount}`} className="h-4 w-4 rounded accent-indigo-600 disabled:cursor-not-allowed" /></td>
@@ -13,7 +13,7 @@ export default function TransactionRow({ tx, onDelete, onToggle, selected = fals
             {tx.income ? <ArrowDownLeft size={17} aria-hidden="true" /> : <ArrowUpRight size={17} aria-hidden="true" />}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground leading-snug">{tx.name}</p>
+            <button type="button" onClick={()=>onView?.(tx.id)} className="text-left text-sm font-medium text-foreground leading-snug hover:text-primary hover:underline">{tx.name}</button>
             {tx.sub && <p className="text-[11px] text-slate-400 mt-0.5">{tx.sub}</p>}
           </div>
         </div>
@@ -68,4 +68,8 @@ export default function TransactionRow({ tx, onDelete, onToggle, selected = fals
       </td>
     </tr>
   );
+}
+
+export function TransactionCard({tx,onDelete,onToggle,onView,selected,deleting}) {
+  return <article className={`rounded-2xl border p-4 ${selected ? "border-primary/30 bg-secondary" : "border-border bg-white"}`}><div className="flex items-start gap-3"><label className="flex min-h-11 min-w-11 items-center justify-center"><input type="checkbox" aria-label={`Select ${tx.name} on ${tx.date}, ${tx.amount}`} checked={selected} onChange={()=>onToggle(tx.id)} disabled={deleting} className="h-4 w-4" /></label><div className="min-w-0 flex-1"><button type="button" className="text-left text-sm font-medium leading-relaxed hover:text-primary" onClick={()=>onView(tx.id)}>{tx.name}</button><p className="mt-1 text-xs text-muted-foreground">{tx.date}</p></div><strong className={`shrink-0 text-sm tabular-nums ${tx.income ? "text-primary" : "text-foreground"}`}>{tx.amount}</strong></div><div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"><span className="text-xs text-muted-foreground">{tx.category} · {tx.payment}</span><span className={`rounded-full px-2.5 py-1 text-xs ${tx.statusStyle}`}>{tx.status}</span></div><div className="mt-2 flex justify-between"><button type="button" onClick={()=>onView(tx.id)} className="inline-flex items-center gap-2 text-sm text-primary">View details<ArrowRight size={14} /></button><button type="button" onClick={()=>onDelete(tx.id)} disabled={deleting} aria-label={`Delete ${tx.name}`} className="flex min-w-11 items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button></div></article>;
 }

@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertDialog } from "radix-ui";
+import { AlertDialog, Dialog } from "radix-ui";
 import {
   ChevronDown,
   Search,
   Filter,
   Trash2,
   LoaderCircle,
+  X,
+  ReceiptText,
 } from "lucide-react";
-import TransactionRow from "@/components/transactions/TransactionRow";
+import TransactionRow, { TransactionCard } from "@/components/transactions/TransactionRow";
 import { mapTransactionToRow } from "@/components/transactions/transaction-utils";
 import { deleteTransactions, deleteAllTransactions } from "@/app/transactions/actions";
 import UploadStatement from "@/components/transactions/upload-csv";
@@ -19,6 +21,9 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
   const router = useRouter();
   const [category, setCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [reviewFilter, setReviewFilter] = useState("all");
+  const [viewedId, setViewedId] = useState(null);
+  const drawerOpener = useRef(null);
   const [transactions, setTransactions] = useState(initialTransactions);
   const [previousInitial, setPreviousInitial] = useState(initialTransactions);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -52,18 +57,25 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
         tx.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.payment?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchCat && matchQuery;
+      const matchReview = reviewFilter === "all" || (reviewFilter === "review" ? tx.status === "Needs Review" : tx.status !== "Needs Review");
+      return matchCat && matchQuery && matchReview;
     });
-  }, [rows, category, searchQuery]);
+  }, [rows, category, searchQuery, reviewFilter]);
 
   const visibleIds = filtered.map((tx) => String(tx.id));
   const selectedVisibleIds = visibleIds.filter((id) => selectedIds.has(id));
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
   const partiallySelected = selectedVisibleIds.length > 0 && !allSelected;
-  const filteredView = category !== "all" || !!searchQuery.trim();
+  const filteredView = category !== "all" || !!searchQuery.trim() || reviewFilter !== "all";
+  const viewed = rows.find(row=>String(row.id) === String(viewedId));
 
   function toggleAll() {
     setSelectedIds(allSelected ? new Set() : new Set(visibleIds));
+  }
+
+  function openTransaction(id) {
+    drawerOpener.current = document.activeElement;
+    setViewedId(id);
   }
 
   function toggleRow(id) {
@@ -95,6 +107,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
           setTransactions([]);
           setSelectedIds(new Set());
           setCategory("all");
+          setReviewFilter("all");
           setSearchQuery("");
         } else {
           const deleted = new Set(result.deletedIds || []);
@@ -153,6 +166,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
             </select>
             <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
+          <select aria-label="Transaction review status" value={reviewFilter} disabled={isPending} onChange={event=>{setReviewFilter(event.target.value);setSelectedIds(new Set());}} className="fp-input !w-auto"><option value="all">All review statuses</option><option value="review">Needs review</option><option value="complete">Completed</option></select>
         </div>
       </div>
 
@@ -188,13 +202,13 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
           {selectedVisibleIds.length > 0 && <button type="button" onClick={() => setSelectedIds(new Set())} disabled={isPending} className="font-semibold text-indigo-600 hover:underline disabled:opacity-50">Clear selection</button>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" disabled={!selectedVisibleIds.length || isPending || !!loadError} onClick={() => requestDelete("selected", selectedVisibleIds)} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={14} aria-hidden="true" />Delete selected{selectedVisibleIds.length > 0 ? ` (${selectedVisibleIds.length})` : ""}</button>
-          <button type="button" disabled={!rows.length || isPending || !!loadError} onClick={() => requestDelete("all")} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40">Delete all transactions</button>
+          {selectedVisibleIds.length > 0 && <button type="button" disabled={isPending || !!loadError} onClick={() => requestDelete("selected", selectedVisibleIds)} className="fp-button !border-destructive/20 !text-destructive"><Trash2 size={14} aria-hidden="true" />Delete selected ({selectedVisibleIds.length})</button>}
+          <details className="relative"><summary className="rounded-xl border border-border bg-white px-3 text-xs font-medium">More actions</summary><div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg"><button type="button" disabled={!rows.length || isPending || !!loadError} onClick={() => requestDelete("all")} className="w-full rounded-lg px-3 text-left text-sm text-destructive hover:bg-rose-50 disabled:opacity-40">Delete all transactions</button></div></details>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto scrollbar-thin">
+      <div className="fp-table-scroll scrollbar-thin hidden md:block">
         <table className="w-full min-w-[860px]">
           <thead>
             <tr className="border-y border-slate-100 bg-slate-50/70">
@@ -230,6 +244,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
                   onDelete={(id) => requestDelete("selected", [String(id)])}
                   selected={selectedIds.has(String(tx.id))}
                   onToggle={toggleRow}
+                  onView={openTransaction}
                   deleting={isPending}
                 />
               ))
@@ -237,6 +252,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
           </tbody>
         </table>
       </div>
+      <div className="space-y-3 bg-background p-4 md:hidden">{filtered.length ? filtered.map(tx=><TransactionCard key={tx.id} tx={tx} onDelete={id=>requestDelete("selected",[String(id)])} onToggle={toggleRow} onView={openTransaction} selected={selectedIds.has(String(tx.id))} deleting={isPending} />) : <p className="py-8 text-center text-sm text-muted-foreground">{loadError ? "Your records could not be loaded. Refresh to try again." : rows.length ? "No transactions match your filters." : "Upload a statement or add your first transaction."}</p>}</div>
 
       {/* All matching records are shown, including histories over 1,000 rows. */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 text-xs">
@@ -250,6 +266,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
         {filteredView && <p className="text-slate-400">Select all applies to your current filters.</p>}
       </div>
 
+      <Dialog.Root open={Boolean(viewed)} onOpenChange={open=>{if(!open)setViewedId(null);}}><Dialog.Portal><Dialog.Overlay className="fp-drawer-overlay" /><Dialog.Content className="fp-drawer" aria-describedby="transaction-detail-description" onCloseAutoFocus={event=>{event.preventDefault();drawerOpener.current?.focus();}}><div className="flex items-center justify-between gap-3"><span className="fp-icon"><ReceiptText size={21} /></span><Dialog.Close asChild><button type="button" aria-label="Close transaction details" className="fp-button !px-3"><X size={18} /></button></Dialog.Close></div><Dialog.Title className="mt-6 text-2xl font-medium tracking-tight">{viewed?.name}</Dialog.Title><Dialog.Description id="transaction-detail-description" className="mt-2 text-sm text-muted-foreground">A closer look at this saved transaction.</Dialog.Description><p className="my-7 text-4xl font-medium tracking-tight tabular-nums">{viewed?.amount}</p><dl className="divide-y divide-border">{[["Date",viewed?.date],["Type",viewed?.income ? "Income" : "Expense"],["Category",viewed?.category],["Payment method",viewed?.payment],["Review status",viewed?.status]].map(([label,value])=><div key={label} className="flex justify-between gap-4 py-4 text-sm"><dt className="text-muted-foreground">{label}</dt><dd className="text-right">{value}</dd></div>)}</dl><p className="mt-6 text-xs leading-relaxed text-muted-foreground">Saved record details. Review imported rows and categories before using financial totals.</p></Dialog.Content></Dialog.Portal></Dialog.Root>
       <AlertDialog.Root open={!!deleteRequest} onOpenChange={(open) => { if (!open && !isPending) setDeleteRequest(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm" />

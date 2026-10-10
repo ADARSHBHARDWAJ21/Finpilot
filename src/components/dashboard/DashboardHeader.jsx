@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Plus, RefreshCw, Search } from "lucide-react";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import DashboardMonthPicker from "./DashboardMonthPicker";
@@ -13,6 +13,7 @@ const iconButtonClass = `flex h-11 w-11 shrink-0 items-center justify-center rou
 
 export default function DashboardHeader({ fullName, selectedMonth, availableMonths, updatedAt }) {
   const router = useRouter();
+  const params = useSearchParams();
   const [addOpen, setAddOpen] = useState(false);
   const [refreshing, startRefresh] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -34,7 +35,9 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
     return () => { clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("online", refresh); };
   }, [router, addOpen, pickerOpen, refreshing]);
   function selectMonth(key) {
-    startRefresh(() => router.push(key === currentMonth ? "/dashboard" : `/dashboard?month=${key}`, { scroll: false }));
+    const next = new URLSearchParams(params.toString());
+    if (key === currentMonth) next.delete("month"); else next.set("month", key);
+    startRefresh(() => router.push(`/dashboard${next.size ? `?${next}` : ""}`, { scroll: false }));
   }
   const firstName = String(fullName || "").trim().split(/\s+/)[0];
 
@@ -43,7 +46,7 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
       <section aria-labelledby="dashboard-greeting" className="mb-7 sm:mb-9">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div className="min-w-0">
-            <p className="fp-eyebrow mb-3">Your money, in perspective</p>
+            <p className="fp-eyebrow mb-3">Your money and your tax year</p>
             <div className="flex items-start gap-3">
               <h1 id="dashboard-greeting" className="min-w-0 break-words text-[28px] font-semibold leading-[1.18] tracking-[-0.045em] text-foreground sm:text-[34px] xl:text-[38px]">
                 {timeGreeting(clock)}{firstName ? `, ${firstName}` : ""}

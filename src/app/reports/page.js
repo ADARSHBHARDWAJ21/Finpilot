@@ -21,7 +21,7 @@ export default async function ReportsPage({ searchParams }) {
   const report = await loadFinanceReport(supabase, user.id, year);
   return (
     <DashboardLayout showRightSidebar={false}>
-      <ReportsWorkspace report={report} />
+      <ReportsWorkspace key={report.year} report={report} />
     </DashboardLayout>
   );
 }

@@ -4,37 +4,34 @@ import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Wallet, Rows3, FileText, ArrowRight } from "lucide-react";
 import FinancialYearSelect from "./FinancialYearSelect";
 import DownloadButton from "./DownloadButton";
+import { WorkspaceHeader, ProgressLine } from "@/components/layout/WorkspaceUI";
+import { RegimeCards } from "@/components/taxation/TaxVisuals";
 const money = (n) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 const card = "fp-card p-5 sm:p-6";
 export default function ReportsWorkspace({ report }) {
-  const [tab, setTab] = useState("Cashflow");
-  const tabs = ["Cashflow", "Tax & filing", "Documents"];
+  const [tab, setTab] = useState("Overview");
+  const tabs = ["Overview", "Money", "Tax & filing", "Documents"];
+  const [comparisonMonth, setComparisonMonth] = useState(()=>report.months.findLast(month=>month.income || month.expenses)?.month || report.months[0].month);
+  const comparisonIndex = report.months.findIndex(month=>month.month===comparisonMonth);
+  const comparison = report.months[comparisonIndex];
+  const previous = report.months[comparisonIndex-1];
+  const previousHasRecords = previous && report.transactions.some(row=>String(row.transaction_date).slice(0,7) === previous.month);
+  const selectedHasRecords = report.transactions.some(row=>String(row.transaction_date).slice(0,7) === comparisonMonth);
+  const reviewed = report.checklist.reduce((sum,item)=>sum+item.completed,0);
+  const checklistTotal = report.checklist.reduce((sum,item)=>sum+item.total,0);
   const max = Math.max(
     1,
     ...report.months.map((m) => Math.max(m.income, m.expenses)),
   );
   return (
     <section className="mx-auto w-full max-w-7xl space-y-7 py-2">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="fp-eyebrow">
-            A wider perspective
-          </p>
-          <h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">Reports</h1>
-          <p className="mt-3 text-sm text-muted-foreground">See the story behind your money, one financial year at a time.</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            FY {report.year} · April–March · Updated {report.asOf}
-          </p>
-        </div>
-        <FinancialYearSelect year={report.year} />
-      </header>
+      <WorkspaceHeader eyebrow="A wider perspective" title="Reports" description="The story behind your money and your tax year, ready to review or download." meta={`FY ${report.year} · April–March · Updated ${report.asOf}`}><FinancialYearSelect year={report.year} /></WorkspaceHeader>
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-3">
         <span className="mr-auto flex items-center gap-2 px-2 py-2 text-sm font-medium"><FileText size={17} className="text-primary" />Export your year</span>
-        {[
-          ["pdf", "Financial report PDF"],
-          ["csv", "Transactions CSV"],
-          ["zip", "Full filing package"],
+        <DownloadButton url={`/api/finance-export?year=${report.year}&format=pdf`} filename={`Finpilot-${report.year}.pdf`}>Download report PDF</DownloadButton>
+        <details className="relative"><summary className="rounded-xl border border-border bg-background px-4 text-sm">More export options</summary><div className="absolute right-0 top-full z-20 mt-2 grid w-60 gap-2 rounded-xl border border-border bg-white p-3 shadow-lg">{[
+          ["csv", "Transactions CSV"], ["zip", "Full filing package"],
         ].map(([format, label]) => (
           <DownloadButton
             key={format}
@@ -43,9 +40,9 @@ export default function ReportsWorkspace({ report }) {
           >
             {label}
           </DownloadButton>
-        ))}
+        ))}</div></details>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {tab === "Money" && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ["Recorded income", money(report.income), ArrowDownLeft],
           ["Recorded expenses", money(report.expenses), ArrowUpRight],
@@ -57,7 +54,7 @@ export default function ReportsWorkspace({ report }) {
             <p className="mt-4 break-words text-xl font-medium tracking-tight tabular-nums sm:text-2xl">{value}</p>
           </div>
         ))}
-      </div>
+      </div>}
       <p className="text-xs text-muted-foreground">
         Totals use transactions saved for this financial year. Missing
         transactions are not estimated. Review transfers and refunds in
@@ -78,7 +75,9 @@ export default function ReportsWorkspace({ report }) {
           </button>
         ))}
       </nav>
-      {tab === "Cashflow" && (
+      {tab === "Overview" && <div className="space-y-5"><div className="fp-overview-domains"><section className="fp-domain-card"><div className="fp-domain-heading"><span><Wallet size={18}/>Money report</span><span>FY {report.year}</span></div><h2>Your year in recorded finances.</h2><p>{report.transactions.length} transactions saved for April–March.</p><dl className="fp-domain-figures"><div><dt>Recorded income</dt><dd>{money(report.income)}</dd></div><div><dt>Recorded spending</dt><dd>{money(report.expenses)}</dd></div></dl><div className="fp-domain-bottom"><button className="fp-primary-link" onClick={()=>setTab("Money")}>Explore cashflow<ArrowRight size={15}/></button><span className="text-xs text-muted-foreground">Net cashflow: {money(report.income-report.expenses)}</span></div></section><section className="fp-domain-card fp-tax-surface"><div className="fp-domain-heading"><span><FileText size={18}/>Tax report</span><span>FY {report.year}</span></div><h2>The records behind your tax year.</h2><p>Salary estimates and manually reviewed preparation items.</p><dl className="fp-domain-figures"><div><dt>Old-regime salary estimate</dt><dd>{report.tax.available ? money(report.tax.old.tax) : "—"}</dd></div><div><dt>New-regime salary estimate</dt><dd>{report.tax.available ? money(report.tax.new.tax) : "—"}</dd></div></dl><ProgressLine value={checklistTotal ? reviewed/checklistTotal*100 : 0} label={`${reviewed}/${checklistTotal} items reviewed`} /><div className="fp-domain-bottom"><button className="fp-primary-link" onClick={()=>setTab("Tax & filing")}>Explore tax report<ArrowRight size={15}/></button><span className="text-xs text-muted-foreground">{report.documents.length} private documents</span></div></section></div><p className="text-sm text-muted-foreground">This is a preview of your saved year. Downloads include the recorded figures and the calculation scope.</p></div>}
+      {tab === "Money" && <section className="fp-card p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-medium">A month in perspective.</h2><p className="mt-2 text-sm text-muted-foreground">Compare recorded amounts with the preceding month in this report.</p></div><label className="text-sm text-muted-foreground">Compare month<select aria-label="Compare report month" value={comparisonMonth} onChange={event=>setComparisonMonth(event.target.value)} className="fp-input mt-2">{report.months.map(month=><option key={month.month} value={month.month}>{month.label}</option>)}</select></label></div><div className="mt-6 grid gap-4 sm:grid-cols-2">{[["Income","income"],["Spending","expenses"]].map(([label,key])=>{const delta=previous ? comparison[key]-previous[key] : 0;return <div key={key} className="rounded-xl bg-secondary p-4"><p className="text-sm text-muted-foreground">{label} · {comparison.label}</p><p className="mt-2 text-2xl font-medium tabular-nums">{selectedHasRecords ? money(comparison[key]) : "No records"}</p><p className="mt-3 text-xs text-muted-foreground">{previousHasRecords && selectedHasRecords ? `${money(Math.abs(delta))} ${delta<0?"lower":delta>0?"higher":"change"} than ${previous.label}.` : previous ? "Earlier or selected-month records are missing; a comparison is unavailable." : "This is the earliest month in the selected report."}</p></div>;})}</div></section>}
+      {tab === "Money" && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div className={card}>
             <h2 className="text-lg font-medium tracking-tight">Monthly cashflow</h2>
@@ -161,20 +160,7 @@ export default function ReportsWorkspace({ report }) {
             </div>
             {report.tax.available ? (
               <>
-                <div className="my-5 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl bg-muted p-4">
-                    <p className="text-xs">Old regime</p>
-                    <p className="mt-1 text-2xl font-semibold">
-                      {money(report.tax.old.tax)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-primary/5 p-4">
-                    <p className="text-xs">New regime</p>
-                    <p className="mt-1 text-2xl font-semibold">
-                      {money(report.tax.new.tax)}
-                    </p>
-                  </div>
-                </div>
+                <div className="my-5"><RegimeCards tax={report.tax} /></div>
                 <p className="text-sm font-medium">
                   {report.tax.recommended === "equal"
                     ? "Both estimates are equal."

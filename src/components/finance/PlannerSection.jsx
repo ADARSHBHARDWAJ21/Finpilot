@@ -30,6 +30,9 @@ import {
   calendarExport,
   shiftDay,
 } from "@/lib/finance/model";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceUI";
+
+const markerFor = event => event.source === "goals" ? {label:"Goals", color:"#809b72"} : ["tax","compliance"].includes(event.category) ? {label:"Tax",color:"#9b8150"} : event.category === "bills" ? {label:"Bills",color:"#a56b55"} : event.category === "document" ? {label:"Documents",color:"#7897a1"} : {label:"Other",color:"#68776d"};
 
 const inputClass =
   "w-full fp-input";
@@ -46,7 +49,7 @@ export default function PlannerSection({
   const [today, setToday] = useState(initialToday);
   const [month, setMonth] = useState(initialToday.slice(0, 7));
   const [day, setDay] = useState(initialToday);
-  const [filter, setFilter] = useState("pending");
+  const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [form, setForm] = useState(null);
@@ -95,6 +98,8 @@ export default function PlannerSection({
         ? e.completed
         : filter === "overdue"
           ? !e.completed && e.due_date < today
+          : filter === "today" ? !e.completed && e.due_date === today
+          : filter === "upcoming" ? !e.completed && e.due_date > today
           : !e.completed),
   );
   const start = new Date(`${month}-01T12:00:00Z`);
@@ -265,18 +270,7 @@ export default function PlannerSection({
   }
   return (
     <section className="mx-auto w-full max-w-7xl space-y-7 py-2">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="fp-eyebrow">
-            Make room for what matters
-          </p>
-          <h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">
-            {mode === "calendar" ? "Calendar" : "Reminders"}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Keep important dates, payments and milestones in view.
-          </p>
-        </div>
+      <WorkspaceHeader eyebrow="A little planning ahead" title={mode === "calendar" ? "Calendar" : "Reminders"} description="Keep bills, tax dates and goal milestones in one considered view.">
         <div className="flex flex-wrap gap-2">
           <Link
             className={buttonClass}
@@ -296,7 +290,7 @@ export default function PlannerSection({
             Add reminder
           </button>
         </div>
-      </header>
+      </WorkspaceHeader>
       {message && (
         <p
           role="alert"
@@ -349,7 +343,7 @@ export default function PlannerSection({
             onChange={(e) => setFilter(e.target.value)}
             className={`${inputClass} max-w-48`}
           >
-            {["pending", "overdue", "completed", "all"].map((c) => (
+            {["all", "pending", "overdue", "today", "upcoming", "completed"].map((c) => (
               <option key={c} value={c}>
                 {c === "all" ? "All reminders" : c}
               </option>
@@ -400,6 +394,7 @@ export default function PlannerSection({
                 Today
               </button>
             </div>
+            <div className="mb-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">{[{label:"Tax",color:"#9b8150"},{label:"Bills",color:"#a56b55"},{label:"Goals",color:"#809b72"},{label:"Documents",color:"#7897a1"},{label:"Other",color:"#68776d"}].map(item=><span key={item.label} className="inline-flex items-center gap-2"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{background:item.color}} />{item.label}</span>)}</div>
             <div className="grid grid-cols-7 text-center text-xs text-muted-foreground">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                 <span key={d} className="pb-3">
@@ -427,15 +422,15 @@ export default function PlannerSection({
                     >
                       {i + 1}
                     </span>
-                    {items.length > 0 && (
-                      <span className="mt-2 flex items-center gap-1 text-[10px] font-medium text-primary"><span className="h-1 w-1 shrink-0 rounded-full bg-primary" />{items.length}<span className="hidden sm:inline">{items.length === 1 ? "item" : "items"}</span></span>
-                    )}
+                    {items.length > 0 && <span className="mt-2 flex flex-wrap gap-1 sm:hidden">{[...new Set(items.map(item=>markerFor(item).label))].map(label=><span key={label} className="h-1.5 w-1.5 rounded-full" style={{background:markerFor(items.find(item=>markerFor(item).label===label)).color}} title={label} />)}</span>}
+                    <span className="mt-2 hidden space-y-1 sm:block">{items.slice(0,2).map(item=><span key={item.id} className="flex min-w-0 items-center gap-1.5 text-xs"><span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{background:markerFor(item).color}} /><span className="truncate">{item.title}</span></span>)}{items.length>2&&<span className="block text-xs text-muted-foreground">+{items.length-2} more</span>}</span>
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="fp-card p-5">
+          <div className="fp-card fp-sticky-result p-5">
+            <p className="fp-eyebrow mb-3">Selected day’s agenda</p>
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               <CalendarDays size={20} />
               {displayDate(day)}
@@ -447,9 +442,7 @@ export default function PlannerSection({
           </div>
         </div>
       ) : (
-        <div className="fp-card p-5">
-          {rows(filtered)}
-        </div>
+        <div className="space-y-5">{filtered.length ? [{label:"Overdue",items:filtered.filter(item=>!item.completed&&item.due_date<today)},{label:"Today",items:filtered.filter(item=>!item.completed&&item.due_date===today)},{label:"Upcoming",items:filtered.filter(item=>!item.completed&&item.due_date>today)},{label:"Completed",items:filtered.filter(item=>item.completed)}].filter(group=>group.items.length).map(group=><section key={group.label} className="fp-card p-5 sm:p-6" aria-label={`${group.label} reminders`}><div className="mb-2 flex items-center justify-between gap-3"><h2 className={`text-lg font-medium ${group.label === "Overdue" ? "text-[#a45f4b]" : ""}`}>{group.label}</h2><span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{group.items.length}</span></div>{rows(group.items)}</section>) : <div className="fp-card p-5">{rows([])}</div>}</div>
       )}
       <p className="text-xs text-muted-foreground">
         Reminders are shown inside Finpilot. Export your calendar to use alerts

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { Dialog } from "radix-ui";
 import {
   CircleDollarSign,
   CircleGauge,
@@ -34,6 +35,7 @@ import {
   monthsToDate,
 } from "@/lib/goals/engine";
 import { saveGoalsWorkspace } from "@/app/goals/actions";
+import { WorkspaceHeader, JourneySteps, ProgressLine } from "@/components/layout/WorkspaceUI";
 
 const GOAL_TYPES = [
   { id: "home", label: "Home", icon: House, desc: "Home loan or downpayment planning", group: "loan" },
@@ -89,6 +91,12 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
   const [goals, setGoals] = useState(initialGoals);
   const [calendarEntries, setCalendarEntries] = useState(initialCalendarEntries);
   const [openWizard, setOpenWizard] = useState(false);
+  const wizardOpener = useRef(null);
+  function openGoalWizard() {
+    wizardOpener.current = document.activeElement;
+    setWizardStep(1);
+    setOpenWizard(true);
+  }
   const [wizardStep, setWizardStep] = useState(1);
   const [wizard, setWizard] = useState(() => defaultWizard(financialProfile));
   const [selectedScenarioId, setSelectedScenarioId] = useState("downpayment_up");
@@ -205,28 +213,22 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
 
   return (
     <div className="w-full max-w-[1500px] min-w-0 space-y-5">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl tracking-[-.04em] font-semibold text-foreground">Goals</h1>
-          <p className="text-sm text-muted-foreground mt-1">A little planning for the things that matter.</p>
-        </div>
+      <WorkspaceHeader eyebrow="Make room for what matters" title="Goals" description="A target, a monthly plan and a little progress along the way.">
         <button
           type="button"
-          onClick={() => setOpenWizard(true)}
+          onClick={openGoalWizard}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-[#193e35] text-white font-semibold text-sm"
         >
           <Plus size={16} />
           Create Goal
         </button>
-      </div>
+      </WorkspaceHeader>
 
       {saveState?.type === "error" && <p className="text-sm text-red-600">{saveState.message}</p>}
       {saveState?.type === "success" && <p className="text-sm text-emerald-600">Goals workspace synced.</p>}
 
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
         <SummaryCard label="Active Goals" value={summary.activeGoals} subtitle={noGoals ? "No active goals" : "Currently running"} icon={Target} />
-        <SummaryCard label="Achievable Goals" value={summary.achievable} subtitle={summary.achievable ? "On track goals" : "Nothing to track"} icon={CircleGauge} />
-        <SummaryCard label="Risky Goals" value={summary.risky} subtitle={summary.risky ? "Need attention" : "All clear"} icon={CircleAlert} />
         <SummaryCard label="Monthly Goal Allocation" value={formatInr(summary.monthlyGoalAllocation)} subtitle={simulation.monthlyIncome ? `${Math.round((summary.monthlyGoalAllocation / simulation.monthlyIncome) * 100)}% of income` : "0% of income"} icon={PiggyBank} />
         <SummaryCard label="Upcoming EMI Obligations" value={formatInr(summary.upcomingEmi)} subtitle={summary.upcomingEmi ? "Due this month" : "No upcoming EMIs"} icon={CircleDollarSign} />
       </div>
@@ -238,10 +240,10 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
               {goals.map((goal) => <GoalCard key={goal.id} goal={goal} onDelete={deleteGoal} />)}
             </div>
           ) : (
-            <EmptyGoalsState onCreate={() => setOpenWizard(true)} />
+            <EmptyGoalsState onCreate={openGoalWizard} />
           )}
 
-          <PopularGoalsStrip onCreate={() => setOpenWizard(true)} />
+          <PopularGoalsStrip onCreate={openGoalWizard} />
         </div>
 
         <aside className="space-y-4">
@@ -322,6 +324,7 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
           selectedScenarioId={selectedScenarioId}
           setSelectedScenarioId={setSelectedScenarioId}
           onClose={() => setOpenWizard(false)}
+          onRestoreFocus={()=>wizardOpener.current?.focus()}
           onCreate={createGoalFromWizard}
         />
       )}
@@ -413,10 +416,14 @@ function PopularGoalsStrip({ onCreate }) {
 }
 
 function GoalCard({ goal, onDelete }) {
+  const progress = Math.min(100, Math.max(0, Number(goal.progress) || 0));
+  const milestone = [25,50,75,100].find(value=>value>progress);
+  const GoalIcon = GOAL_TYPES.find(item=>item.label===goal.type)?.icon || Target;
   return (
     <div className="bg-white rounded-2xl border border-border p-5">
       <div className="flex items-start justify-between gap-2">
         <div>
+          <span className="fp-icon mb-4"><GoalIcon size={20} /></span>
           <h3 className="text-base font-semibold text-foreground">{goal.name}</h3>
           <p className="text-xs text-muted-foreground">{goal.type}</p>
         </div>
@@ -446,13 +453,12 @@ function GoalCard({ goal, onDelete }) {
         <p className="flex justify-between"><span className="text-muted-foreground">Current Saved</span><span className="font-semibold">{formatInr(goal.currentSaved)}</span></p>
         <p className="flex justify-between"><span className="text-muted-foreground">Monthly Required</span><span className="font-semibold">{formatInr(goal.monthlyRequiredSaving)}</span></p>
         {goal.purchaseMode === "emi" && <p className="flex justify-between"><span className="text-muted-foreground">Estimated EMI</span><span className="font-semibold">{formatInr(goal.estimatedEmi)}</span></p>}
-        <p className="flex justify-between"><span className="text-muted-foreground">Completion</span><span className="font-semibold">{goal.completionDate}</span></p>
+        <p className="flex justify-between gap-3"><span className="text-muted-foreground">Target date</span><span className="font-medium">{goal.targetDate || "Not set"}</span></p>
+        <p className="flex justify-between gap-3"><span className="text-muted-foreground">Projected readiness</span><span className="font-medium">{goal.timelineMonths >= 999 ? "Needs more monthly surplus" : goal.completionDate}</span></p>
       </div>
-      <div className="mt-3">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-primary" style={{ width: `${goal.progress}%` }} />
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">Progress {goal.progress}%</p>
+      <div className="mt-5 border-t border-border pt-5">
+        <ProgressLine value={progress} label="Saved toward your target" />
+        <p className="mt-3 text-xs text-muted-foreground">{milestone ? `Next milestone: ${formatInr(goal.targetAmount * milestone / 100)} saved (${milestone}%).` : "You have reached your savings target."}</p>
       </div>
     </div>
   );
@@ -469,8 +475,14 @@ function GoalWizardModal({
   selectedScenarioId,
   setSelectedScenarioId,
   onClose,
+  onRestoreFocus,
   onCreate,
 }) {
+  const [stepError, setStepError] = useState("");
+  function nextStep() {
+    if(step===1 && (!Number.isFinite(Number(wizard.estimatedCost)) || Number(wizard.estimatedCost)<=0)) {setStepError("Enter a target amount greater than zero before continuing.");return;}
+    setStepError(""); setStep(previous=>Math.min(4,previous+1));
+  }
   function setField(key, value) {
     setWizard((prev) => ({ ...prev, [key]: value }));
   }
@@ -485,19 +497,14 @@ function GoalWizardModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#152e26]/35 backdrop-blur-sm flex items-start justify-center p-4 sm:py-10 overflow-y-auto">
-      <div role="dialog" aria-modal="true" aria-label="Create goal" className="w-full max-w-5xl bg-white rounded-[20px] border border-border p-5 sm:p-7">
+    <Dialog.Root open onOpenChange={open=>{if(!open)onClose();}}><Dialog.Portal><Dialog.Overlay className="fp-drawer-overlay"/>
+      <Dialog.Content aria-describedby={undefined} onCloseAutoFocus={event=>{event.preventDefault();onRestoreFocus?.();}} className="fp-form-dialog fixed left-1/2 top-[4vh] z-[61] max-h-[90vh] w-[calc(100%_-_2rem)] max-w-5xl -translate-x-1/2 overflow-y-auto rounded-[20px] border border-border bg-white p-5 outline-none sm:p-7">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Create Goal</h2>
+          <Dialog.Title className="text-xl font-semibold text-foreground">Create Goal</Dialog.Title>
           <button type="button" onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Close</button>
         </div>
-        <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2 text-xs">
-          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-            <span key={n} className={`px-2 py-1 rounded-full ${step === n ? "bg-primary text-white" : "bg-muted text-[#647268]"}`}>
-              Step {n}
-            </span>
-          ))}
-        </div>
+        <div className="mb-6"><JourneySteps label="Create a goal" current={step-1} steps={[{label:"Your goal",detail:"Target and timing"},{label:"Your finances",detail:"Monthly room to save"},{label:"Explore the plan",detail:"Results and scenarios"},{label:"Review & create",detail:"Calendar milestones"}].map((item,index)=>({...item,complete:index<step-1}))} /></div>
+        {stepError && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{stepError}</p>}
 
         {step === 1 && (
           <div>
@@ -509,7 +516,7 @@ function GoalWizardModal({
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setField("typeId", t.id)}
+                    onClick={() => setWizard(previous=>({...previous,typeId:t.id,purchaseMode:t.group === "loan" ? "emi" : "one_time"}))}
                     className={`text-left border rounded-xl p-3 ${wizard.typeId === t.id ? "border-primary bg-[#edf2eb]" : "border-border hover:bg-muted"}`}
                   >
                     <div className="flex items-center gap-2"><Icon size={16} className="text-primary" /><span className="font-semibold text-sm">{t.label}</span></div>
@@ -521,8 +528,8 @@ function GoalWizardModal({
           </div>
         )}
 
-        {step === 2 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {step === 1 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ["name", "What do you want to buy/achieve?", "text"],
               ["estimatedCost", "Estimated Cost (₹)", "number"],
@@ -532,7 +539,7 @@ function GoalWizardModal({
               ["loanDurationMonths", "Preferred Loan Duration (months)", "number"],
               ["interestRatePct", "Expected Interest Rate (%)", "number"],
               ["expectedPurchaseYear", "Expected Purchase Year", "number"],
-            ].map(([key, label, type]) => (
+            ].filter(([key])=>wizard.purchaseMode === "emi" || !["downpayment","loanDurationMonths","interestRatePct"].includes(key)).map(([key, label, type]) => (
               <label key={key} className="block">
                 <span className="text-xs font-medium text-[#647268]">{label}</span>
                 <input
@@ -562,14 +569,14 @@ function GoalWizardModal({
                 <option value="low">Low</option>
               </select>
             </label>
-            <label className="flex items-center gap-2 text-sm text-foreground">
+            {wizard.purchaseMode === "emi" && <label className="flex items-center gap-2 text-sm text-foreground">
               <input type="checkbox" checked={wizard.hasLoanApproval} onChange={(e) => setField("hasLoanApproval", e.target.checked)} />
               Already have loan approval
-            </label>
+            </label>}
           </div>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               ["monthlyInHandSalary", "Monthly In-Hand Salary"],
@@ -602,15 +609,15 @@ function GoalWizardModal({
           </div>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <AffordabilityStep simulation={simulation} />
         )}
 
-        {step === 5 && (
+        {step === 3 && (
           <ResultsStep simulation={simulation} />
         )}
 
-        {step === 6 && (
+        {step === 4 && (
           <div className="space-y-3 text-sm">
             <p className="font-semibold text-foreground">Your goal calendar</p>
             <p className="text-[#647268]">We will auto-create recurring EMI reminders, milestones, downpayment deadlines, and quarterly reviews on goal creation.</p>
@@ -618,8 +625,8 @@ function GoalWizardModal({
           </div>
         )}
 
-        {step === 7 && (
-          <div className="space-y-3">
+        {step === 3 && (
+          <details className="mt-5 rounded-xl border border-border p-4"><summary className="text-sm font-medium">Explore optional what-if scenarios</summary><div className="mt-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">What-if Simulations</h3>
             <div className="space-y-2">
               {scenarios.map((s) => (
@@ -631,7 +638,7 @@ function GoalWizardModal({
                 >
                   <p className="text-sm font-semibold text-foreground">{s.label}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    EMI: {formatInr(s.result.estimatedEmi)} | Status: {s.result.status} | Readiness: {s.result.readinessDate}
+                    EMI: {formatInr(s.result.estimatedEmi)} | Status: {s.result.status} | Readiness: {s.result.monthsToAfford >= 999 ? "Needs more surplus" : s.result.readinessDate}
                   </p>
                 </button>
               ))}
@@ -641,15 +648,15 @@ function GoalWizardModal({
                 Selected scenario outcome: risk {selectedScenario.result.riskScore}/100, monthly surplus {formatInr(selectedScenario.result.monthlySurplus)}.
               </div>
             )}
-          </div>
+          </div></details>
         )}
 
         <div className="mt-5 flex items-center justify-between">
           <button type="button" disabled={step <= 1} onClick={() => setStep((s) => Math.max(1, s - 1))} className="px-3 py-2 rounded-xl border border-border text-sm disabled:opacity-40">
             Previous
           </button>
-          {step < 7 ? (
-            <button type="button" onClick={() => setStep((s) => Math.min(7, s + 1))} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold">
+          {step < 4 ? (
+            <button type="button" onClick={nextStep} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold">
               Next
             </button>
           ) : (
@@ -658,8 +665,8 @@ function GoalWizardModal({
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Portal></Dialog.Root>
   );
 }
 
@@ -689,7 +696,7 @@ function ResultsStep({ simulation }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Metric title="Timeline Projection" value={`Ready by ${simulation.readinessDate}`} />
+        <Metric title="Timeline Projection" value={simulation.monthsToAfford >= 999 ? "Needs more monthly surplus" : `Ready by ${simulation.readinessDate}`} />
         <Metric title="Monthly Cash Flow Impact" value={formatInr(simulation.monthlySurplus)} />
         <Metric title="Estimated EMI" value={formatInr(simulation.estimatedEmi)} />
         <Metric title="Total Interest" value={formatInr(simulation.totalInterest)} />

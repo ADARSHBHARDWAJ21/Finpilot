@@ -5,9 +5,10 @@ import { X, Pencil, Check, AlertTriangle } from "lucide-react";
 import { validateImportRow, parseTransactionDate } from "@/lib/import/transaction-values";
 import { applyCategoryRules } from "@/lib/bank-parsers/category-rules";
 import { TRANSACTION_CATEGORY_KEYS, getCategoryMeta } from "@/lib/budget/category-meta";
+import { JourneySteps } from "@/components/layout/WorkspaceUI";
 
 const PAGE_SIZE = 25;
-const inputClass = "w-full rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 focus:border-indigo-500 focus:outline-none";
+const inputClass = "min-h-11 w-full rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none";
 const money = (value) => Number(value).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 const dateLabel = (value) => parseTransactionDate(value) ? new Date(`${parseTransactionDate(value)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Not read";
 
@@ -30,6 +31,9 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
   const currentPage = Math.min(page, lastPage);
   const visible = rows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const totals = selected.reduce((sum, row) => { if (!validateImportRow(row).issues.length) sum[row.type] += Number(row.amount); return sum; }, { income: 0, expense: 0 });
+  const seen = new Set();
+  const possibleDuplicates = new Set();
+  rows.forEach((row,index)=>{if(validateImportRow(row).issues.length)return; const signature = [parseTransactionDate(row.transaction_date),row.type,Number(row.amount),String(row.description || "").trim().toLowerCase().replace(/\s+/g," ")].join("|"); if(seen.has(signature))possibleDuplicates.add(index); else seen.add(signature);});
   const close = () => { if (!busy.current) onClose(); };
 
   useEffect(() => {
@@ -69,7 +73,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
   function keyboard(event) {
     if (event.key === "Escape") { event.stopPropagation(); close(); }
     if (event.key !== "Tab") return;
-    const controls = [...dialog.current.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href]')];
+    const controls = [...dialog.current.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href]')].filter(control=>control.getClientRects().length > 0);
     const first = controls[0], last = controls.at(-1);
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -77,7 +81,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#10211c]/45 backdrop-blur-sm p-3 sm:p-6">
-      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="import-title" tabIndex={-1} onKeyDown={keyboard} className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-xl outline-none">
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="import-title" tabIndex={-1} onKeyDown={keyboard} className="fp-import-modal flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-xl outline-none">
         <div className="flex items-start justify-between border-b border-gray-100 p-5">
           <div>
             <h2 id="import-title" className="text-lg font-semibold text-gray-900">Review extracted transactions</h2>
@@ -88,6 +92,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
           <button type="button" disabled={saving} aria-label="Close import review" onClick={close} className="rounded-lg p-2 hover:bg-gray-100 disabled:opacity-50"><X size={20} /></button>
         </div>
         <div className="overflow-y-auto p-4 sm:p-5">
+          <div className="mb-5"><JourneySteps label="Statement import progress" current={saving ? 2 : 1} steps={[{label:"Upload",detail:"Statement read",complete:true},{label:"Review",detail:"Check figures and categories"},{label:"Import",detail:saving ? "Saving approved rows…" : "Save your selected rows"}]} /></div>
           <div className="mb-5 grid grid-cols-1 gap-4 rounded-2xl border border-border bg-background p-4 min-[420px]:grid-cols-3">
             <div><p className="text-xs text-gray-500">Ready to import</p><p className="mt-1 text-lg font-semibold text-gray-900">{selected.length}</p></div>
             <div><p className="text-xs text-gray-500">Money in</p><p className="mt-1 text-lg font-semibold text-primary">₹{money(totals.income)}</p></div>
@@ -95,8 +100,9 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
           </div>
           {warnings.map((warning, index) => <p key={index} className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{warning}</p>)}
           {unreadable.length > 0 && <p role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"><AlertTriangle size={15} className="shrink-0" />{unreadable.length} transaction(s) could not be read completely and are excluded. You can check them using Edit, or upload a clearer statement.</p>}
+          {possibleDuplicates.size > 0 && <p role="status" className="mb-3 rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800">{possibleDuplicates.size} possible repeated row(s) in this file. Compare the date, amount and description, then exclude any unwanted repeats. Existing saved matches are checked during import.</p>}
           <label className="mb-3 flex items-center gap-2 text-xs text-gray-600"><input type="checkbox" disabled={saving || editing !== null || !rows.length} checked={!!selected.length && rows.every((row) => row.selected || validateImportRow(row).issues.length)} onChange={(event) => setRows((previous) => previous.map((row) => ({ ...row, selected: event.target.checked && !validateImportRow(row).issues.length })))} />Include all readable transactions</label>
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="fp-table-scroll hidden rounded-xl border border-gray-200 md:block">
             <table className="w-full min-w-[850px] text-left">
               <thead className="bg-gray-50 text-xs text-gray-500"><tr>{["Include", "Date", "Description", "Amount", "Type", "Category", "Payment", ""].map((title, i) => <th key={title || i} className="px-3 py-3 font-medium">{title}</th>)}</tr></thead>
               <tbody>
@@ -104,7 +110,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
                   const index = currentPage * PAGE_SIZE + localIndex;
                   const issues = validateImportRow(row).issues;
                   const edit = editing === index;
-                  return <tr key={index} className={`border-t border-gray-100 text-xs ${issues.length ? "bg-amber-50/40" : ""}`}>
+                  return <tr key={index} className={`border-t border-gray-100 text-xs ${issues.length || possibleDuplicates.has(index) ? "bg-amber-50/40" : row.selected ? "bg-primary/[0.025]" : ""}`}>
                     <td className="px-3 py-4"><input aria-label={`Include transaction ${index + 1}`} type="checkbox" checked={row.selected} disabled={saving || editing !== null || !!issues.length} onChange={(event) => update(index, "selected", event.target.checked)} /></td>
                     <td className="whitespace-nowrap px-3 py-4 text-gray-600">{edit ? <input aria-label={`Date row ${index + 1}`} type="date" disabled={saving} value={parseTransactionDate(row.transaction_date)} onChange={(event) => update(index, "transaction_date", event.target.value)} className={inputClass} /> : dateLabel(row.transaction_date)}</td>
                     <td className="min-w-52 px-3 py-4 font-medium text-gray-900">{edit ? <input aria-label={`Description row ${index + 1}`} disabled={saving} maxLength={500} value={row.description || ""} onChange={(event) => update(index, "description", event.target.value)} className={inputClass} /> : row.description || "Not read"}</td>
@@ -123,6 +129,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
               </tbody>
             </table>
           </div>
+          <div className="space-y-4 md:hidden">{visible.map((row,localIndex)=>{const index=currentPage*PAGE_SIZE+localIndex; const issues=validateImportRow(row).issues; const edit=editing===index;return <article key={index} className={`rounded-xl border p-4 ${issues.length||possibleDuplicates.has(index) ? "border-amber-200 bg-amber-50/40" : "border-border bg-background"}`}><div className="mb-3 flex items-start justify-between gap-3"><label className="flex min-h-11 items-center gap-3 text-sm"><input aria-label={`Include transaction ${index+1}`} type="checkbox" checked={row.selected} disabled={saving||editing!==null||!!issues.length} onChange={event=>update(index,"selected",event.target.checked)} />Row {index+1}</label><button type="button" disabled={saving||(editing!==null&&!edit)} aria-label={edit ? `Done editing transaction ${index+1}` : `Edit transaction ${index+1}`} onClick={()=>edit ? finishEdit(index) : startEdit(index)} className="min-h-11 px-2 text-sm font-medium text-primary">{edit ? "Done" : "Edit"}</button></div>{possibleDuplicates.has(index)&&<p className="mb-3 text-xs text-amber-800">Possible repeated row · check against your statement</p>}{issues.length>0&&<p className="mb-3 text-xs text-amber-800">Details need review. This row is excluded until corrected.</p>}<div className="grid gap-3">{edit ? <><label className="text-sm">Description<input aria-label={`Description row ${index+1}`} value={row.description||""} maxLength={500} onChange={event=>update(index,"description",event.target.value)} className={inputClass} /></label><label className="text-sm">Date<input aria-label={`Date row ${index+1}`} type="date" value={parseTransactionDate(row.transaction_date)} onChange={event=>update(index,"transaction_date",event.target.value)} className={inputClass}/></label><label className="text-sm">Amount<input aria-label={`Amount row ${index+1}`} type="number" min="0.01" max="1000000000" step="0.01" value={row.amount} onChange={event=>update(index,"amount",event.target.value)} className={inputClass}/></label><label className="text-sm">Type<select aria-label={`Type row ${index+1}`} value={row.type||""} onChange={event=>update(index,"type",event.target.value)} className={inputClass}><option value="">Not read</option><option value="income">Income</option><option value="expense">Expense</option></select></label><label className="text-sm">Payment<input aria-label={`Payment row ${index+1}`} maxLength={80} value={row.payment_method||"Bank"} onChange={event=>update(index,"payment_method",event.target.value)} className={inputClass}/></label></> : <><h3 className="text-sm font-medium">{row.description||"Not read"}</h3><div className="flex flex-wrap justify-between gap-3 text-sm"><span className="text-muted-foreground">{dateLabel(row.transaction_date)}</span><strong className="tabular-nums">{row.amount!==""&&row.amount!=null ? `${row.type==="income"?"+":"−"}₹${money(row.amount)}`:"Not read"}</strong></div><p className="text-xs text-muted-foreground">{row.type||"Type not read"} · {row.payment_method||"Bank"}</p></>}<label className="text-sm text-muted-foreground">Category<select aria-label={`Category row ${index+1}`} disabled={saving||(editing!==null&&!edit)} value={row.category||"Other"} onChange={event=>update(index,"category",event.target.value)} className={inputClass}>{!TRANSACTION_CATEGORY_KEYS.includes(row.category||"Other")&&<option value={row.category}>{row.category}</option>}{TRANSACTION_CATEGORY_KEYS.map(category=><option key={category} value={category}>{category==="Other" ? "Other" : getCategoryMeta(category).label}</option>)}</select></label>{edit&&<button type="button" onClick={cancelEdit} disabled={saving} className="min-h-11 text-sm text-muted-foreground">Cancel edit</button>}</div></article>;})}</div>
           {rows.length > PAGE_SIZE && <div className="mt-3 flex items-center justify-between text-xs text-gray-500"><span>Page {currentPage + 1} of {lastPage + 1}</span><div className="flex gap-2"><button type="button" disabled={saving || editing !== null || !currentPage} onClick={() => setPage(currentPage - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Previous</button><button type="button" disabled={saving || editing !== null || currentPage >= lastPage} onClick={() => setPage(currentPage + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Next</button></div></div>}
         </div>
         <div className="border-t border-gray-100 p-4 sm:p-5">

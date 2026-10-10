@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Dialog } from "radix-ui";
-import { Menu, Bell, ChevronRight, Settings, X } from "lucide-react";
+import { Menu, Bell, ChevronRight, Settings, X, LayoutDashboard, ArrowLeftRight, Landmark, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
@@ -21,6 +21,8 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
     return () => desktop.removeEventListener("change", closeOnDesktop);
   }, []);
   const pathname = usePathname();
+  const year = useSearchParams().get("year");
+  const taxSuffix = /^20\d{2}-\d{2}$/.test(year || "") ? `?year=${year}` : "";
   const segments = pathname.split("/").filter(Boolean);
   const title = (part) => pageNames[part] || part.replaceAll("-", " ").replace(/^./, (char) => char.toUpperCase());
 
@@ -57,10 +59,13 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
         </header>
         <div className="flex min-w-0 flex-1">
           <main id="main-content" tabIndex={-1} className="fp-main w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9">
-            <div className="mx-auto w-full max-w-[1440px] min-w-0">{children}</div>
+            <div key={pathname} className="fp-page-content mx-auto w-full max-w-[1440px] min-w-0">{children}</div>
           </main>
           {showRightSidebar && <div className="hidden shrink-0 min-[1600px]:block"><RightSidebar {...rightSidebarProps} /></div>}
         </div>
+        <nav aria-label="Quick navigation" className="fp-bottom-nav safe-bottom lg:hidden">
+          {[["Overview", "/dashboard", LayoutDashboard], ["Transactions", "/transactions", ArrowLeftRight], ["Tax", "/taxation", Landmark], ["Copilot", "/taxation/ai-copilot", Sparkles]].map(([label, href, Icon]) => <Link key={href} href={`${href}${href.startsWith("/taxation") ? taxSuffix : ""}`} aria-current={(href === "/taxation" ? pathname.startsWith(href) && pathname !== "/taxation/ai-copilot" : pathname === href) ? "page" : undefined}><Icon size={19} aria-hidden="true" /><span>{label}</span></Link>)}
+        </nav>
       </div>
     </div>
   );

@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import FinancialYearSelect from "@/components/finance/FinancialYearSelect";
-import { Sparkles, Send, RefreshCw, Plus, Trash2, User, IndianRupee, Wallet, TrendingUp, Info, ArrowUpRight, LoaderCircle } from "lucide-react";
+import { Sparkles, Send, RefreshCw, Plus, Trash2, User, IndianRupee, Wallet, TrendingUp, Info, ArrowUpRight, LoaderCircle, PanelRight, History, X } from "lucide-react";
+import { Dialog } from "radix-ui";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceUI";
 
-const prompts = ["Which tax regime is better for me?", "What changes if I get a promotion?", "Where is most of my spending going?", "Am I missing any eligible deductions?", "Can I afford a new EMI?"];
+const promptGroups = [{label:"Money",items:["Where is most of my spending going?","Can I afford a new EMI?","How can I improve my monthly savings?"]},{label:"Taxation",items:["Which tax regime is better for me?","Am I missing any eligible deductions?","Explain my HRA exemption and its assumptions."]}];
 const followUps = ["What if my salary increases by 20%?", "Explain the assumptions", "How can I save more each month?"];
 const MAX_EXCHANGES = 20;
 const money = (value) => `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
@@ -66,13 +68,19 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
   const [profileError, setProfileError] = useState(initialError);
   const [providerReady, setProviderReady] = useState(aiConfigured);
   const [storageAvailable, setStorageAvailable] = useState(historyAvailable);
+  const [contextOpen, setContextOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const inFlight = useRef(false);
   const bottom = useRef(null);
   const input = useRef(null);
+  const historyOpener = useRef(null);
   const exchanges = messages.filter((message) => message.role === "user").length;
   const limitReached = exchanges >= MAX_EXCHANGES;
   const canSend = !busy && providerReady && storageAvailable && !limitReached;
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [messages, pendingMessage]);
+  useEffect(() => {
+    if (!messages.length && !pendingMessage) return;
+    bottom.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+  }, [messages, pendingMessage]);
 
   async function request(url, options = {}) {
     const controller = new AbortController();
@@ -165,7 +173,6 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
     if (inFlight.current) return;
     setActiveId(null); setMessages([]); setDraft(""); setError(""); setNotice(""); input.current?.focus();
   }
-  const firstName = snapshot?.name?.trim().split(" ")[0];
   const tax = snapshot?.tax;
   const snapshotRows = [
     { label: "Annual salary / CTC declaration", value: tax?.available ? money(tax.annualSalary) : "Not available", icon: IndianRupee },
@@ -175,21 +182,21 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
   ];
   const assumptions = [...textList(tax?.warnings), ...textList(snapshot?.dataWarnings)];
   return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 py-2">
-    <header className="flex flex-wrap items-start justify-between gap-5">
-      <div className="max-w-xl"><p className="fp-eyebrow">A thoughtful second perspective</p><h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">Financial Copilot</h1><p className="mt-3 text-sm leading-relaxed text-muted-foreground">Explore your taxes, spending and next steps with your finances in view.</p><p className="mt-2 text-xs text-muted-foreground">{snapshot?.financialYear ? `FY ${snapshot.financialYear}` : "Tax year not selected"}{snapshot?.asOf ? ` · Refreshed ${snapshot.asOf}` : ""}</p></div>
+    <WorkspaceHeader eyebrow="A thoughtful second perspective" title="Financial Copilot" description="Make sense of your money and your tax year, with your saved context in view." meta={`${snapshot?.financialYear ? `FY ${snapshot.financialYear}` : "Tax year not selected"}${snapshot?.asOf ? ` · Snapshot as of ${snapshot.asOf}` : ""}`}>
       <div className="flex flex-wrap items-center gap-2">{snapshot?.financialYear && <FinancialYearSelect year={snapshot.financialYear} />}<button type="button" disabled={busy} onClick={refresh} className="fp-button" aria-label="Refresh Copilot data"><RefreshCw size={15} className={busy ? "animate-spin" : ""} /><span className="sm:sr-only">Refresh data</span></button><button type="button" disabled={busy} onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"><Plus size={16} />New chat</button></div>
-    </header>
+    </WorkspaceHeader>
+    <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Money decisions and tax questions, together.</p><div className="flex gap-2"><button type="button" className="fp-button" aria-expanded={historyOpen} onClick={()=>{historyOpener.current=document.activeElement;setHistoryOpen(true);}}><History size={16}/>History</button><button type="button" className="fp-button" aria-expanded={contextOpen} aria-controls="copilot-financial-context" onClick={()=>setContextOpen(open=>!open)}><PanelRight size={16}/>{contextOpen ? "Hide context" : "Show context"}</button></div></div>
     {!providerReady && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">AI answers are waiting for setup</p><p className="mt-1 text-xs text-amber-800">Your financial snapshot and saved chats are still available. Ask the app administrator to connect Google Gemini, then select Refresh data.</p></div>}
     {!storageAvailable && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Saved chats need to be set up before you can ask a question. Ask the app administrator to finish Copilot setup, then select Refresh data.</div>}
     {profileError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{profileError}</div>}
-    <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+    <div className={`grid min-w-0 items-start gap-5 ${contextOpen ? "xl:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
       <div className="min-w-0">
         <div className="space-y-5" role="log" aria-label="Copilot conversation" aria-live="polite" aria-busy={busy}>
           {!messages.length && !pendingMessage && <div className="rounded-[20px] border border-primary/10 bg-[#edf2eb] p-5 sm:p-7">
             <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/10 bg-white/75 text-primary"><Sparkles size={23} strokeWidth={1.7} /></span>
-            <h2 className="text-2xl font-medium tracking-tight text-primary">{firstName ? `${firstName}, let’s make sense of your money.` : "Let’s make sense of your money."}</h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-primary/75">Ask a question, explore a change, or take a closer look at your numbers. Start with something on your mind.</p>
-            <div className="mb-6 mt-5 grid gap-2 sm:grid-cols-2">{prompts.map((prompt) => <button key={prompt} type="button" disabled={!canSend} onClick={() => send(prompt)} className="flex items-center justify-between gap-3 rounded-xl border border-primary/10 bg-white/75 px-4 py-3 text-left text-xs leading-relaxed text-primary transition-colors hover:border-primary/30 hover:bg-white disabled:opacity-50">{prompt}<ArrowUpRight size={14} className="shrink-0 text-primary/60" /></button>)}</div>
+            <h2 className="text-2xl font-medium tracking-tight text-primary">Let’s make sense of your money.</h2>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-primary/75">Choose a starting question or write your own. Review it below, then send it when you’re ready.</p>
+            <div className="mb-6 mt-6 grid gap-5 sm:grid-cols-2">{promptGroups.map(group=><section key={group.label} aria-label={`${group.label} starter questions`}><h3 className="mb-3 text-sm font-medium text-primary">{group.label}</h3><div className="space-y-2">{group.items.map(prompt=><button key={prompt} type="button" disabled={busy} onClick={()=>{setDraft(prompt);input.current?.focus();}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-primary/10 bg-white/75 px-4 py-3 text-left text-sm leading-relaxed text-primary transition-colors hover:border-primary/30 hover:bg-white disabled:opacity-50">{prompt}<ArrowUpRight size={14} className="shrink-0 text-primary/60"/></button>)}</div></section>)}</div>
             <div className="border-t border-primary/10 pt-5"><p className="mb-3 text-xs font-medium text-primary">Your current salary tax picture</p><RegimeComparison tax={tax} />{hasTaxEstimates(tax) && <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Salary-only estimate using declared data. CTC may differ from taxable salary. Check assumptions before acting.</p>}</div>
           </div>}
           {messages.map((message, index) => {
@@ -201,7 +208,7 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
           <div ref={bottom} />
         </div>
         {messages.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{followUps.map((prompt) => <button key={prompt} type="button" disabled={!canSend} onClick={() => send(prompt)} className="rounded-xl border border-border bg-white px-3 py-2 text-xs text-primary transition-colors hover:bg-muted disabled:opacity-50">{prompt}</button>)}</div>}
-        <div className="mt-5">
+        <div className={`${messages.length ? "fp-copilot-composer" : ""} mt-5`}>
           {limitReached && <div role="status" className="mb-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">This chat has reached 20 questions. Select New chat to continue.</div>}
           {notice && <div role="status" className="mb-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">{notice}</div>}
           {error && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -212,11 +219,12 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
           <p className="mt-3 flex gap-2 text-[11px] leading-relaxed text-muted-foreground"><Info size={14} className="mt-0.5 shrink-0" />Answers use your financial summary and are processed by Google Gemini. Tax figures are estimates; verify eligibility and important decisions. Document contents are not connected yet.</p>
         </div>
       </div>
-      <aside className="space-y-4">
+      {contextOpen && <aside id="copilot-financial-context" className="fp-sticky-result space-y-4">
         <section className="fp-card p-5"><div className="mb-5 flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary" /><h2 className="text-sm font-medium">Your financial context</h2></div><ul className="divide-y divide-border">{snapshotRows.map(({ label, value, icon: Icon }) => <li key={label} className="flex items-start gap-3 py-3 first:pt-0"><Icon size={16} strokeWidth={1.7} className="mt-1 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[11px] leading-relaxed text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium tabular-nums text-foreground">{value}</p></div></li>)}</ul><Link href="/settings" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Review financial profile<ArrowUpRight size={13} /></Link><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">A new chat starts with this saved financial profile. Ask for another tax year in your question, or update your profile and refresh.</p>{assumptions.length > 0 && <details className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Data and estimate assumptions</summary><ul className="mt-3 list-disc space-y-2 pl-4 leading-relaxed">{assumptions.map((note, i) => <li key={i}>{note}</li>)}</ul></details>}</section>
         <section className="fp-card p-5"><h2 className="mb-4 text-sm font-medium text-foreground">Worth exploring</h2><ul className="space-y-3">{(snapshot?.insights || []).map((item, index) => <li key={index}><button type="button" disabled={!canSend} onClick={() => send(item.prompt)} className="text-left text-xs leading-relaxed text-muted-foreground hover:text-primary disabled:opacity-50">{item.text}<ArrowUpRight size={12} className="ml-1 inline text-primary" /></button></li>)}</ul>{!snapshot?.insights?.length && <p className="text-xs leading-relaxed text-muted-foreground">Insights appear as your saved financial picture takes shape.</p>}</section>
-        <section className="fp-card p-5"><h2 className="mb-4 text-sm font-medium text-foreground">Recent conversations</h2>{!storageAvailable ? <p className="text-xs leading-relaxed text-muted-foreground">Saved chats will be available after Copilot setup is complete.</p> : !chats.length ? <p className="text-xs leading-relaxed text-muted-foreground">Your first conversation will appear here.</p> : <ul className="space-y-1">{chats.map((chat) => <li key={chat.id} className={`flex items-start gap-1 rounded-xl ${activeId === chat.id ? "bg-primary/5" : "hover:bg-muted"}`}><button type="button" disabled={busy} onClick={() => openChat(chat.id)} className="min-w-0 flex-1 break-words p-3 text-left text-xs leading-relaxed text-muted-foreground hover:text-primary disabled:opacity-50">{chat.title}</button><button type="button" disabled={busy} onClick={() => deleteChat(chat.id)} aria-label={`Delete chat: ${chat.title}`} className="min-h-10 min-w-9 p-2 text-muted-foreground/70 hover:text-red-600 disabled:opacity-50"><Trash2 size={14} /></button></li>)}</ul>}</section>
-      </aside>
+
+      </aside>}
     </div>
+    <Dialog.Root open={historyOpen} onOpenChange={setHistoryOpen}><Dialog.Portal><Dialog.Overlay className="fp-drawer-overlay"/><Dialog.Content className="fp-drawer" aria-describedby="copilot-history-description" onCloseAutoFocus={event=>{event.preventDefault();historyOpener.current?.focus();}}><div className="flex items-center justify-between gap-3"><Dialog.Title className="text-2xl font-medium">Recent conversations</Dialog.Title><Dialog.Close asChild><button type="button" className="fp-button !px-3" aria-label="Close conversation history"><X size={18}/></button></Dialog.Close></div><Dialog.Description id="copilot-history-description" className="mt-3 text-sm text-muted-foreground">Your saved conversations. Open one to continue where you left off.</Dialog.Description>{chats.length ? <ul className="mt-6 space-y-3">{chats.map(chat=><li key={chat.id} className="flex items-center rounded-xl border border-border bg-white"><button type="button" disabled={busy} onClick={async()=>{await openChat(chat.id);setHistoryOpen(false);}} className="min-h-14 min-w-0 flex-1 break-words p-4 text-left text-sm hover:text-primary disabled:opacity-50">{chat.title}</button><button type="button" aria-label={`Delete chat: ${chat.title}`} disabled={busy} className="min-h-11 min-w-11 text-muted-foreground hover:text-destructive" onClick={()=>{if(window.confirm("Delete this saved conversation? This cannot be undone."))deleteChat(chat.id);}}><Trash2 size={16}/></button></li>)}</ul> : <p className="mt-8 text-sm text-muted-foreground">{storageAvailable ? "Your first conversation will appear here." : "Saved chats will be available after Copilot setup."}</p>}</Dialog.Content></Dialog.Portal></Dialog.Root>
   </div>;
 }

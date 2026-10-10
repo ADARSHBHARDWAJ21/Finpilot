@@ -9,7 +9,7 @@ export default async function InvestmentsPage() {
     <DashboardLayout showRightSidebar={false}>
       <ComingSoon
         title="Investments"
-        subtitle="Track stocks, mutual funds, EPF, and PPF with automated tax-loss harvesting and capital gains audit."
+        subtitle="A future space for portfolio records, performance and supporting tax documents."
         features={[
           "Direct CAS (CAMS & KFintech) automatic mutual fund sync",
           "Zerodha, Groww, & Upstox portfolio integration",

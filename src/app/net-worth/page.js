@@ -9,7 +9,7 @@ export default async function NetWorthPage() {
     <DashboardLayout showRightSidebar={false}>
       <ComingSoon
         title="Net Worth Radar"
-        subtitle="Consolidate all Indian bank accounts, fixed deposits, gold, and real estate assets with liability burn rate analytics."
+        subtitle="A future view of assets, liabilities and progress towards your longer-term plans."
         features={[
           "Live multi-bank account aggregation via Account Aggregator (RBI licensed)",
           "Real estate & physical asset valuation estimates",

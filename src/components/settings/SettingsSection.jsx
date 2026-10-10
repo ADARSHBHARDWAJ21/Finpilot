@@ -17,6 +17,7 @@ import {
   CREDIT_CARD_USAGE_OPTIONS,
 } from "@/lib/onboarding/constants";
 import { updateSettingsAndSync } from "@/app/settings/actions";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceUI";
 import {
   User,
   Phone,
@@ -56,10 +57,7 @@ function jsonDownload(filename, obj) {
 
 const tabs = [
   { id: "account", label: "Account" },
-  { id: "tax", label: "Salary & Tax Regime" },
-  { id: "deductions", label: "Investments & Deductions" },
-  { id: "expenses", label: "Rent & Expenses" },
-  { id: "planning", label: "Planning" },
+  { id: "tax", label: "Financial profile" },
   { id: "data", label: "Data & Backup" },
   { id: "preferences", label: "Preferences" },
 ];
@@ -127,9 +125,13 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
   );
 
   const [form, setForm] = useState(initialForm);
+  const [savedForm, setSavedForm] = useState(initialForm);
+  const dirty = Object.keys(savedForm).some(key=>String(form[key] ?? "") !== String(savedForm[key] ?? ""));
+  const financialTab = ["tax","deductions","expenses","planning"].includes(activeTab);
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setStatus(null);
   }
 
   function handleSave() {
@@ -138,6 +140,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
       try {
         const result = await updateSettingsAndSync(form);
         setTaxContext(result.taxContext);
+        setSavedForm(form);
         setStatus({ type: "success" });
       } catch (e) {
         setStatus({ type: "error", message: e?.message ?? "Failed to save" });
@@ -147,26 +150,18 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
 
   return (
     <div className="w-full max-w-[1500px] min-w-0">
-      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-4">
-        <div>
-          <h1 className="text-3xl leading-tight tracking-[-.04em] font-semibold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your profile, financial details and preferences</p>
-        </div>
+      <WorkspaceHeader eyebrow="Your workspace, your preferences" title="Settings" description="Manage your account and the financial profile behind your plans." meta={`Profile defaults · Preferred FY ${form.financial_year}`}>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-white rounded-2xl border border-border  px-4 py-3">
-            <p className="text-[11px] text-muted-foreground font-semibold">Estimated Tax</p>
-            <p className="text-3xl font-semibold text-foreground mt-0.5">{formatInr(taxContext?.estimatedTax)}</p>
-          </div>
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !dirty}
             className="h-[52px] px-6 rounded-xl bg-primary hover:bg-[#193e35] text-white text-sm font-semibold  disabled:opacity-60"
           >
             {isSaving || status?.type === "pending" ? "Saving..." : "Save & Recalculate"}
           </button>
         </div>
-      </div>
+      </WorkspaceHeader>
 
       <div className="bg-white border border-border rounded-xl p-1 mb-4 overflow-x-auto">
         <div className="flex items-center min-w-max">
@@ -175,8 +170,9 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
+              aria-pressed={tab.id === "tax" ? financialTab : activeTab === tab.id}
               className={`px-4 py-2.5 text-sm font-semibold rounded-lg whitespace-nowrap ${
-                activeTab === tab.id ? "bg-[#edf2eb] text-primary" : "text-[#647268] hover:bg-muted"
+                (tab.id === "tax" ? financialTab : activeTab === tab.id) ? "bg-[#edf2eb] text-primary" : "text-[#647268] hover:bg-muted"
               }`}
             >
               {tab.label}
@@ -184,9 +180,10 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
           ))}
         </div>
       </div>
+      {financialTab && <div className="mb-5 rounded-2xl border border-border bg-secondary p-4"><p className="mb-3 text-sm text-muted-foreground">These are profile defaults. Confirm figures and proofs for each year in your <Link className="text-primary underline" href={`/taxation?year=${form.financial_year}`}>Tax workspace</Link>.</p><nav aria-label="Financial profile sections" className="flex flex-wrap gap-2">{[["tax","Salary"],["deductions","Deductions"],["expenses","Rent & expenses"],["planning","Planning"]].map(([id,label])=><button key={id} type="button" aria-pressed={activeTab === id} onClick={()=>setActiveTab(id)} className={`fp-button ${activeTab === id ? "!bg-primary !text-white !border-primary" : ""}`}>{label}</button>)}</nav></div>}
 
-      {status?.type === "error" && <p className="text-sm text-red-600 mb-3">{status.message}</p>}
-      {status?.type === "success" && <p className="text-sm text-emerald-600 mb-3">Settings saved and recalculated.</p>}
+      {status?.type === "error" && <p role="alert" className="text-sm text-red-600 mb-3">{status.message}</p>}
+      {status?.type === "success" && <p role="status" className="text-sm text-emerald-600 mb-3">Settings saved and recalculated.</p>}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4">
         <div className="space-y-4">
@@ -253,7 +250,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
                   <ActionBtn icon={Sparkles} title="Recalculate Tax" subtitle="Update calculations with latest inputs" onClick={handleSave} />
                   <ActionBtn icon={Eye} title="Tax Preview" subtitle="Explore saved yearly tax inputs" onClick={() => router.push(`/taxation/simulation?year=${taxContext.financialYear}`)} />
                   <ActionBtn icon={Download} title="Download Report" subtitle="Download your tax summary report" onClick={() => jsonDownload("finpilot-settings-report.json", { form, taxContext, exportedAt: new Date().toISOString() })} />
-                  <ActionBtn icon={RotateCcw} title="Discard Unsaved Edits" subtitle="Restore your last saved profile" onClick={() => setForm(initialForm)} />
+                  <ActionBtn icon={RotateCcw} title="Discard Unsaved Edits" subtitle="Restore your last saved profile" onClick={() => {setForm(savedForm);setStatus(null);}} />
                 </div>
               </section>
 
@@ -312,7 +309,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
             <SettingsFormCard title="Data & Backup">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <ActionBtn icon={Download} title="Download JSON Snapshot" subtitle="Export profile + tax context data" onClick={() => jsonDownload("finpilot-settings-snapshot.json", { onboardingProfile: taxContext?.onboardingProfile, salaryProfile: taxContext?.salaryProfile, taxContext, exportedAt: new Date().toISOString() })} />
-                <ActionBtn icon={RotateCcw} title="Reset to Last Saved" subtitle="Undo unsaved edits in this session" onClick={() => setForm(initialForm)} />
+                <ActionBtn icon={RotateCcw} title="Reset to Last Saved" subtitle="Undo unsaved edits in this session" onClick={() => {setForm(savedForm);setStatus(null);}} />
               </div>
             </SettingsFormCard>
           )}
@@ -331,7 +328,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
           )}
         </div>
 
-        <aside className="space-y-4">
+        <aside className="fp-sticky-result space-y-4">
           <section className="bg-white border border-border rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-lg bg-[#edf2eb] flex items-center justify-center"><Sparkles size={15} className="text-primary" /></div>
@@ -372,6 +369,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
           </section>
         </aside>
       </div>
+      {dirty && <div className="fp-saving-bar mt-6"><div><p className="text-sm font-medium">You have unsaved changes.</p><p className="mt-1 text-xs text-muted-foreground">Profile defaults · preferred FY {form.financial_year}. Save to update estimates.</p></div><div className="flex gap-2"><button type="button" className="fp-button" disabled={isSaving} onClick={()=>{setForm(savedForm);setStatus(null);}}>Discard edits</button><button type="button" className="fp-primary-link" disabled={isSaving} onClick={handleSave}>{isSaving ? "Saving…" : "Save changes"}</button></div></div>}
     </div>
   );
 }
