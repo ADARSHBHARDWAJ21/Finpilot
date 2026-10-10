@@ -3,20 +3,29 @@
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import { safeNextPath } from "@/lib/security/next-path";
+import { headers } from "next/headers";
+import { signupEmailRedirect } from "@/lib/auth/confirmation";
 
 export async function signUp(email, password) {
+  let emailRedirectTo;
+  try {
+    emailRedirectTo = signupEmailRedirect({ headers: await headers() });
+  } catch {
+    return { error: "Email confirmation is not configured for this app address. Please try again after the site settings are updated." };
+  }
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: { emailRedirectTo },
   });
 
   if (error) {
     return { error: error.message };
   }
 
-  redirect("/auth/login?message=Check your email to confirm your account");
+  redirect(data?.session ? "/onboarding" : "/auth/login?notice=check_email");
 }
 
 export async function signIn(email, password, nextPath = "/dashboard") {

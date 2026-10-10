@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import { isOnboardingComplete } from "@/lib/onboarding/profile-status";
+import { legacyConfirmationRedirect } from "@/lib/auth/confirmation";
 
 const AUTH_ROUTES = ["/auth/login", "/auth/signup"];
 const ONBOARDING_ROUTE = "/onboarding";
@@ -28,8 +29,21 @@ function isProtectedRoute(pathname) {
 }
 
 export async function middleware(request) {
-  if (request.nextUrl.pathname === "/api/health") {
+  if (request.nextUrl.pathname === "/api/health" || request.nextUrl.pathname === "/auth/callback") {
     return NextResponse.next();
+  }
+
+  // Exchange callback codes before normal auth/onboarding redirects can lose them.
+  try {
+    const confirmationUrl = legacyConfirmationRedirect(request.url, { headers: request.headers });
+    if (confirmationUrl) {
+      const callbackResponse = NextResponse.redirect(confirmationUrl, 303);
+      callbackResponse.headers.set("Cache-Control", "no-store");
+      callbackResponse.headers.set("Referrer-Policy", "no-referrer");
+      return callbackResponse;
+    }
+  } catch {
+    return new Response("Email confirmation is temporarily unavailable. Please return to the app and sign in.", { status: 503, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
   }
 
   let response = NextResponse.next({ request });

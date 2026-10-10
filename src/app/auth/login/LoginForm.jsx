@@ -6,7 +6,7 @@ import { signIn } from "../actions";
 import { AuthShell } from "@/components/auth/AuthForm";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
-export default function LoginForm({ message, nextPath }) {
+export default function LoginForm({ message, messageType = "success", nextPath }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,7 +45,7 @@ export default function LoginForm({ message, nextPath }) {
       }
     >
       {message && (
-        <div className="mb-4 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5">
+        <div role={messageType === "error" ? "alert" : "status"} className={`mb-4 text-xs font-semibold border rounded-xl px-3.5 py-2.5 ${messageType === "error" ? "text-rose-800 bg-rose-50 border-rose-200" : "text-emerald-800 bg-emerald-50 border-emerald-200"}`}>
           {message}
         </div>
       )}
