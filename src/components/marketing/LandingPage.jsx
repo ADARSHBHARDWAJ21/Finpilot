@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/layout/BrandMark";
-import { ArrowDown, ArrowDownLeft, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, MessageSquare, Sparkles, Target, Wallet } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, MessageSquare, Pause, Play, RotateCcw, Send, Sparkles, Target, Wallet } from "lucide-react";
 import styles from "./LandingPage.module.css";
 
 const features = [
@@ -20,20 +20,28 @@ const faqs = [
   { q: "Does Finpilot file my tax return?", a: "Finpilot helps you organise tax information, estimate salary tax, compare regimes, and export your records. It does not submit a tax return or replace a professional review of complex income." },
   { q: "Do I need to connect my bank account?", a: "No. You can start with a statement upload or manual transactions. Live bank feeds are not required for the current workspace." },
 ];
-const months = [
-  { name: "Apr", income: 78000, spending: 38600 },
-  { name: "May", income: 85000, spending: 43200 },
-  { name: "Jun", income: 82000, spending: 39500 },
-  { name: "Jul", income: 91000, spending: 57800 },
-  { name: "Aug", income: 88000, spending: 41700 },
-  { name: "Sep", income: 92500, spending: 41800 },
+const copilotExamples = [
+  {
+    label: "Plan an EMI", icon: Wallet,
+    question: "How would a ₹10,000 EMI affect my month?",
+    answer: "With ₹80,000 in income and ₹42,000 in spending, a ₹10,000 EMI leaves ₹28,000 before savings and other commitments.",
+    takeaway: "See the impact before making a commitment.",
+    figures: [{ label: "Available", value: "₹38,000" }, { label: "New EMI", value: "₹10,000" }, { label: "After EMI", value: "₹28,000" }],
+  },
+  {
+    label: "Explore spending", icon: MessageSquare,
+    question: "Where is most of my spending going?",
+    answer: "Housing is your largest category at ₹18,000. Food accounts for ₹10,000 and other expenses ₹14,000 of your ₹42,000 total.",
+    takeaway: "Understand the story behind your spending.",
+    figures: [{ label: "Housing", value: "₹18,000", share: 43 }, { label: "Food", value: "₹10,000", share: 24 }, { label: "Other", value: "₹14,000", share: 33 }],
+  },
 ];
+const DEMO_DURATION = 15000;
 const steps = [
   { title: "Bring your records", body: "Start with a bank statement, add your income, or enter a few transactions.", icon: FileText },
   { title: "Review the details", body: "Check imported records, choose categories, and fill in the information that matters to you.", icon: Check },
   { title: "Find your next step", body: "Explore your month, organise tax proofs, and make space for your next goal.", icon: Sparkles },
 ];
-const money = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 
 function useLandingMotion(rootRef) {
   useEffect(() => {
@@ -84,36 +92,70 @@ function useLandingMotion(rootRef) {
   }, [rootRef]);
 }
 
-function Amount({ value }) {
-  const [display, setDisplay] = useState(value);
-  const previous = useRef(value);
+function useCopilotDemo(sceneRef) {
+  const [scene, setScene] = useState({ index: 0, elapsed: 0 });
+  const [paused, setPaused] = useState(false);
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    const from = previous.current;
-    if (from === value) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let frame;
-    let started;
-    const animate = time => {
-      started ??= time;
-      const progress = reduced ? 1 : Math.min(1, (time - started) / 650);
-      const amount = Math.round(from + (value - from) * (1 - Math.pow(1 - progress, 3)));
-      previous.current = amount;
-      setDisplay(amount);
-      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let inView = !("IntersectionObserver" in window);
+    let frame = 0;
+    let lastTime = 0;
+    let pendingTime = 0;
+    function advance(time) {
+      if (lastTime) pendingTime += Math.min(time - lastTime, 100);
+      lastTime = time;
+      if (pendingTime >= 45) {
+        const elapsed = pendingTime;
+        pendingTime = 0;
+        setScene(current => current.elapsed + elapsed >= DEMO_DURATION
+          ? { index: (current.index + 1) % copilotExamples.length, elapsed: 0 }
+          : { ...current, elapsed: current.elapsed + elapsed });
+      }
+      frame = window.requestAnimationFrame(advance);
+    }
+    function syncPlayback() {
+      window.cancelAnimationFrame(frame);
+      lastTime = 0;
+      pendingTime = 0;
+      if (!paused && !preference.matches && inView && !document.hidden) frame = window.requestAnimationFrame(advance);
+    }
+    function updatePreference() { setReduced(preference.matches); syncPlayback(); }
+    const initialFrame = window.requestAnimationFrame(updatePreference);
+    const observer = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+      inView = entries[0].isIntersecting;
+      syncPlayback();
+    }, { threshold: 0.15 }) : null;
+    if (sceneRef.current) observer?.observe(sceneRef.current);
+    document.addEventListener("visibilitychange", syncPlayback);
+    preference.addEventListener("change", updatePreference);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(initialFrame);
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", syncPlayback);
+      preference.removeEventListener("change", updatePreference);
     };
-    frame = window.requestAnimationFrame(animate);
-    return () => window.cancelAnimationFrame(frame);
-  }, [value]);
-  return <span className={styles.amount} aria-label={`₹${money.format(value)}`}><span aria-hidden="true">₹{money.format(display)}</span></span>;
+  }, [paused, sceneRef]);
+  function chooseExample(index) { setScene({ index, elapsed: paused ? 9000 : 0 }); }
+  function replay() { setScene(current => ({ ...current, elapsed: 0 })); setPaused(false); }
+  return { scene, paused, reduced, chooseExample, replay, togglePause: () => setPaused(current => !current) };
 }
 
 function Brand() {
   return <Link href="/" className={styles.brand} aria-label="Finpilot home"><BrandMark />finpilot<span>.</span></Link>;
 }
 
-function WorkspacePreview() {
-  const [selected, setSelected] = useState(5);
-  const month = months[selected];
+function CopilotPreview() {
+  const sceneRef = useRef(null);
+  const { scene, paused, reduced, chooseExample, replay, togglePause } = useCopilotDemo(sceneRef);
+  const example = copilotExamples[scene.index];
+  const elapsed = reduced ? 9000 : scene.elapsed;
+  const asked = elapsed >= 2000;
+  const answering = elapsed >= 4200;
+  const complete = elapsed >= 6500;
+  const typedQuestion = example.question.slice(0, Math.floor(elapsed / 38));
+  const typedAnswer = example.answer.slice(0, Math.max(0, Math.ceil((elapsed - 4200) / 14)));
   const frameRef = useRef(null);
   const pointerFrame = useRef(0);
   useEffect(() => () => window.cancelAnimationFrame(pointerFrame.current), []);
@@ -134,32 +176,33 @@ function WorkspacePreview() {
     frameRef.current?.style.setProperty("--tilt-y", "0deg");
   }
   return (
-    <div className={styles.previewScene} data-reveal style={{ "--reveal-delay": "180ms" }}>
+    <section ref={sceneRef} className={styles.previewScene} aria-label="Financial Copilot interactive demo" aria-describedby="copilot-demo-description" data-reveal data-playing={!paused && !reduced} style={{ "--reveal-delay": "180ms" }}>
       <div className={styles.previewHalo} aria-hidden="true" />
       <div className={styles.previewPointer} onPointerMove={movePreview} onPointerLeave={resetPreview}>
         <div ref={frameRef} className={styles.previewCard}>
-          <div className={styles.previewHeader}><div><span className={styles.miniIcon}><LayoutDashboard size={16} /></span><span>Your overview</span></div><span className={styles.sampleLabel}>Interactive sample</span></div>
-          <div className={styles.balanceLabel}>Available in {month.name}<span className={styles.liveDot} aria-hidden="true" /></div>
-          <div className={styles.balance}><Amount value={month.income - month.spending} /><span>.00</span></div>
-          <div className={styles.summary}>
-            <div><span className={styles.incomeIcon}><ArrowDownLeft size={16} /></span><div><span>Income</span><strong><Amount value={month.income} /></strong></div></div>
-            <div><span className={styles.spendingIcon}><ArrowUpRight size={16} /></span><div><span>Spending</span><strong><Amount value={month.spending} /></strong></div></div>
+          <div className={styles.previewHeader}><div><span className={styles.miniIcon}><Sparkles size={18} /></span><div className={styles.copilotTitle}><strong>Financial Copilot</strong><span>A thoughtful second perspective</span></div></div><span className={styles.sampleLabel}>Demo</span></div>
+          <div className={styles.demoTopics} aria-label="Choose a Copilot example">{copilotExamples.map(({ label, icon: Icon }, index) => <button key={label} type="button" aria-pressed={scene.index === index} onClick={() => chooseExample(index)}><Icon size={13} />{label}</button>)}</div>
+          <p id="copilot-demo-description" className={styles.demoCaption}>See it in action · Illustrative answers with sample data</p>
+          <div className="sr-only"><p>{example.question}</p><p>{example.answer}</p><p>{example.takeaway}</p></div>
+          <div key={scene.index} className={styles.demoConversation} aria-hidden="true">
+            <div className={styles.demoQuestion} data-visible={asked}><span>You</span><p>{example.question}</p></div>
+            <div className={styles.demoThinking} data-visible={asked && !answering}><span className={styles.thinkingDots}><i /><i /><i /></span>Checking sample financial data…</div>
+            <article className={styles.demoAnswer} data-visible={answering}>
+              <div className={styles.answerHeading}><Sparkles size={14} /><span>Finpilot Copilot</span><span className={styles.answerBadge}><Check size={10} />Sample context</span></div>
+              <p className={styles.answerText}><span className={styles.answerReservation}>{example.answer}</span><span>{typedAnswer}{answering && !complete && <i className={styles.typingCursor} />}</span></p>
+              <div className={styles.demoFigures} data-visible={complete} data-kind={scene.index === 0 ? "emi" : "spending"}>{example.figures.map(figure => <div key={figure.label}><span>{figure.label}</span><strong>{figure.value}</strong>{figure.share && <span className={styles.spendingTrack}><i style={{ "--share": `${figure.share}%` }} /></span>}</div>)}</div>
+              <div className={styles.answerSource} data-visible={complete}><FileText size={12} />Financial profile & transaction summary</div>
+            </article>
+            <p className={styles.demoTakeaway} data-visible={complete}><Check size={12} />{example.takeaway}</p>
           </div>
-          <span className="sr-only" aria-live="polite">{month.name} sample: available ₹{money.format(month.income - month.spending)}, income ₹{money.format(month.income)}, spending ₹{money.format(month.spending)}.</span>
-          <div className={styles.chart}>
-            <div className={styles.chartHeading}><span>Monthly cash flow</span><span><i /> Income <i /> Spending</span></div>
-            <div className={styles.chartGrid} aria-hidden="true"><span /><span /><span /></div>
-            <div className={styles.chartBars}>
-              {months.map((item, i) => <button key={item.name} type="button" className={styles.monthColumn} aria-pressed={selected === i} aria-label={`Show ${item.name} sample: income ₹${money.format(item.income)}, spending ₹${money.format(item.spending)}`} onClick={() => setSelected(i)}><span className={styles.barPair} aria-hidden="true"><span className={styles.incomeBar} style={{ "--bar-height": `${item.income / 1000}%`, "--bar-delay": `${i * 65}ms` }} /><span className={styles.spendingBar} style={{ "--bar-height": `${item.spending / 1000}%`, "--bar-delay": `${i * 65 + 50}ms` }} /></span><span className={styles.monthName}>{item.name}</span></button>)}
-            </div>
-          </div>
-          <p className={styles.previewHint}>Choose a month. See the bigger picture.</p>
-          <div className={styles.goalRow}><span className={styles.miniIcon}><Target size={18} /></span><div><strong>Your next adventure</strong><span>Sample savings goal</span></div><span className={styles.goalRing}>68%</span></div>
+          <div className={styles.demoComposer} aria-hidden="true"><span>{asked ? "What else would you like to explore?" : typedQuestion || "Ask about your money…"}{!asked && <i className={styles.typingCursor} />}</span><span className={styles.demoSend} data-ready={asked}><Send size={14} /></span></div>
+          <div className={styles.demoFooter}><div className={styles.demoControls}>{!reduced && <button type="button" onClick={togglePause} aria-label={paused ? "Play Copilot demo" : "Pause Copilot demo"}>{paused ? <Play size={13} /> : <Pause size={13} />}</button>}{!reduced && <button type="button" onClick={replay} aria-label="Replay Copilot demo"><RotateCcw size={13} /></button>}<span>{reduced ? "Sample conversation" : paused ? "Paused" : "Playing demo"}</span></div><Link href="/taxation/ai-copilot" className={styles.demoLink}>Try Copilot <ArrowUpRight size={13} /></Link></div>
+          <div className={styles.demoProgress} aria-hidden="true"><span style={{ transform: `scaleX(${reduced ? 1 : scene.elapsed / DEMO_DURATION})` }} /></div>
         </div>
       </div>
-      <div className={styles.floatingNote}><span><Check size={15} /></span><div><strong>A little more organised.</strong><p>Your records, all in one place.</p></div></div>
+      <div className={styles.floatingNote}><span><Sparkles size={15} /></span><div><strong>Your numbers. A clearer next step.</strong><p>Meet your personal financial Copilot.</p></div></div>
       <div className={styles.floatingSpark} aria-hidden="true"><Sparkles size={21} strokeWidth={1.4} /></div>
-    </div>
+    </section>
   );
 }
 
@@ -181,7 +224,7 @@ export default function LandingPage() {
             <div className={styles.heroActions}><Link href="/auth/signup" className={styles.primaryButton}>Create your workspace <ArrowRight size={18} /></Link><a href="#features" className={styles.secondaryButton}>Take a look <ArrowDown size={16} /></a></div>
             <div className={styles.trustNotes}><span><Check size={14} /> Built for Indian finances</span><span><Check size={14} /> Start with your own records</span></div>
           </div>
-          <WorkspacePreview />
+          <CopilotPreview />
           <a href="#features" className={styles.scrollCue}><span className={styles.scrollMouse} aria-hidden="true"><i /></span> A clearer view awaits <ArrowDown size={13} /></a>
         </section>
         <div className={styles.connectionStrip} data-reveal><span>One space. A little less scattered.</span><div>{[{ icon: Wallet, text: "Everyday money" }, { icon: FileText, text: "Your tax year" }, { icon: Target, text: "Future plans" }].map(({ icon: Icon, text }) => <span key={text}><Icon size={17} strokeWidth={1.6} />{text}</span>)}</div></div>
