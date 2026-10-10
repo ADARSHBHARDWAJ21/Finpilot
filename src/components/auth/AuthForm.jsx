@@ -1,70 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Shield, Lock, CheckCircle2, ArrowRight } from "lucide-react";
+import BrandMark from "@/components/layout/BrandMark";
+import { ArrowLeft, Check, Wallet, FileText, Target } from "lucide-react";
 
 export function AuthShell({ title, subtitle, children, footer }) {
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-[#f8fafc] flex flex-col relative overflow-hidden selection:bg-indigo-600 selection:text-white">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse-glow" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float-slow" />
+    <div className="grid min-h-[100dvh] bg-[#f6f7f4] text-[#202a25] lg:grid-cols-[.95fr_1.05fr]">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#214d43] px-12 py-10 text-white lg:flex xl:px-16">
+        <Link href="/" className="inline-flex w-fit items-center gap-2.5 text-xl font-semibold tracking-tight"><BrandMark className="size-10" dark />finpilot<span className="text-[#b6cbb5]">.</span></Link>
+        <div className="relative z-10 my-16 max-w-md"><p className="mb-6 text-[11px] uppercase tracking-[.2em] text-[#b6cbb5]">A little more clarity</p><h2 className="text-[44px] font-medium leading-[1.15] tracking-[-.045em] xl:text-[52px]">Good things start<br />with a clear view.</h2><p className="mt-6 max-w-sm text-sm leading-[1.9] text-[#c4d3c5]">Bring your everyday finances and future plans into a space that feels a little more considered.</p><div className="mt-10 space-y-4">{[{ icon: Wallet, text: "Know your spending" }, { icon: FileText, text: "Keep your tax year organised" }, { icon: Target, text: "Make room for your goals" }].map(({ icon: Icon, text }) => <div key={text} className="flex items-center gap-3 text-sm text-[#e0e9dc]"><span className="flex size-9 items-center justify-center rounded-xl border border-white/15"><Icon size={16} strokeWidth={1.7} /></span>{text}<Check size={13} className="ml-auto text-[#91ad93]" /></div>)}</div></div>
+        <p className="text-xs text-[#a9c0ab]">Your money. Your pace. Your next chapter.</p>
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-56 -right-36 size-[500px] rounded-full border border-white/5" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 -right-16 size-[340px] rounded-full border border-white/5" />
+      </aside>
+      <div className="flex min-h-[100dvh] flex-col">
+        <header className="flex items-center justify-between gap-3 px-6 py-7 sm:px-10"><Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight lg:hidden"><BrandMark className="size-8" />finpilot<span className="text-[#8ba88e]">.</span></Link><Link href="/" className="ml-auto inline-flex items-center gap-2 text-xs text-[#738078] transition-colors hover:text-[#214d43]"><ArrowLeft size={14} />Back to home</Link></header>
+        <main className="flex flex-1 items-center justify-center px-6 pb-14 pt-7 sm:px-10"><div className="w-full max-w-[380px]"><div className="mb-9"><p className="mb-3 text-[10px] font-medium uppercase tracking-[.18em] text-[#7b8c77]">Your financial workspace</p><h1 className="text-[32px] font-medium leading-tight tracking-[-.04em]">{title}</h1>{subtitle && <p className="mt-3 text-sm leading-relaxed text-[#738078]">{subtitle}</p>}</div>{children}{footer && <div className="mt-7 border-t border-[#dfe5db] pt-6 text-center text-xs leading-relaxed text-[#738078]">{footer}</div>}</div></main>
+        <footer className="px-6 py-5 text-center text-[11px] text-[#8a958b]">A little clarity goes a long way.</footer>
       </div>
-
-      {/* Header */}
-      <header className="p-5 sm:p-6 max-w-6xl w-full mx-auto flex items-center justify-between z-10">
-        <Link href="/" className="inline-flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-lg">FinCopilot</span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
-              India
-            </span>
-          </div>
-        </Link>
-        <Link
-          href="/"
-          className="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
-        >
-          ← Back to home
-        </Link>
-      </header>
-
-      {/* Center Auth Card */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8 z-10">
-        <div className="w-full max-w-md">
-          <div className="glass-panel rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 bg-white/95">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
-              {subtitle && <p className="text-xs sm:text-sm text-slate-500 mt-1.5 font-medium">{subtitle}</p>}
-            </div>
-
-            {children}
-          </div>
-
-          {footer && (
-            <div className="mt-5 text-center text-xs text-slate-500 font-medium">
-              {footer}
-            </div>
-          )}
-
-          {/* Security badge below card */}
-          <div className="mt-8 flex items-center justify-center gap-4 text-[11px] text-slate-400 font-medium">
-            <span className="flex items-center gap-1">
-              <Lock size={12} className="text-emerald-500" />
-              256-bit TLS Encrypted
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <Shield size={12} className="text-indigo-500" />
-              Strict Indian Tax Privacy
-            </span>
-          </div>
-        </div>
-      </main>
     </div>
   );
 }

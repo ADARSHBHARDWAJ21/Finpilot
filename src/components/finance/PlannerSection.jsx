@@ -11,6 +11,11 @@ import {
   Pencil,
   Trash2,
   X,
+  Search,
+  Bell,
+  CheckCheck,
+  Clock3,
+  AlertCircle,
 } from "lucide-react";
 import {
   saveFinanceEvent,
@@ -27,9 +32,9 @@ import {
 } from "@/lib/finance/model";
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm";
+  "w-full fp-input";
 const buttonClass =
-  "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50";
+  "fp-button";
 export default function PlannerSection({
   initialEvents,
   today: initialToday,
@@ -146,7 +151,7 @@ export default function PlannerSection({
       items.map((e) => (
         <article
           key={e.id}
-          className="flex flex-wrap items-center gap-3 border-b border-slate-100 py-4 last:border-0"
+          className="flex flex-wrap items-center gap-3 border-b border-border py-4 last:border-0"
         >
           <input
             type="checkbox"
@@ -164,32 +169,32 @@ export default function PlannerSection({
                   ),
               )
             }
-            className="h-5 w-5 accent-violet-600"
+            className="h-5 w-5 accent-primary"
           />
           <div className="min-w-0 flex-1">
             <h3
-              className={`font-semibold ${e.completed ? "line-through text-slate-400" : "text-slate-900"}`}
+              className={`font-semibold ${e.completed ? "line-through text-muted-foreground/70" : "text-foreground"}`}
             >
               {e.title}
             </h3>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               {displayDate(e.due_date)} · {e.category} · {e.priority} priority
               {!e.completed && e.due_date < today && (
-                <span className="font-semibold text-red-600"> · Overdue</span>
+                <span className="font-semibold text-[#a45f4b]"> · Overdue</span>
               )}
             </p>
             {e.description && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-500">
+              <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
                 {e.description}
               </p>
             )}
           </div>
           {e.source === "goals" ? (
-            <Link href="/goals" className="text-sm text-violet-600">
+            <Link href="/goals" className="text-sm text-primary">
               Open goal
             </Link>
           ) : (
-            <div className="flex gap-1">
+            <div className="ml-auto flex flex-wrap gap-1">
               <button
                 type="button"
                 className={buttonClass}
@@ -251,24 +256,25 @@ export default function PlannerSection({
         </article>
       ))
     ) : (
-      <div className="py-12 text-center text-slate-500">
-        No reminders here. Add one or change your filters.
+      <div className="flex flex-col items-center px-4 py-12 text-center text-sm text-muted-foreground">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-primary"><Bell size={21} strokeWidth={1.7} /></span>
+        <p className="font-medium text-foreground">A little breathing room</p>
+        <p className="mt-2">No reminders here. Add one or change your filters.</p>
       </div>
     );
   }
   return (
-    <section className="mx-auto max-w-7xl space-y-6 p-4 md:p-7">
+    <section className="mx-auto w-full max-w-7xl space-y-7 py-2">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-violet-600">
-            Your financial planner
+          <p className="fp-eyebrow">
+            Make room for what matters
           </p>
-          <h1 className="mt-2 text-3xl font-bold">
+          <h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">
             {mode === "calendar" ? "Calendar" : "Reminders"}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Saved to your account. Updates appear in both Reminders and
-            Calendar.
+          <p className="mt-2 text-sm text-muted-foreground">
+            Keep important dates, payments and milestones in view.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -283,7 +289,7 @@ export default function PlannerSection({
             Export calendar
           </button>
           <button
-            className="rounded-xl bg-violet-600 px-4 py-2.5 font-semibold text-white"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             onClick={() => add(mode === "calendar" ? day : today)}
           >
             <Plus className="mr-1 inline" size={18} />
@@ -301,28 +307,28 @@ export default function PlannerSection({
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          ["Pending", summary.pending],
-          ["Overdue", summary.overdue],
-          ["Next 7 days", summary.week],
-          ["Completed", summary.completed],
-        ].map(([label, value]) => (
+          ["Pending", summary.pending, Clock3],
+          ["Overdue", summary.overdue, AlertCircle],
+          ["Next 7 days", summary.week, CalendarDays],
+          ["Completed", summary.completed, CheckCheck],
+        ].map(([label, value, Icon]) => (
           <div
             key={label}
-            className="rounded-2xl border border-slate-200 bg-white p-5"
+            className="fp-card p-5"
           >
-            <p className="text-xs text-slate-500">{label}</p>
-            <p className="mt-2 text-2xl font-bold">{value}</p>
+            <div className="flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{label}</p><Icon size={16} strokeWidth={1.7} className={label === "Overdue" && value > 0 ? "text-[#a76d51]" : "text-muted-foreground/60"} /></div>
+            <p className="mt-4 text-3xl font-medium tracking-tight tabular-nums">{value}</p>
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-3">
-        <input
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative w-full sm:max-w-xs"><Search size={16} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" /><input
           aria-label="Search reminders"
           placeholder="Search reminders…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className={`${inputClass} max-w-sm`}
-        />
+          className={`${inputClass} pl-10`}
+        /></label>
         <select
           aria-label="Reminder category"
           value={category}
@@ -352,9 +358,9 @@ export default function PlannerSection({
         )}
       </div>
       {mode === "calendar" ? (
-        <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="fp-card p-3 sm:p-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
               <button
                 aria-label="Previous month"
                 className={buttonClass}
@@ -394,14 +400,14 @@ export default function PlannerSection({
                 Today
               </button>
             </div>
-            <div className="grid grid-cols-7 text-center text-xs text-slate-500">
+            <div className="grid grid-cols-7 text-center text-xs text-muted-foreground">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                 <span key={d} className="pb-3">
                   {d}
                 </span>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1.5">
               {Array.from({ length: start.getUTCDay() }, (_, i) => (
                 <div key={`blank-${i}`} />
               ))}
@@ -414,24 +420,22 @@ export default function PlannerSection({
                     aria-label={`${displayDate(date)}, ${items.length} reminders`}
                     aria-pressed={day === date}
                     onClick={() => setDay(date)}
-                    className={`min-h-20 rounded-xl border p-2 text-left ${date === day ? "border-violet-500 bg-violet-50" : "border-slate-100 hover:bg-slate-50"}`}
+                    className={`min-w-0 min-h-16 rounded-xl border p-1.5 text-left transition-colors sm:min-h-24 sm:p-3 ${date === day ? "border-primary/30 bg-primary/10" : "border-border/70 hover:bg-muted"}`}
                   >
                     <span
-                      className={`text-sm ${date === today ? "font-bold text-violet-600" : ""}`}
+                      className={`text-sm ${date === today ? "font-semibold text-primary" : ""}`}
                     >
                       {i + 1}
                     </span>
                     {items.length > 0 && (
-                      <span className="mt-2 block truncate rounded bg-violet-100 px-1 text-xs text-violet-800">
-                        {items.length} {items.length === 1 ? "item" : "items"}
-                      </span>
+                      <span className="mt-2 flex items-center gap-1 text-[10px] font-medium text-primary"><span className="h-1 w-1 shrink-0 rounded-full bg-primary" />{items.length}<span className="hidden sm:inline">{items.length === 1 ? "item" : "items"}</span></span>
                     )}
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="fp-card p-5">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               <CalendarDays size={20} />
               {displayDate(day)}
@@ -443,11 +447,11 @@ export default function PlannerSection({
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="fp-card p-5">
           {rows(filtered)}
         </div>
       )}
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Reminders are shown inside Finpilot. Export your calendar to use alerts
         in your calendar app. Goal milestones can be edited in Goals.
       </p>
@@ -476,7 +480,7 @@ export default function PlannerSection({
             className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-white p-6"
           >
             <div className="flex justify-between">
-              <h2 id="reminder-title" className="text-xl font-bold">
+              <h2 id="reminder-title" className="text-xl font-semibold">
                 {form.id ? "Edit" : "Add"} reminder
               </h2>
               <button
@@ -560,7 +564,7 @@ export default function PlannerSection({
             )}
             <button
               disabled={busy}
-              className="w-full rounded-xl bg-violet-600 p-3 font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-50"
             >
               {busy ? "Saving…" : "Save reminder"}
             </button>
@@ -575,7 +579,7 @@ export default function PlannerSection({
           aria-labelledby="delete-reminder-title"
         >
           <div className="w-full max-w-sm rounded-2xl bg-white p-6">
-            <h2 id="delete-reminder-title" className="text-xl font-bold">
+            <h2 id="delete-reminder-title" className="text-xl font-semibold">
               Delete reminder?
             </h2>
             <p className="my-4 text-sm">

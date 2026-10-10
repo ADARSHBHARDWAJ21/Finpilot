@@ -1,6 +1,6 @@
 # Finpilot
 
-Finpilot is a personal finance and tax planning web app for Indian salaried users. It brings transaction tracking, bank-statement imports, monthly budgets, financial goals, tax workspaces and a Gemini-powered Copilot into one dashboard. The interface uses the **FinCopilot** name.
+Finpilot is a personal finance and tax planning web app for Indian salaried users. It brings transaction tracking, bank-statement imports, monthly budgets, financial goals, tax workspaces and a Gemini-powered Copilot into one dashboard.
 
 Built with Next.js, React and Supabase. This is an actively developed application: the dashboard, imports and Copilot are connected to saved data, while the standalone Investments and Net Worth pages are still marked **Coming Soon**.
 
@@ -57,6 +57,12 @@ See [Copilot setup and calculation scope](COPILOT_SETUP.md) for provider configu
 Some older workspace calculations and UI elements still need production validation. Investments, external portfolio connections and the standalone Net Worth aggregator are not implemented integrations.
 
 ## Technology
+
+### Interface and design system
+
+The interface uses a warm ivory background, forest-green actions, soft sage accents, restrained charts and consistent line icons. Shared theme tokens and reusable surface, button, input and typography classes live in `src/app/globals.css`. `BrandMark` supplies the shared identity; `DashboardLayout` provides desktop navigation, breadcrumbs and a keyboard-accessible mobile drawer.
+
+The landing page, authentication, onboarding, dashboard, transactions, budgets, goals, tax workspaces, Copilot, reports, calendar, reminders and settings share this visual language. Product previews are labeled, and unavailable investment/net-worth integrations remain marked as coming soon. Dialogs and controls retain their existing data actions; the redesign does not add new financial integrations.
 
 - **Application:** Next.js 16 App Router and React 19.
 - **Styling and UI:** Tailwind CSS 4, Radix UI, Lucide icons and Recharts.

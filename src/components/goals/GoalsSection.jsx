@@ -190,9 +190,9 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
   }
 
   const donutData = [
-    { name: "Safe", value: goals.filter((g) => g.affordabilityStatus === "Safe").length, color: "#22c55e" },
-    { name: "Moderate", value: goals.filter((g) => g.affordabilityStatus === "Moderate").length, color: "#f59e0b" },
-    { name: "Risky", value: goals.filter((g) => g.affordabilityStatus === "Risky").length, color: "#ef4444" },
+    { name: "Safe", value: goals.filter((g) => g.affordabilityStatus === "Safe").length, color: "#73917a" },
+    { name: "Moderate", value: goals.filter((g) => g.affordabilityStatus === "Moderate").length, color: "#c6a66f" },
+    { name: "Risky", value: goals.filter((g) => g.affordabilityStatus === "Risky").length, color: "#b76d56" },
   ];
 
   const aiSuggestions = [
@@ -207,13 +207,13 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
     <div className="w-full max-w-[1500px] min-w-0 space-y-5">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Goals Planner</h1>
-          <p className="text-sm text-gray-500 mt-1">AI-powered financial goal planning and affordability engine.</p>
+          <h1 className="text-3xl tracking-[-.04em] font-semibold text-foreground">Goals</h1>
+          <p className="text-sm text-muted-foreground mt-1">A little planning for the things that matter.</p>
         </div>
         <button
           type="button"
           onClick={() => setOpenWizard(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-[#193e35] text-white font-semibold text-sm"
         >
           <Plus size={16} />
           Create Goal
@@ -245,8 +245,8 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
         </div>
 
         <aside className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Goal Health Score</h3>
+          <div className="bg-white rounded-2xl border border-border p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Goal Health Score</h3>
             <div className="h-[170px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -259,38 +259,38 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs text-gray-500 mt-2">{noGoals ? "Create goals to see your overall financial goal health." : "Safe/Moderate/Risky distribution across active goals."}</p>
+            <p className="text-xs text-muted-foreground mt-2">{noGoals ? "Create goals to see your overall financial goal health." : "Safe/Moderate/Risky distribution across active goals."}</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Affordability Meter</h3>
-            <p className="text-3xl font-bold text-indigo-600">{noGoals ? "--" : simulation.status}</p>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="bg-white rounded-2xl border border-border p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Affordability Meter</h3>
+            <p className="text-3xl font-semibold text-primary">{noGoals ? "--" : simulation.status}</p>
+            <p className="text-xs text-muted-foreground mt-1">
               Debt-to-income: {noGoals ? "--" : `${(simulation.debtToIncome * 100).toFixed(1)}%`} | Savings Rate: {noGoals ? "--" : `${(simulation.savingsRate * 100).toFixed(1)}%`}
             </p>
-            <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${noGoals ? 0 : Math.max(10, 100 - simulation.riskScore)}%` }} />
+            <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: `${noGoals ? 0 : Math.max(10, 100 - simulation.riskScore)}%` }} />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Upcoming EMI Dates</h3>
-            <ul className="space-y-2 text-xs text-gray-700 max-h-[180px] overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-border p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Upcoming EMI Dates</h3>
+            <ul className="space-y-2 text-xs text-foreground max-h-[180px] overflow-y-auto">
               {calendarEntries
                 .filter((e) => e.type === "emi")
                 .slice(0, 6)
                 .map((e) => (
                   <li key={`${e.goalId}-${e.title}`} className="flex justify-between gap-2">
                     <span>{e.title}</span>
-                    <span className="text-gray-500">{e.dueDate}</span>
+                    <span className="text-muted-foreground">{e.dueDate}</span>
                   </li>
                 ))}
-              {!calendarEntries.filter((e) => e.type === "emi").length && <li className="text-gray-500">No upcoming EMIs</li>}
+              {!calendarEntries.filter((e) => e.type === "emi").length && <li className="text-muted-foreground">No upcoming EMIs</li>}
             </ul>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">AI Suggestions</h3>
+          <div className="bg-white rounded-2xl border border-border p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-2">AI Suggestions</h3>
             <ul className="space-y-2">
               {(noGoals
                 ? [
@@ -300,12 +300,12 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
                   ]
                 : aiSuggestions
               ).map((s) => (
-                <li key={s} className="text-xs text-gray-700 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                <li key={s} className="text-xs text-foreground bg-[#edf2eb] border border-[#dbe3da] rounded-lg px-3 py-2">
                   {s}
                 </li>
               ))}
             </ul>
-            {noGoals && <p className="text-xs text-gray-500 mt-3">Create your first goal to get started</p>}
+            {noGoals && <p className="text-xs text-muted-foreground mt-3">Create your first goal to get started</p>}
           </div>
         </aside>
       </div>
@@ -326,22 +326,22 @@ export default function GoalsSection({ initialGoals = [], initialCalendarEntries
         />
       )}
 
-      {pending && <p className="text-xs text-gray-500">Syncing goals…</p>}
+      {pending && <p className="text-xs text-muted-foreground">Syncing goals…</p>}
     </div>
   );
 }
 
 function SummaryCard({ label, value, subtitle, icon: Icon }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5">
+    <div className="bg-white rounded-2xl border border-border p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          <p className="text-[11px] text-gray-400 mt-1">{subtitle}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-2xl font-semibold text-foreground mt-1">{value}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">{subtitle}</p>
         </div>
-        <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-          <Icon size={16} className="text-indigo-600" />
+        <div className="w-9 h-9 rounded-lg bg-[#edf2eb] flex items-center justify-center">
+          <Icon size={16} className="text-primary" />
         </div>
       </div>
     </div>
@@ -350,23 +350,23 @@ function SummaryCard({ label, value, subtitle, icon: Icon }) {
 
 function EmptyGoalsState({ onCreate }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm min-h-[310px] px-6 py-10 flex items-center justify-center">
+    <div className="bg-white rounded-2xl border border-border  min-h-[310px] px-6 py-10 flex items-center justify-center">
       <div className="text-center max-w-md">
-        <div className="mx-auto w-36 h-36 rounded-full bg-gradient-to-br from-indigo-50 to-violet-100 flex items-center justify-center border border-indigo-100">
-          <div className="w-24 h-24 rounded-full border-8 border-indigo-300 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full border-4 border-indigo-600 flex items-center justify-center">
-              <Target size={18} className="text-indigo-600" />
+        <div className="mx-auto w-36 h-36 rounded-full bg-[#edf2eb] flex items-center justify-center border border-[#dbe3da]">
+          <div className="w-24 h-24 rounded-full border-8 border-[#dbe3da] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center">
+              <Target size={18} className="text-primary" />
             </div>
           </div>
         </div>
-        <h3 className="mt-6 text-2xl font-bold text-gray-900">You don&apos;t have any goals yet</h3>
-        <p className="text-sm text-gray-500 mt-2">
-          Create your first financial goal and let FinPilot analyze your affordability, timeline, and path to success.
+        <h3 className="mt-6 text-2xl font-semibold text-foreground">You don&apos;t have any goals yet</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Create your first financial goal to explore your budget, timeline, and next steps.
         </p>
         <button
           type="button"
           onClick={onCreate}
-          className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+          className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-[#193e35] text-white text-sm font-semibold"
         >
           <Plus size={16} />
           Create Your First Goal
@@ -378,17 +378,17 @@ function EmptyGoalsState({ onCreate }) {
 
 function PopularGoalsStrip({ onCreate }) {
   const items = [
-    { label: "Home Loan", sub: "Buy your dream home", icon: House, color: "text-indigo-600 bg-indigo-50" },
+    { label: "Home Loan", sub: "Buy your dream home", icon: House, color: "text-primary bg-[#edf2eb]" },
     { label: "Car Loan", sub: "Upgrade your ride", icon: Car, color: "text-emerald-600 bg-emerald-50" },
     { label: "Bike Loan", sub: "Get your dream bike", icon: Bike, color: "text-orange-600 bg-orange-50" },
-    { label: "Phone EMI", sub: "Latest smartphone", icon: Smartphone, color: "text-violet-600 bg-violet-50" },
+    { label: "Phone EMI", sub: "Latest smartphone", icon: Smartphone, color: "text-primary bg-[#edf2eb]" },
     { label: "Emergency Fund", sub: "Build your safety net", icon: Shield, color: "text-green-600 bg-green-50" },
-    { label: "Custom Goal", sub: "Create your own goal", icon: Plus, color: "text-indigo-600 bg-indigo-50" },
+    { label: "Custom Goal", sub: "Create your own goal", icon: Plus, color: "text-primary bg-[#edf2eb]" },
   ];
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-      <h3 className="text-base font-semibold text-gray-900">Popular Goals</h3>
-      <p className="text-xs text-gray-500 mt-1 mb-3">Choose a goal category to get started</p>
+    <div className="bg-white rounded-2xl border border-border p-5">
+      <h3 className="text-base font-semibold text-foreground">Popular Goals</h3>
+      <p className="text-xs text-muted-foreground mt-1 mb-3">Choose a goal category to get started</p>
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {items.map((item) => {
           const Icon = item.icon;
@@ -397,13 +397,13 @@ function PopularGoalsStrip({ onCreate }) {
               key={item.label}
               type="button"
               onClick={onCreate}
-              className="border border-gray-100 rounded-xl p-3 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors text-left"
+              className="border border-border rounded-xl p-3 hover:border-[#dbe3da] hover:bg-[#edf2eb]/30 transition-colors text-left"
             >
               <div className={`w-9 h-9 rounded-lg ${item.color} flex items-center justify-center`}>
                 <Icon size={16} />
               </div>
-              <p className="text-sm font-semibold text-gray-900 mt-3">{item.label}</p>
-              <p className="text-[11px] text-gray-500 mt-1 leading-snug">{item.sub}</p>
+              <p className="text-sm font-semibold text-foreground mt-3">{item.label}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{item.sub}</p>
             </button>
           );
         })}
@@ -414,11 +414,11 @@ function PopularGoalsStrip({ onCreate }) {
 
 function GoalCard({ goal, onDelete }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-white rounded-2xl border border-border p-5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{goal.name}</h3>
-          <p className="text-xs text-gray-500">{goal.type}</p>
+          <h3 className="text-base font-semibold text-foreground">{goal.name}</h3>
+          <p className="text-xs text-muted-foreground">{goal.type}</p>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -442,17 +442,17 @@ function GoalCard({ goal, onDelete }) {
         </div>
       </div>
       <div className="mt-3 space-y-1 text-sm">
-        <p className="flex justify-between"><span className="text-gray-500">Target Amount</span><span className="font-semibold">{formatInr(goal.targetAmount)}</span></p>
-        <p className="flex justify-between"><span className="text-gray-500">Current Saved</span><span className="font-semibold">{formatInr(goal.currentSaved)}</span></p>
-        <p className="flex justify-between"><span className="text-gray-500">Monthly Required</span><span className="font-semibold">{formatInr(goal.monthlyRequiredSaving)}</span></p>
-        {goal.purchaseMode === "emi" && <p className="flex justify-between"><span className="text-gray-500">Estimated EMI</span><span className="font-semibold">{formatInr(goal.estimatedEmi)}</span></p>}
-        <p className="flex justify-between"><span className="text-gray-500">Completion</span><span className="font-semibold">{goal.completionDate}</span></p>
+        <p className="flex justify-between"><span className="text-muted-foreground">Target Amount</span><span className="font-semibold">{formatInr(goal.targetAmount)}</span></p>
+        <p className="flex justify-between"><span className="text-muted-foreground">Current Saved</span><span className="font-semibold">{formatInr(goal.currentSaved)}</span></p>
+        <p className="flex justify-between"><span className="text-muted-foreground">Monthly Required</span><span className="font-semibold">{formatInr(goal.monthlyRequiredSaving)}</span></p>
+        {goal.purchaseMode === "emi" && <p className="flex justify-between"><span className="text-muted-foreground">Estimated EMI</span><span className="font-semibold">{formatInr(goal.estimatedEmi)}</span></p>}
+        <p className="flex justify-between"><span className="text-muted-foreground">Completion</span><span className="font-semibold">{goal.completionDate}</span></p>
       </div>
       <div className="mt-3">
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-indigo-600" style={{ width: `${goal.progress}%` }} />
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary" style={{ width: `${goal.progress}%` }} />
         </div>
-        <p className="text-xs text-gray-500 mt-1">Progress {goal.progress}%</p>
+        <p className="text-xs text-muted-foreground mt-1">Progress {goal.progress}%</p>
       </div>
     </div>
   );
@@ -485,15 +485,15 @@ function GoalWizardModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/35 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-gray-100 p-5">
+    <div className="fixed inset-0 z-50 bg-[#152e26]/35 backdrop-blur-sm flex items-start justify-center p-4 sm:py-10 overflow-y-auto">
+      <div role="dialog" aria-modal="true" aria-label="Create goal" className="w-full max-w-5xl bg-white rounded-[20px] border border-border p-5 sm:p-7">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Create Goal</h2>
-          <button type="button" onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Close</button>
+          <h2 className="text-xl font-semibold text-foreground">Create Goal</h2>
+          <button type="button" onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Close</button>
         </div>
-        <div className="mb-4 flex items-center gap-2 text-xs">
+        <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2 text-xs">
           {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-            <span key={n} className={`px-2 py-1 rounded-full ${step === n ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+            <span key={n} className={`px-2 py-1 rounded-full ${step === n ? "bg-primary text-white" : "bg-muted text-[#647268]"}`}>
               Step {n}
             </span>
           ))}
@@ -501,7 +501,7 @@ function GoalWizardModal({
 
         {step === 1 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Select Goal Type</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Select Goal Type</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {GOAL_TYPES.map((t) => {
                 const Icon = t.icon;
@@ -510,10 +510,10 @@ function GoalWizardModal({
                     key={t.id}
                     type="button"
                     onClick={() => setField("typeId", t.id)}
-                    className={`text-left border rounded-xl p-3 ${wizard.typeId === t.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}
+                    className={`text-left border rounded-xl p-3 ${wizard.typeId === t.id ? "border-primary bg-[#edf2eb]" : "border-border hover:bg-muted"}`}
                   >
-                    <div className="flex items-center gap-2"><Icon size={16} className="text-indigo-600" /><span className="font-semibold text-sm">{t.label}</span></div>
-                    <p className="text-xs text-gray-500 mt-1">{t.desc}</p>
+                    <div className="flex items-center gap-2"><Icon size={16} className="text-primary" /><span className="font-semibold text-sm">{t.label}</span></div>
+                    <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
                   </button>
                 );
               })}
@@ -534,7 +534,7 @@ function GoalWizardModal({
               ["expectedPurchaseYear", "Expected Purchase Year", "number"],
             ].map(([key, label, type]) => (
               <label key={key} className="block">
-                <span className="text-xs font-medium text-gray-600">{label}</span>
+                <span className="text-xs font-medium text-[#647268]">{label}</span>
                 <input
                   type={type}
                   value={wizard[key]}
@@ -543,26 +543,26 @@ function GoalWizardModal({
                       ? setNumericField(key, e.target.value)
                       : setField(key, e.target.value)
                   }
-                  className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="mt-1 w-full border border-border rounded-xl px-3 py-2 text-sm"
                 />
               </label>
             ))}
             <label className="block">
-              <span className="text-xs font-medium text-gray-600">One-time purchase or EMI?</span>
-              <select value={wizard.purchaseMode} onChange={(e) => setField("purchaseMode", e.target.value)} className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+              <span className="text-xs font-medium text-[#647268]">One-time purchase or EMI?</span>
+              <select value={wizard.purchaseMode} onChange={(e) => setField("purchaseMode", e.target.value)} className="mt-1 w-full border border-border rounded-xl px-3 py-2 text-sm">
                 <option value="emi">EMI</option>
                 <option value="one_time">One-time</option>
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600">Priority Level</span>
-              <select value={wizard.priority} onChange={(e) => setField("priority", e.target.value)} className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+              <span className="text-xs font-medium text-[#647268]">Priority Level</span>
+              <select value={wizard.priority} onChange={(e) => setField("priority", e.target.value)} className="mt-1 w-full border border-border rounded-xl px-3 py-2 text-sm">
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-foreground">
               <input type="checkbox" checked={wizard.hasLoanApproval} onChange={(e) => setField("hasLoanApproval", e.target.checked)} />
               Already have loan approval
             </label>
@@ -590,12 +590,12 @@ function GoalWizardModal({
               ["cashSavings", "Cash Savings"],
             ].map(([key, label]) => (
               <label key={key} className="block">
-                <span className="text-xs font-medium text-gray-600">{label}</span>
+                <span className="text-xs font-medium text-[#647268]">{label}</span>
                 <input
                   type="number"
                   value={wizard[key]}
                   onChange={(e) => setNumericField(key, e.target.value)}
-                  className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="mt-1 w-full border border-border rounded-xl px-3 py-2 text-sm"
                 />
               </label>
             ))}
@@ -612,32 +612,32 @@ function GoalWizardModal({
 
         {step === 6 && (
           <div className="space-y-3 text-sm">
-            <p className="font-semibold text-gray-900">Calendar Integration Hooks</p>
-            <p className="text-gray-600">We will auto-create recurring EMI reminders, milestones, downpayment deadlines, and quarterly reviews on goal creation.</p>
-            <p className="text-gray-600">For this configuration, estimated recurring EMI entries: <span className="font-semibold">{wizard.purchaseMode === "emi" ? wizard.loanDurationMonths : 0}</span>.</p>
+            <p className="font-semibold text-foreground">Your goal calendar</p>
+            <p className="text-[#647268]">We will auto-create recurring EMI reminders, milestones, downpayment deadlines, and quarterly reviews on goal creation.</p>
+            <p className="text-[#647268]">For this configuration, estimated recurring EMI entries: <span className="font-semibold">{wizard.purchaseMode === "emi" ? wizard.loanDurationMonths : 0}</span>.</p>
           </div>
         )}
 
         {step === 7 && (
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">What-if Simulations</h3>
+            <h3 className="text-sm font-semibold text-foreground">What-if Simulations</h3>
             <div className="space-y-2">
               {scenarios.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedScenarioId(s.id)}
-                  className={`w-full text-left border rounded-xl p-3 ${selectedScenarioId === s.id ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:bg-gray-50"}`}
+                  className={`w-full text-left border rounded-xl p-3 ${selectedScenarioId === s.id ? "border-primary bg-[#edf2eb]" : "border-border hover:bg-muted"}`}
                 >
-                  <p className="text-sm font-semibold text-gray-900">{s.label}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm font-semibold text-foreground">{s.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
                     EMI: {formatInr(s.result.estimatedEmi)} | Status: {s.result.status} | Readiness: {s.result.readinessDate}
                   </p>
                 </button>
               ))}
             </div>
             {selectedScenario && (
-              <div className="text-xs text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3">
+              <div className="text-xs text-foreground bg-muted border border-border rounded-lg p-3">
                 Selected scenario outcome: risk {selectedScenario.result.riskScore}/100, monthly surplus {formatInr(selectedScenario.result.monthlySurplus)}.
               </div>
             )}
@@ -645,11 +645,11 @@ function GoalWizardModal({
         )}
 
         <div className="mt-5 flex items-center justify-between">
-          <button type="button" disabled={step <= 1} onClick={() => setStep((s) => Math.max(1, s - 1))} className="px-3 py-2 rounded-xl border border-gray-200 text-sm disabled:opacity-40">
+          <button type="button" disabled={step <= 1} onClick={() => setStep((s) => Math.max(1, s - 1))} className="px-3 py-2 rounded-xl border border-border text-sm disabled:opacity-40">
             Previous
           </button>
           {step < 7 ? (
-            <button type="button" onClick={() => setStep((s) => Math.min(7, s + 1))} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold">
+            <button type="button" onClick={() => setStep((s) => Math.min(7, s + 1))} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold">
               Next
             </button>
           ) : (
@@ -710,10 +710,9 @@ function ResultsStep({ simulation }) {
 
 function Metric({ title, value }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-3">
-      <p className="text-xs text-gray-500">{title}</p>
-      <p className="text-lg font-bold text-gray-900 mt-1">{value}</p>
+    <div className="bg-white border border-border rounded-xl p-3">
+      <p className="text-xs text-muted-foreground">{title}</p>
+      <p className="text-lg font-semibold text-foreground mt-1">{value}</p>
     </div>
   );
 }
-

@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowDownLeft, ArrowUpRight, Wallet, Rows3, FileText, ArrowRight } from "lucide-react";
 import FinancialYearSelect from "./FinancialYearSelect";
 import DownloadButton from "./DownloadButton";
 const money = (n) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-const card = "rounded-2xl border border-slate-200 bg-white p-5 md:p-6";
+const card = "fp-card p-5 sm:p-6";
 export default function ReportsWorkspace({ report }) {
   const [tab, setTab] = useState("Cashflow");
   const tabs = ["Cashflow", "Tax & filing", "Documents"];
@@ -14,20 +15,22 @@ export default function ReportsWorkspace({ report }) {
     ...report.months.map((m) => Math.max(m.income, m.expenses)),
   );
   return (
-    <section className="mx-auto max-w-7xl space-y-6 p-4 md:p-7">
+    <section className="mx-auto w-full max-w-7xl space-y-7 py-2">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-violet-600">
-            Your saved financial records
+          <p className="fp-eyebrow">
+            A wider perspective
           </p>
-          <h1 className="mt-2 text-3xl font-bold">Reports</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">Reports</h1>
+          <p className="mt-3 text-sm text-muted-foreground">See the story behind your money, one financial year at a time.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
             FY {report.year} · April–March · Updated {report.asOf}
           </p>
         </div>
         <FinancialYearSelect year={report.year} />
       </header>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-3">
+        <span className="mr-auto flex items-center gap-2 px-2 py-2 text-sm font-medium"><FileText size={17} className="text-primary" />Export your year</span>
         {[
           ["pdf", "Financial report PDF"],
           ["csv", "Transactions CSV"],
@@ -44,71 +47,72 @@ export default function ReportsWorkspace({ report }) {
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          ["Recorded income", money(report.income)],
-          ["Recorded expenses", money(report.expenses)],
-          ["Net cashflow", money(report.income - report.expenses)],
-          ["Transactions", report.transactions.length],
-        ].map(([label, value]) => (
-          <div className={card} key={label}>
-            <p className="text-xs text-slate-500">{label}</p>
-            <p className="mt-2 text-xl font-bold">{value}</p>
+          ["Recorded income", money(report.income), ArrowDownLeft],
+          ["Recorded expenses", money(report.expenses), ArrowUpRight],
+          ["Net cashflow", money(report.income - report.expenses), Wallet],
+          ["Transactions", report.transactions.length, Rows3],
+        ].map(([label, value, Icon]) => (
+          <div className={`${card} min-w-0`} key={label}>
+            <div className="flex items-start justify-between gap-2"><p className="text-xs leading-relaxed text-muted-foreground">{label}</p><Icon size={16} strokeWidth={1.7} className="shrink-0 text-muted-foreground/60" /></div>
+            <p className="mt-4 break-words text-xl font-medium tracking-tight tabular-nums sm:text-2xl">{value}</p>
           </div>
         ))}
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Totals use transactions saved for this financial year. Missing
         transactions are not estimated. Review transfers and refunds in
         Transactions to keep cashflow categories accurate.
       </p>
       <nav
         aria-label="Report sections"
-        className="flex gap-2 border-b border-slate-200"
+        className="flex gap-1 overflow-x-auto border-b border-border pb-1"
       >
         {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             aria-pressed={tab === t}
-            className={`px-4 py-3 text-sm font-semibold ${tab === t ? "border-b-2 border-violet-600 text-violet-600" : "text-slate-500"}`}
+            className={`shrink-0 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${tab === t ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}
           >
             {t}
           </button>
         ))}
       </nav>
       {tab === "Cashflow" && (
-        <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div className={card}>
-            <h2 className="text-lg font-semibold">Monthly cashflow</h2>
-            <p className="mb-6 mt-1 text-xs text-slate-500">
-              Income in green · expenses in violet
+            <h2 className="text-lg font-medium tracking-tight">Monthly cashflow</h2>
+            <p className="mb-6 mt-1 text-xs text-muted-foreground">
+              Income and expenses, side by side
             </p>
+            <div className="mb-6 flex gap-5 text-xs text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary/80" />Income</span><span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-[#c69a80]" />Expenses</span></div>
             <div className="space-y-5">
               {report.months.map((m) => (
                 <div
                   key={m.month}
-                  className="grid grid-cols-[82px_1fr] items-center gap-3"
+                  className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[82px_minmax(0,1fr)]"
                 >
-                  <p className="text-xs text-slate-500">{m.label}</p>
+                  <p className="text-xs text-muted-foreground">{m.label}</p>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 min-w-0 flex-1 rounded bg-slate-50">
+                      <div className="h-2 min-w-0 flex-1 rounded bg-muted">
                         <div
-                          className="h-2 rounded bg-emerald-400"
+                          className="h-2 rounded bg-primary/80"
                           style={{ width: `${(m.income / max) * 100}%` }}
                         />
                       </div>
-                      <span className="w-28 text-right text-xs">
+                      <span className="w-24 shrink-0 text-right text-[11px] tabular-nums sm:w-28 sm:text-xs">
                         {money(m.income)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-2 min-w-0 flex-1 rounded bg-slate-50">
+                      <div className="h-2 min-w-0 flex-1 rounded bg-muted">
                         <div
-                          className="h-2 rounded bg-violet-400"
+                          className="h-2 rounded bg-[#c69a80]"
                           style={{ width: `${(m.expenses / max) * 100}%` }}
                         />
                       </div>
-                      <span className="w-28 text-right text-xs">
+                      <span className="w-24 shrink-0 text-right text-[11px] tabular-nums sm:w-28 sm:text-xs">
                         {money(m.expenses)}
                       </span>
                     </div>
@@ -118,27 +122,27 @@ export default function ReportsWorkspace({ report }) {
             </div>
           </div>
           <div className={card}>
-            <h2 className="mb-4 text-lg font-semibold">Spending by category</h2>
+            <h2 className="mb-4 text-lg font-medium tracking-tight">Spending by category</h2>
             {report.categories.length ? (
               report.categories.map((c) => (
                 <div
                   key={c.category}
-                  className="flex justify-between gap-3 border-b border-slate-100 py-3 text-sm"
+                  className="flex justify-between gap-3 border-b border-border py-3 text-sm"
                 >
                   <span>{c.category}</span>
                   <strong>{money(c.amount)}</strong>
                 </div>
               ))
             ) : (
-              <p className="py-8 text-sm text-slate-500">
+              <p className="py-8 text-sm text-muted-foreground">
                 No expenses recorded for this year.
               </p>
             )}
             <Link
               href="/transactions"
-              className="mt-6 inline-block text-sm text-violet-600"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary"
             >
-              Review transactions →
+              Review transactions <ArrowRight size={15} />
             </Link>
           </div>
         </div>
@@ -147,9 +151,9 @@ export default function ReportsWorkspace({ report }) {
         <div className="space-y-5">
           <div className={card}>
             <div className="flex flex-wrap justify-between gap-3">
-              <h2 className="text-lg font-semibold">Salary tax estimate</h2>
+              <h2 className="text-lg font-medium tracking-tight">Salary tax estimate</h2>
               <Link
-                className="text-sm text-violet-600"
+                className="text-sm text-primary"
                 href={`/taxation/compliance-filing?year=${report.year}`}
               >
                 Edit filing details →
@@ -157,16 +161,16 @@ export default function ReportsWorkspace({ report }) {
             </div>
             {report.tax.available ? (
               <>
-                <div className="my-5 grid grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-slate-50 p-4">
+                <div className="my-5 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl bg-muted p-4">
                     <p className="text-xs">Old regime</p>
-                    <p className="mt-1 text-2xl font-bold">
+                    <p className="mt-1 text-2xl font-semibold">
                       {money(report.tax.old.tax)}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-violet-50 p-4">
+                  <div className="rounded-xl bg-primary/5 p-4">
                     <p className="text-xs">New regime</p>
-                    <p className="mt-1 text-2xl font-bold">
+                    <p className="mt-1 text-2xl font-semibold">
                       {money(report.tax.new.tax)}
                     </p>
                   </div>
@@ -176,14 +180,14 @@ export default function ReportsWorkspace({ report }) {
                     ? "Both estimates are equal."
                     : `Lower salary-only estimate: ${report.tax.recommended} regime.`}
                 </p>
-                <ul className="mt-4 list-disc space-y-2 pl-4 text-xs leading-relaxed text-slate-500">
+                <ul className="mt-4 list-disc space-y-2 pl-4 text-xs leading-relaxed text-muted-foreground">
                   {report.tax.warnings.map((w) => (
                     <li key={w}>{w}</li>
                   ))}
                 </ul>
               </>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">{report.tax.reason}</p>
+              <p className="mt-4 text-sm text-muted-foreground">{report.tax.reason}</p>
             )}
           </div>
           <div className="grid gap-5 md:grid-cols-2">
@@ -209,12 +213,12 @@ export default function ReportsWorkspace({ report }) {
                   ["HRA exemption estimate", money(report.hra.exemption)],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-3">
-                    <dt className="text-slate-500">{k}</dt>
+                    <dt className="text-muted-foreground">{k}</dt>
                     <dd>{v}</dd>
                   </div>
                 ))}
               </dl>
-              <p className="mt-5 text-xs text-slate-500">
+              <p className="mt-5 text-xs text-muted-foreground">
                 Self-reported amounts and status. Verify tax credits against
                 Form 26AS/AIS. No refund is inferred from monthly payroll TDS.
               </p>
@@ -241,22 +245,22 @@ export default function ReportsWorkspace({ report }) {
       )}
       {tab === "Documents" && (
         <div className={card}>
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-lg font-medium tracking-tight">
             Private documents for FY {report.year}
           </h2>
-          <p className="my-3 text-xs text-slate-500">
+          <p className="my-3 text-xs text-muted-foreground">
             The full package includes these original files, the PDF summary,
             transactions CSV and saved year details.
           </p>
           {report.documents.length ? (
             report.documents.map((d) => (
               <div
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 py-4"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-4"
                 key={d.id}
               >
                 <div>
                   <p className="break-all text-sm font-medium">{d.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {d.section.replaceAll("-", " ")} ·{" "}
                     {(d.size_bytes / 1024).toFixed(1)} KB
                   </p>
@@ -270,13 +274,13 @@ export default function ReportsWorkspace({ report }) {
               </div>
             ))
           ) : (
-            <p className="py-8 text-sm text-slate-500">
+            <p className="py-8 text-sm text-muted-foreground">
               No documents uploaded for this year.
             </p>
           )}
           <Link
             href={`/taxation/compliance-filing?year=${report.year}`}
-            className="mt-5 inline-block text-sm text-violet-600"
+            className="mt-5 inline-block text-sm text-primary"
           >
             Manage proofs and filing →
           </Link>

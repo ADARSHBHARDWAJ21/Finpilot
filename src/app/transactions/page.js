@@ -6,6 +6,7 @@ import SummaryCards from "@/components/dashboard/SummaryCards";
 import TransactionsSection from "@/components/transactions/TransactionsSection";
 import { computeFinancialSummary } from "@/lib/dashboard/compute-summary";
 import { loadOwnedTransactions } from "@/lib/transactions/records";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default async function TransactionsPage() {
   await requireUser();
@@ -31,17 +32,9 @@ export default async function TransactionsPage() {
 
   return (
     <DashboardLayout showRightSidebar={false}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 min-w-0">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {summary.monthLabel
-              ? `Your spending overview for ${summary.monthLabel}`
-              : "Import CSV files and review your spending"}
-          </p>
-        </div>
+      <PageHeader title="Transactions" subtitle="A clear record of what comes in, what goes out, and where it goes.">
         <Topbar />
-      </div>
+      </PageHeader>
 
       <SummaryCards summary={summary} />
 

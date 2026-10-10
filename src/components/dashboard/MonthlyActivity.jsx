@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { CalendarDays, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 export default function MonthlyActivity({ activity, monthLabel }) {
-  return <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs sm:p-6">
-    <h2 className="flex items-center gap-2 text-base font-bold text-slate-900"><CalendarDays size={16} className="text-indigo-600" />Month in review</h2>
-    <p className="mt-1 text-xs text-slate-500">{monthLabel}</p>
-    <dl className="mt-5 space-y-4 text-sm">
-      <div className="flex justify-between gap-3"><dt className="text-slate-500">Income entries</dt><dd className="font-semibold text-slate-900">{activity.incomeCount}</dd></div>
-      <div className="flex justify-between gap-3"><dt className="text-slate-500">Expense entries</dt><dd className="font-semibold text-slate-900">{activity.expenseCount}</dd></div>
-      <div className="flex justify-between gap-3"><dt className="text-slate-500">Largest spending category</dt><dd className="text-right font-semibold text-slate-900">{activity.biggestCategory || "No expenses"}</dd></div>
+  return <section className="rounded-[20px] border border-border bg-secondary/50 p-5 sm:p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 className="text-base font-semibold tracking-tight text-foreground">The month at a glance</h2><p className="mt-1 text-xs text-muted-foreground">{monthLabel}</p></div>
+      <Link href="/transactions" className="inline-flex items-center gap-1 text-xs font-medium text-primary">View transactions<ArrowUpRight size={14} strokeWidth={1.7} /></Link>
+    </div>
+    <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
+      <div><dt className="text-xs text-muted-foreground">Income entries</dt><dd className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums">{activity.incomeCount}</dd></div>
+      <div><dt className="text-xs text-muted-foreground">Expense entries</dt><dd className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums">{activity.expenseCount}</dd></div>
+      <div className="col-span-2 sm:col-span-1"><dt className="text-xs text-muted-foreground">Largest spending category</dt><dd className="mt-2 text-lg font-medium tracking-tight text-foreground">{activity.biggestCategory || "No expenses"}</dd></div>
     </dl>
-    <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500">This overview uses your saved transactions and budgets. Annual tax estimates are available in Taxation.</p>
-    <Link href="/transactions" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600">View all transactions<ArrowUpRight size={14} /></Link>
+    <p className="mt-5 border-t border-border pt-4 text-[11px] leading-relaxed text-muted-foreground">Based on your saved transactions and budgets. Find your annual tax estimates in <Link href="/taxation" className="text-primary underline decoration-primary/30 underline-offset-2">Taxation</Link>.</p>
   </section>;
 }

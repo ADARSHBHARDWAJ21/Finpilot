@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { Dialog } from "radix-ui";
 import { addManualTransaction } from "@/app/transactions/actions";
 
 const CATEGORIES = [
@@ -28,7 +29,11 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function AddTransactionModal({ open, onClose, defaultType = "expense" }) {
+export default function AddTransactionModal(props) {
+  return props.open ? <TransactionForm key={props.defaultType || "expense"} {...props} /> : null;
+}
+
+function TransactionForm({ open, onClose, defaultType = "expense" }) {
   const router = useRouter();
   const [type, setType] = useState(defaultType);
   const [date, setDate] = useState(todayIso);
@@ -40,17 +45,6 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setType(defaultType);
-      setDate(todayIso());
-      setError("");
-      setCategory(defaultType === "income" ? "Income" : "Other");
-    }
-  }, [open, defaultType]);
-
-  if (!open) return null;
 
   function handleTypeChange(nextType) {
     setType(nextType);
@@ -93,19 +87,16 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/40"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">Add transaction</h2>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !saving) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#10211c]/45 backdrop-blur-sm" />
+      <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 w-[calc(100%_-_2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl shadow-xl border border-border max-h-[90dvh] overflow-y-auto outline-none">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
+          <Dialog.Title className="text-xl font-medium text-foreground">Add transaction</Dialog.Title>
           <button
             type="button"
             onClick={onClose}
+            disabled={saving}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500"
             aria-label="Close dialog"
           >
@@ -113,11 +104,12 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} aria-busy={saving} className="p-6 space-y-4">
           <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
             <button
               type="button"
               onClick={() => handleTypeChange("expense")}
+              aria-pressed={type === "expense"}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                 type === "expense"
                   ? "bg-white text-red-600 shadow-sm"
@@ -129,6 +121,7 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
             <button
               type="button"
               onClick={() => handleTypeChange("income")}
+              aria-pressed={type === "income"}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                 type === "income"
                   ? "bg-white text-emerald-600 shadow-sm"
@@ -140,43 +133,43 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+            <label htmlFor="transaction-date" className="block text-xs font-medium text-gray-600 mb-1.5">Date</label>
             <input
-              type="date"
+              id="transaction-date" type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+              className="fp-input"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label htmlFor="transaction-description" className="block text-xs font-medium text-gray-600 mb-1">
               Description
             </label>
             <input
-              type="text"
+              id="transaction-description" aria-label="Description" type="text"
               required
               placeholder="e.g. Zomato order, Salary credit"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+              className="fp-input"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label htmlFor="transaction-amount" className="block text-xs font-medium text-gray-600 mb-1">
               Amount (₹)
             </label>
             <input
-              type="number"
+              id="transaction-amount" aria-label="Amount in rupees" type="number"
               required
               min="0.01"
               step="0.01"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+              className="fp-input"
             />
           </div>
 
@@ -186,9 +179,9 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
                 Category
               </label>
               <select
-                value={category}
+                aria-label="Category" value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 bg-white"
+                className="fp-input bg-white"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -202,9 +195,9 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
                 Payment
               </label>
               <select
-                value={paymentMethod}
+                aria-label="Payment method" value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 bg-white"
+                className="fp-input bg-white"
               >
                 {PAYMENT_METHODS.map((method) => (
                   <option key={method} value={method}>
@@ -215,12 +208,13 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
           <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
             >
               Cancel
@@ -234,7 +228,8 @@ export default function AddTransactionModal({ open, onClose, defaultType = "expe
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

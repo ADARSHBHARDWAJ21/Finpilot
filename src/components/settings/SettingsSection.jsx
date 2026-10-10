@@ -31,7 +31,6 @@ import {
   Download,
   RotateCcw,
   Database,
-  HelpCircle,
   ChevronRight,
   Settings2,
 } from "lucide-react";
@@ -150,26 +149,26 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
     <div className="w-full max-w-[1500px] min-w-0">
       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-4">
         <div>
-          <h1 className="text-[36px] leading-tight font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your profile, financial details and preferences</p>
+          <h1 className="text-3xl leading-tight tracking-[-.04em] font-semibold text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your profile, financial details and preferences</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-[11px] text-gray-500 font-semibold">Estimated Tax</p>
-            <p className="text-3xl font-bold text-gray-900 mt-0.5">{formatInr(taxContext?.estimatedTax)}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white rounded-2xl border border-border  px-4 py-3">
+            <p className="text-[11px] text-muted-foreground font-semibold">Estimated Tax</p>
+            <p className="text-3xl font-semibold text-foreground mt-0.5">{formatInr(taxContext?.estimatedTax)}</p>
           </div>
           <button
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="h-[52px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm disabled:opacity-60"
+            className="h-[52px] px-6 rounded-xl bg-primary hover:bg-[#193e35] text-white text-sm font-semibold  disabled:opacity-60"
           >
             {isSaving || status?.type === "pending" ? "Saving..." : "Save & Recalculate"}
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-xl p-1 mb-4 overflow-x-auto">
+      <div className="bg-white border border-border rounded-xl p-1 mb-4 overflow-x-auto">
         <div className="flex items-center min-w-max">
           {tabs.map((tab) => (
             <button
@@ -177,7 +176,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2.5 text-sm font-semibold rounded-lg whitespace-nowrap ${
-                activeTab === tab.id ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"
+                activeTab === tab.id ? "bg-[#edf2eb] text-primary" : "text-[#647268] hover:bg-muted"
               }`}
             >
               {tab.label}
@@ -193,10 +192,10 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
         <div className="space-y-4">
           {activeTab === "account" && (
             <>
-              <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+              <section className="bg-white border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
-                  <button type="button" onClick={() => setEditPersonal((v) => !v)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                  <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
+                  <button type="button" onClick={() => setEditPersonal((v) => !v)} className="inline-flex items-center gap-1.5 text-sm text-[#647268] border border-border rounded-lg px-3 py-1.5 hover:bg-muted">
                     <Pencil size={14} /> {editPersonal ? "Done" : "Edit"}
                   </button>
                 </div>
@@ -221,10 +220,10 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
                 )}
               </section>
 
-              <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+              <section className="bg-white border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-bold text-gray-900">Employment & Tax Details</h2>
-                  <button type="button" onClick={() => setEditEmployment((v) => !v)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                  <h2 className="text-xl font-semibold text-foreground">Employment & Tax Details</h2>
+                  <button type="button" onClick={() => setEditEmployment((v) => !v)} className="inline-flex items-center gap-1.5 text-sm text-[#647268] border border-border rounded-lg px-3 py-1.5 hover:bg-muted">
                     <Pencil size={14} /> {editEmployment ? "Done" : "Edit"}
                   </button>
                 </div>
@@ -239,17 +238,17 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
                     <InfoCard icon={Briefcase} label="Employment Type" value={String(form.employment_type || "—").replace("-", " ")} />
                     <InfoCard icon={CalendarDays} label="Financial Year" value={form.financial_year || "—"} />
                     <InfoCard icon={ShieldCheck} label="Preferred Tax Regime" value={String(form.tax_regime || "—").toUpperCase()} />
-                    <div className="border border-gray-100 rounded-xl px-3 py-2.5 bg-emerald-50/50">
-                      <p className="text-[11px] text-gray-500">Tax Readiness Score</p>
-                      <p className="text-2xl font-bold text-emerald-600 leading-tight">{taxContext?.taxHealthScore ?? 0}%</p>
-                      <p className="text-xs text-gray-500">Keep going! You&apos;re on the right track.</p>
+                    <div className="border border-border rounded-xl px-3 py-2.5 bg-emerald-50/50">
+                      <p className="text-[11px] text-muted-foreground">Tax Readiness Score</p>
+                      <p className="text-2xl font-semibold text-emerald-600 leading-tight">{taxContext?.taxHealthScore ?? 0}%</p>
+                      <p className="text-xs text-muted-foreground">Keep going! You&apos;re on the right track.</p>
                     </div>
                   </div>
                 )}
               </section>
 
-              <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Quick Actions</h3>
+              <section className="bg-white border border-border rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <ActionBtn icon={Sparkles} title="Recalculate Tax" subtitle="Update calculations with latest inputs" onClick={handleSave} />
                   <ActionBtn icon={Eye} title="Tax Preview" subtitle="Explore saved yearly tax inputs" onClick={() => router.push(`/taxation/simulation?year=${taxContext.financialYear}`)} />
@@ -258,25 +257,25 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
                 </div>
               </section>
 
-              <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between">
+              <section className="bg-white border border-border rounded-2xl p-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-indigo-600" />
+                  <ShieldCheck size={16} className="text-primary" />
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">Secure & Private</p>
-                    <p className="text-xs text-gray-500">Your data is encrypted and secure. We never share your information.</p>
+                    <p className="text-sm font-semibold text-foreground">Secure & Private</p>
+                    <p className="text-xs text-muted-foreground">Review your saved information and download a copy in Data & Backup.</p>
                   </div>
                 </div>
-                <button type="button" className="text-xs font-semibold text-indigo-600 inline-flex items-center gap-1">Privacy Policy <ChevronRight size={12} /></button>
+                <button type="button" onClick={() => setActiveTab("data")} className="shrink-0 text-xs font-semibold text-primary inline-flex items-center gap-1">Manage data <ChevronRight size={12} /></button>
               </section>
             </>
           )}
 
           {(activeTab === "tax" || activeTab === "deductions") && (
             <SettingsFormCard title={activeTab === "tax" ? "Salary & Tax Regime" : "Investments & Deductions"}>
-              <p className="text-sm leading-relaxed text-slate-500">Tax inputs are saved for each financial year. Edit them in the year workspace so Taxation, Reports and Copilot use the same confirmed amounts.</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">Tax inputs are saved for each financial year. Edit them in the year workspace so Taxation, Reports and Copilot use the same confirmed amounts.</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Link className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white" href={`/taxation/${activeTab === "tax" ? "salary-documents" : "tax-saving-proofs"}?year=${taxContext.financialYear}`}>Edit {activeTab === "tax" ? "salary" : "deductions"} for FY {taxContext.financialYear}</Link>
-                <Link className="rounded-xl border border-slate-200 px-4 py-3 text-sm" href={`/taxation/compare-regimes?year=${taxContext.financialYear}`}>Compare and choose regime</Link>
+                <Link className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white" href={`/taxation/${activeTab === "tax" ? "salary-documents" : "tax-saving-proofs"}?year=${taxContext.financialYear}`}>Edit {activeTab === "tax" ? "salary" : "deductions"} for FY {taxContext.financialYear}</Link>
+                <Link className="rounded-xl border border-border px-4 py-3 text-sm" href={`/taxation/compare-regimes?year=${taxContext.financialYear}`}>Compare and choose regime</Link>
               </div>
             </SettingsFormCard>
           )}
@@ -324,7 +323,7 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
                 <Field label="Preferred Financial Year"><SelectInput value={form.financial_year} onChange={(v) => setField("financial_year", v)} options={FINANCIAL_YEARS.map((fy) => ({ value: fy, label: fy }))} /></Field>
                 <Field label="Default Tax Regime"><SelectInput value={form.tax_regime} onChange={(v) => setField("tax_regime", v)} options={TAX_REGIME_OPTIONS} /></Field>
                 <Field label="Credit Card Usage Mode"><SelectInput value={form.credit_card_usage} onChange={(v) => setField("credit_card_usage", v)} options={CREDIT_CARD_USAGE_OPTIONS} /></Field>
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-700">
+                <div className="bg-[#edf2eb] border border-[#dbe3da] rounded-xl p-4 text-xs text-primary">
                   Preferences use your existing profile options and directly influence analytics outputs.
                 </div>
               </div>
@@ -333,44 +332,43 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
         </div>
 
         <aside className="space-y-4">
-          <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+          <section className="bg-white border border-border rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Sparkles size={15} className="text-indigo-600" /></div>
+              <div className="w-8 h-8 rounded-lg bg-[#edf2eb] flex items-center justify-center"><Sparkles size={15} className="text-primary" /></div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Tax Preview</p>
-                <p className="text-xs text-gray-500">Recalculates after you save</p>
+                <p className="text-sm font-semibold text-foreground">Tax Preview</p>
+                <p className="text-xs text-muted-foreground">Recalculates after you save</p>
               </div>
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Recommended Regime</span><span className="font-semibold text-gray-900">{String(taxContext?.recommendedRegime ?? "—").toUpperCase()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Estimated Tax</span><span className="font-semibold text-gray-900">{formatInr(taxContext?.estimatedTax)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Tax Readiness</span><span className="font-semibold text-emerald-600">{taxContext?.taxHealthScore ?? 0}%</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Recommended Regime</span><span className="font-semibold text-foreground">{String(taxContext?.recommendedRegime ?? "—").toUpperCase()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Estimated Tax</span><span className="font-semibold text-foreground">{formatInr(taxContext?.estimatedTax)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Tax Readiness</span><span className="font-semibold text-emerald-600">{taxContext?.taxHealthScore ?? 0}%</span></div>
             </div>
           </section>
 
-          <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+          <section className="bg-white border border-border rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Database size={15} className="text-indigo-600" /></div>
+              <div className="w-8 h-8 rounded-lg bg-[#edf2eb] flex items-center justify-center"><Database size={15} className="text-primary" /></div>
               <div>
-                <p className="text-sm font-bold text-gray-900">What gets updated</p>
-                <p className="text-xs text-gray-500">Based on your SaaS model</p>
+                <p className="text-sm font-semibold text-foreground">What gets updated</p>
+                <p className="text-xs text-muted-foreground">One connected workspace</p>
               </div>
             </div>
-            <ul className="text-xs text-gray-600 space-y-2">
-              <li>• Salary inputs → `salary_profiles`</li>
-              <li>• Investments / deductions → `deductions`</li>
-              <li>• Tax calculations → `tax_calculations`</li>
-              <li>• AI summary & insights → `ai_insights`</li>
-              <li>• Budget category plans → `budget_plans`</li>
+            <ul className="text-xs text-[#647268] space-y-2">
+              <li>Salary and profile details</li>
+              <li>Annual deduction information</li>
+              <li>Your latest tax estimates</li>
+              <li>Financial insights and summaries</li>
+              <li>Spending plans and category budgets</li>
             </ul>
           </section>
 
-          <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Settings Shortcuts</h3>
-            <Shortcut label="Profile" sub="Manage your personal details" icon={User} />
-            <Shortcut label="Preferences" sub="Customize app experience" icon={Settings2} />
-            <Shortcut label="Data & Backup" sub="Download or reset your data" icon={Database} />
-            <Shortcut label="Help & Support" sub="Get help and contact support" icon={HelpCircle} />
+          <section className="bg-white border border-border rounded-2xl p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Settings Shortcuts</h3>
+            <Shortcut onClick={() => setActiveTab("account")} label="Profile" sub="Manage your personal details" icon={User} />
+            <Shortcut onClick={() => setActiveTab("preferences")} label="Preferences" sub="Customize app experience" icon={Settings2} />
+            <Shortcut onClick={() => setActiveTab("data")} label="Data & Backup" sub="Download or reset your data" icon={Database} />
           </section>
         </aside>
       </div>
@@ -380,8 +378,8 @@ export default function SettingsSection({ taxContext: initialTaxContext }) {
 
 function SettingsFormCard({ title, children }) {
   return (
-    <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-3">{title}</h2>
+    <section className="bg-white border border-border rounded-2xl p-6">
+      <h2 className="text-xl font-semibold text-foreground mb-3">{title}</h2>
       {children}
     </section>
   );
@@ -401,14 +399,14 @@ function GridFields({ fields, form, setField }) {
 
 function InfoCard({ icon: Icon, label, value }) {
   return (
-    <div className="border border-gray-100 rounded-xl px-3 py-2.5">
+    <div className="border border-border rounded-xl px-3 py-2.5">
       <div className="flex items-start gap-2">
-        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center mt-0.5">
-          <Icon size={14} className="text-indigo-600" />
+        <div className="w-7 h-7 rounded-lg bg-[#edf2eb] flex items-center justify-center mt-0.5">
+          <Icon size={14} className="text-primary" />
         </div>
         <div>
-          <p className="text-[11px] text-gray-500">{label}</p>
-          <p className="text-sm font-semibold text-gray-900">{value}</p>
+          <p className="text-[11px] text-muted-foreground">{label}</p>
+          <p className="text-sm font-semibold text-foreground">{value}</p>
         </div>
       </div>
     </div>
@@ -417,23 +415,23 @@ function InfoCard({ icon: Icon, label, value }) {
 
 function ActionBtn({ icon: Icon, title, subtitle, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="text-left border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors w-full">
-      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center mb-2">
-        <Icon size={14} className="text-indigo-600" />
+    <button type="button" onClick={onClick} className="text-left border border-border rounded-xl p-3 hover:bg-muted transition-colors w-full">
+      <div className="w-8 h-8 rounded-lg bg-[#edf2eb] flex items-center justify-center mb-2">
+        <Icon size={14} className="text-primary" />
       </div>
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      <p className="text-[11px] text-gray-500 mt-0.5">{subtitle}</p>
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
     </button>
   );
 }
 
-function Shortcut({ icon: Icon, label, sub }) {
+function Shortcut({ icon: Icon, label, sub, onClick }) {
   return (
-    <button type="button" className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left">
-      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center"><Icon size={13} className="text-indigo-600" /></div>
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted text-left">
+      <div className="w-7 h-7 rounded-lg bg-[#edf2eb] flex items-center justify-center"><Icon size={13} className="text-primary" /></div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900">{label}</p>
-        <p className="text-[11px] text-gray-500">{sub}</p>
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground">{sub}</p>
       </div>
       <ChevronRight size={14} className="text-gray-300" />
     </button>

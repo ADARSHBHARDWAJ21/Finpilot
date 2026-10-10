@@ -26,5 +26,5 @@ const ICON_BY_KEY = {
 
 export default function CategoryIcon({ iconKey, size = 14, className = "" }) {
   const Icon = ICON_BY_KEY[iconKey] || MoreHorizontal;
-  return <Icon size={size} className={className} />;
+  return <Icon strokeWidth={1.7} size={size} className={className} />;
 }

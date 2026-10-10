@@ -1,9 +1,9 @@
 export function Field({ label, children, hint }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="text-[10px] text-gray-400 mt-1">{hint}</p>}
+      <span className="text-xs font-medium text-[#647268]">{label}</span>
+      <div className="mt-2">{children}</div>
+      {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
     </label>
   );
 }
@@ -16,7 +16,7 @@ export function TextInput({ value, onChange, type = "text", placeholder, disable
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:bg-gray-50"
+      className="w-full min-h-11 px-3.5 py-2.5 text-sm bg-white border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:bg-muted"
       {...rest}
     />
   );
@@ -27,7 +27,7 @@ export function SelectInput({ value, onChange, options }) {
     <select
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+      className="w-full min-h-11 px-3.5 py-2.5 text-sm bg-white border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/10"
     >
       {options.map((opt) => (
         <option key={opt.value ?? opt} value={opt.value ?? opt}>
@@ -45,9 +45,9 @@ export function CheckRow({ label, checked, onChange }) {
         type="checkbox"
         checked={Boolean(checked)}
         onChange={(e) => onChange(e.target.checked)}
-        className="rounded border-gray-300 text-indigo-600"
+        className="size-4 rounded border-border accent-[#214d43]"
       />
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-foreground">{label}</span>
     </label>
   );
 }

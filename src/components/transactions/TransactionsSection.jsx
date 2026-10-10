@@ -19,7 +19,6 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
   const router = useRouter();
   const [category, setCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
   const [previousInitial, setPreviousInitial] = useState(initialTransactions);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -57,7 +56,6 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
     });
   }, [rows, category, searchQuery]);
 
-  const categoryLabel = category === "all" ? "All Categories" : category;
   const visibleIds = filtered.map((tx) => String(tx.id));
   const selectedVisibleIds = visibleIds.filter((id) => selectedIds.has(id));
   const allSelected = visibleIds.length > 0 && selectedVisibleIds.length === visibleIds.length;
@@ -116,80 +114,51 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs mt-6 overflow-hidden">
+    <section className="fp-card mt-6 overflow-hidden">
       {/* Header controls bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-6 pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-5 sm:px-6 border-b border-border">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Transactions Ledger</h2>
+          <h2 className="text-base font-semibold text-slate-900 tracking-tight">Your transactions</h2>
           <p className="text-xs text-slate-400 mt-0.5 font-medium">
-            Search, filter, categorize, and audit verified bank debits &amp; credits
+            All your recorded activity, organised in one place.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           {/* Search input */}
-          <div className="relative">
+          <div className="relative min-w-0">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search payees, tags..."
+              placeholder="Search transactions…"
               aria-label="Search transactions"
               value={searchQuery}
               disabled={isPending}
               onChange={(e) => { setSearchQuery(e.target.value); setSelectedIds(new Set()); }}
-              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 transition-all font-medium"
+              className="min-h-10 w-full pl-9 pr-3 py-2 bg-background border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 transition-all font-medium"
             />
           </div>
 
           {/* Category filter dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              suppressHydrationWarning
+          <div className="relative min-w-0 max-w-full">
+            <Filter size={13} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <select
+              aria-label="Transaction category"
+              value={category}
               disabled={isPending}
-              onClick={() => setDropdownOpen((open) => !open)}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs"
+              onChange={(event) => { setCategory(event.target.value); setSelectedIds(new Set()); }}
+              className="min-h-10 max-w-full appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-9 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
-              <Filter size={13} className="text-slate-400" />
-              <span>{categoryLabel}</span>
-              <ChevronDown size={14} className="text-slate-400" />
-            </button>
-            {dropdownOpen && (
-              <>
-                <button
-                  type="button"
-                  className="fixed inset-0 z-10"
-                  aria-label="Close category menu"
-                  onClick={() => setDropdownOpen(false)}
-                />
-                <ul className="absolute right-0 z-20 mt-1 min-w-[170px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1 text-xs scrollbar-thin">
-                  {categories.map((cat) => (
-                    <li key={cat}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-3.5 py-2 font-medium hover:bg-slate-50 transition-colors ${
-                          category === cat ? "text-indigo-600 font-bold bg-indigo-50/50" : "text-slate-700"
-                        }`}
-                        onClick={() => {
-                          setCategory(cat);
-                          setSelectedIds(new Set());
-                          setDropdownOpen(false);
-                        }}
-                      >
-                        {cat === "all" ? "All Categories" : cat}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+              {categories.map((cat) => <option key={cat} value={cat}>{cat === "all" ? "All Categories" : cat}</option>)}
+            </select>
+            <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
       </div>
 
       {/* Upload CSV container */}
       <UploadStatement
-        className="mx-6 my-5"
+        className="mx-4 my-5 sm:mx-6"
         onImported={(saved) => {
           setTransactions((previous) => {
             const byId = new Map(previous.map((row) => [row.id, row]));
@@ -234,7 +203,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
                 (col, i) => (
                   <th
                     key={col || "actions"}
-                    className={`py-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ${
+                    className={`py-3 text-[10px] font-medium text-muted-foreground uppercase tracking-wider ${
                       i === 6 ? "px-4 text-right w-14" : "px-6 text-left"
                     }`}
                   >
@@ -249,7 +218,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
               <tr>
                 <td colSpan={8} className="px-6 py-14 text-center text-xs text-slate-400 font-medium">
                   {loadError ? "Your transactions are temporarily unavailable. Refresh to try again." : rows.length === 0
-                    ? "No transactions yet. Drag & drop a bank PDF statement or use Add Expense above."
+                    ? "Start with a bank statement or add your first transaction."
                     : "No transactions match your search filter."}
                 </td>
               </tr>
@@ -286,7 +255,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm" />
           <AlertDialog.Content aria-busy={isPending} className="fixed left-1/2 top-1/2 z-50 w-[calc(100%_-_2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl focus:outline-none">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><Trash2 size={22} aria-hidden="true" /></div>
-            <AlertDialog.Title className="text-lg font-bold text-slate-900">{deleteRequest?.mode === "all" ? "Delete all transactions?" : `Delete ${deleteRequest?.count || 0} selected transaction${deleteRequest?.count === 1 ? "" : "s"}?`}</AlertDialog.Title>
+            <AlertDialog.Title className="text-base font-semibold text-slate-900">{deleteRequest?.mode === "all" ? "Delete all transactions?" : `Delete ${deleteRequest?.count || 0} selected transaction${deleteRequest?.count === 1 ? "" : "s"}?`}</AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm leading-6 text-slate-600">
               {deleteRequest?.mode === "all"
                 ? `This will permanently delete all transactions in your account (${deleteRequest.count.toLocaleString("en-IN")} currently listed), including those hidden by search or category filters.`

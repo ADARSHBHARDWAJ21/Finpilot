@@ -1,93 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Sparkles, Bell } from "lucide-react";
+import { Dialog } from "radix-ui";
+import { Menu, Bell, ChevronRight, Settings, X } from "lucide-react";
 import Link from "next/link";
-import Sidebar from "@/components/layout/Sidebar";
-import RightSidebar from "@/components/layout/RightSidebar";
+import Sidebar from "./Sidebar";
+import RightSidebar from "./RightSidebar";
+import BrandMark from "./BrandMark";
+
+const pageNames = { dashboard: "Overview", transactions: "Transactions", "budget-tracker": "Budgets", taxation: "Tax workspace", goals: "Goals", reports: "Reports", reminders: "Reminders", calendar: "Calendar", settings: "Settings", investments: "Investments", "net-worth": "Net worth", "ai-copilot": "AI Copilot", "rent-hra": "Rent & HRA" };
 
 export default function DashboardLayout({ children, showRightSidebar = true, rightSidebarProps }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const closeMenuButton = useRef(null);
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = (event) => { if (event.matches) setMobileMenuOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileMenuOpen]);
+  const segments = pathname.split("/").filter(Boolean);
+  const title = (part) => pageNames[part] || part.replaceAll("-", " ").replace(/^./, (char) => char.toUpperCase());
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] bg-[#f8fafc] relative">
-      {/* Subtle ambient lighting */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/4 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-emerald-500/3 rounded-full blur-3xl" />
-      </div>
-
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <button
-          type="button"
-          aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs lg:hidden transition-opacity"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar — drawer on mobile, static on desktop */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 lg:static lg:z-auto transform transition-transform duration-300 ease-out lg:translate-x-0 ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
-      </div>
-
-      <div className="flex flex-1 flex-col min-w-0 w-full lg:overflow-hidden z-10">
-        {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/80 lg:hidden shrink-0 safe-top">
-          <button
-            type="button"
-            aria-label="Open menu"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(true)}
-            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 active:bg-slate-100 text-slate-700"
-          >
-            <Menu size={20} />
-          </button>
-          <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 shadow-xs">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-slate-900 tracking-tight truncate">FinCopilot</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">
-              PRO
-            </span>
-          </Link>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-            A
+    <div className="fp-app flex min-h-dvh bg-background">
+      <a href="#main-content" className="sr-only fixed left-4 top-4 z-[100] rounded-xl bg-primary px-5 py-3 text-sm text-white focus:not-sr-only">Skip to content</a>
+      <div className="fp-sidebar sticky top-0 hidden h-dvh shrink-0 lg:block"><Sidebar /></div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <header className="fp-mobile-header safe-top sticky top-0 z-30 flex h-17 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur-md lg:hidden">
+            <Dialog.Trigger asChild><button type="button" aria-label="Open menu" className="fp-button size-10 px-0"><Menu size={19} /></button></Dialog.Trigger>
+            <Link href="/dashboard" className="flex items-center gap-2.5"><BrandMark className="size-8" /><span className="font-heading text-lg font-semibold tracking-tight">finpilot.</span></Link>
+            <Link href="/reminders" aria-label="View reminders" className="flex size-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><Bell size={19} /></Link>
+          </header>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-[#10211c]/45 backdrop-blur-sm lg:hidden" />
+            <Dialog.Content aria-describedby={undefined} onOpenAutoFocus={(event) => { event.preventDefault(); closeMenuButton.current?.focus(); }} className="fixed inset-y-0 left-0 z-50 outline-none lg:hidden">
+              <Dialog.Title className="sr-only">Finpilot navigation</Dialog.Title>
+              <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
+              <Dialog.Close asChild><button ref={closeMenuButton} aria-label="Close menu" className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10"><X size={16} /></button></Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+        <header className="fp-utility-header hidden h-[72px] shrink-0 items-center justify-between border-b border-border px-7 lg:flex xl:px-9">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs">
+            <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-primary">Workspace</Link>
+            {segments.map((part, index) => <span key={part} className="flex items-center gap-2"><ChevronRight size={12} className="text-slate-400" aria-hidden="true" /><span className={index === segments.length - 1 ? "font-medium text-foreground" : "text-muted-foreground"}>{title(part)}</span></span>)}
+          </nav>
+          <div className="flex items-center gap-3">
+            <span className="mr-2 text-[11px] text-muted-foreground">Your space. Your pace.</span>
+            <Link href="/reminders" aria-label="View reminders" className="flex size-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:bg-muted"><Bell size={16} /></Link>
+            <Link href="/settings" aria-label="Account settings" className="flex size-9 items-center justify-center rounded-xl bg-muted text-primary hover:bg-accent"><Settings size={16} /></Link>
           </div>
         </header>
-
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 md:p-6 min-w-0 scrollbar-thin">
-            {children}
+        <div className="flex min-w-0 flex-1">
+          <main id="main-content" tabIndex={-1} className="fp-main w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9">
+            <div className="mx-auto w-full max-w-[1440px] min-w-0">{children}</div>
           </main>
-          {showRightSidebar && (
-            <aside className="hidden xl:block shrink-0">
-              <RightSidebar {...rightSidebarProps} />
-            </aside>
-          )}
+          {showRightSidebar && <div className="hidden shrink-0 min-[1600px]:block"><RightSidebar {...rightSidebarProps} /></div>}
         </div>
       </div>
     </div>

@@ -213,7 +213,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
           <Field label="Current Tax Regime">
             <SelectInput value={form.tax_regime} onChange={(v) => setField(setForm, "tax_regime", v)} options={TAX_REGIME_OPTIONS} />
           </Field>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">80C investments</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">80C investments</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               ["elss_investments", "ELSS"],
@@ -227,7 +227,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
               </Field>
             ))}
           </div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Additional deductions</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Additional deductions</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               ["health_insurance", "Health Insurance (₹)"],
@@ -241,7 +241,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
               </Field>
             ))}
           </div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Housing</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Housing</p>
           <CheckRow label="Paying rent?" checked={form.paying_rent} onChange={(v) => setField(setForm, "paying_rent", v)} />
           {form.paying_rent && (
             <Field label="Monthly Rent (₹)">
@@ -291,7 +291,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
     if (step === 6) {
       return (
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Mark documents you have ready. You can upload files from Documents later.
           </p>
           {DOCUMENT_TYPES.map((doc) => (
@@ -314,42 +314,42 @@ export default function OnboardingWizard({ email, initialProfile }) {
     if (step === 7 && summary) {
       return (
         <div className="space-y-5">
-          <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-            <Sparkles className="text-indigo-600 shrink-0" size={24} />
+          <div className="flex items-center gap-3 p-4 bg-[#edf2eb] rounded-xl border border-[#dbe3da]">
+            <Sparkles className="text-primary shrink-0" size={24} />
             <div>
-              <p className="text-sm font-semibold text-gray-900">Your AI Financial Summary</p>
-              <p className="text-xs text-gray-500 mt-0.5">Based on your onboarding profile</p>
+              <p className="text-sm font-semibold text-foreground">Your AI Financial Summary</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Based on your onboarding profile</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Recommended regime</p>
-              <p className="text-lg font-bold text-indigo-600 capitalize mt-1">{summary.recommendedRegime}</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Recommended regime</p>
+              <p className="text-lg font-semibold text-primary capitalize mt-1">{summary.recommendedRegime}</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Tax health score</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">{summary.taxHealthScore}/100</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Tax health score</p>
+              <p className="text-lg font-semibold text-foreground mt-1">{summary.taxHealthScore}/100</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Est. tax liability</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">{formatInr(summary.estimatedTaxLiability)}</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Est. tax liability</p>
+              <p className="text-lg font-semibold text-foreground mt-1">{formatInr(summary.estimatedTaxLiability)}</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Expected refund</p>
-              <p className="text-lg font-bold text-emerald-600 mt-1">Not calculated</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Expected refund</p>
+              <p className="text-lg font-semibold text-emerald-600 mt-1">Not calculated</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Unused 80C</p>
-              <p className="text-lg font-bold text-amber-600 mt-1">{formatInr(summary.unused80c)}</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Unused 80C</p>
+              <p className="text-lg font-semibold text-amber-600 mt-1">{formatInr(summary.unused80c)}</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 uppercase font-medium">Potential savings</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">{formatInr(summary.potentialAnnualSavings)}/yr</p>
+            <div className="bg-white border border-border rounded-xl p-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium">Potential savings</p>
+              <p className="text-lg font-semibold text-foreground mt-1">{formatInr(summary.potentialAnnualSavings)}/yr</p>
             </div>
           </div>
 
-          <ul className="space-y-2 text-sm text-gray-600 bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <ul className="space-y-2 text-sm text-[#647268] bg-muted rounded-xl p-4 border border-border">
             {summary.insights?.map((line, i) => (
               <li key={i}>• {line}</li>
             ))}
@@ -358,23 +358,23 @@ export default function OnboardingWizard({ email, initialProfile }) {
       );
     }
 
-    return <p className="text-sm text-gray-500">Complete the previous steps to see your summary.</p>;
+    return <p className="text-sm text-muted-foreground">Complete the previous steps to see your summary.</p>;
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 pt-6 pb-4 border-b border-gray-50">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+    <div className="bg-white rounded-2xl border border-border  overflow-hidden">
+      <div className="px-6 pt-6 pb-4 border-b border-border">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
           <span>
             Step {step} of {ONBOARDING_STEPS.length}
           </span>
           <span>{progress}%</span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mt-4">{currentMeta?.title}</h1>
-        <p className="text-sm text-gray-500 mt-1">{currentMeta?.subtitle}</p>
+        <h1 className="text-xl font-semibold text-foreground mt-4">{currentMeta?.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{currentMeta?.subtitle}</p>
       </div>
 
       <div className="px-6 py-6">{renderStep()}</div>
@@ -383,9 +383,9 @@ export default function OnboardingWizard({ email, initialProfile }) {
         <p className="px-6 pb-2 text-xs text-red-600 bg-red-50 border-t border-red-100 py-2">{error}</p>
       )}
 
-      <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between gap-3">
+      <div className="px-6 py-4 border-t border-border flex items-center justify-between gap-3">
         {step > 1 && step < 7 ? (
-          <button type="button" onClick={handleBack} disabled={saving} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50">
+          <button type="button" onClick={handleBack} disabled={saving} className="flex items-center gap-1 text-sm text-[#647268] hover:text-foreground disabled:opacity-50">
             <ChevronLeft size={16} /> Back
           </button>
         ) : (
@@ -397,7 +397,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
             type="button"
             onClick={handleNext}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-60"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-xl hover:bg-[#193e35] disabled:opacity-60"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : null}
             {step === 6 ? "Generate summary" : "Continue"}
@@ -407,7 +407,7 @@ export default function OnboardingWizard({ email, initialProfile }) {
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700"
+            className="px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-xl hover:bg-[#193e35]"
           >
             Go to Dashboard
           </button>

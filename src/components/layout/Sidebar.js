@@ -3,227 +3,79 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import SignOutButton from "@/components/auth/SignOutButton";
-import {
-  LayoutDashboard,
-  Receipt,
-  Wallet,
-  Landmark,
-  Bot,
-  TrendingUp,
-  PieChart,
-  Target,
-  Bell,
-  BarChart3,
-  CalendarDays,
-  Settings,
-  Sparkles,
-  ChevronDown,
-  Crown,
-  Zap,
-} from "lucide-react";
+import BrandMark from "./BrandMark";
+import { LayoutDashboard, ArrowLeftRight, Wallet, Landmark, Sparkles, TrendingUp, ChartNoAxesCombined, Target, Bell, ChartNoAxesColumnIncreasing, CalendarDays, Settings, ArrowUpRight, ChevronDown } from "lucide-react";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Receipt, label: "Transactions", href: "/transactions" },
-  { icon: Wallet, label: "Budget Tracker", href: "/budget-tracker" },
-  { icon: TrendingUp, label: "Investments", href: "/investments", badge: "Pro", badgeColor: "bg-amber-100 text-amber-700 border-amber-200" },
-  { icon: PieChart, label: "Net Worth", href: "/net-worth", badge: "Live", badgeColor: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { icon: Target, label: "Goals", href: "/goals" },
-  { icon: Bell, label: "Reminders", href: "/reminders" },
-  { icon: BarChart3, label: "Reports", href: "/reports" },
-  { icon: CalendarDays, label: "Calendar", href: "/calendar" },
-  { icon: Settings, label: "Settings", href: "/settings" },
+const sections = [
+  { label: "Workspace", items: [
+    { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+    { icon: ArrowLeftRight, label: "Transactions", href: "/transactions" },
+    { icon: Wallet, label: "Budgets", href: "/budget-tracker" },
+  ]},
+  { label: "Plan ahead", items: [
+    { icon: Target, label: "Goals", href: "/goals" },
+    { icon: ChartNoAxesColumnIncreasing, label: "Reports", href: "/reports" },
+    { icon: CalendarDays, label: "Calendar", href: "/calendar" },
+    { icon: Bell, label: "Reminders", href: "/reminders" },
+  ]},
+  { label: "Explore", items: [
+    { icon: TrendingUp, label: "Investments", href: "/investments", preview: true },
+    { icon: ChartNoAxesCombined, label: "Net worth", href: "/net-worth", preview: true },
+  ]},
 ];
-
-const taxationSubItems = [
-  { label: "Overview", href: "/taxation" },
-  { label: "Salary Documents", href: "/taxation/salary-documents" },
-  { label: "Tax Saving Proofs", href: "/taxation/tax-saving-proofs" },
-  { label: "Rent & HRA", href: "/taxation/rent-hra" },
-  { label: "Banking & Investments", href: "/taxation/banking-investments" },
-  { label: "Compliance & Filing", href: "/taxation/compliance-filing" },
-  { label: "AI Copilot", href: "/taxation/ai-copilot", badge: "AI 2.0" },
+const taxItems = [
+  ["Overview", "/taxation"],
+  ["Salary documents", "/taxation/salary-documents"],
+  ["Tax saving proofs", "/taxation/tax-saving-proofs"],
+  ["Rent & HRA", "/taxation/rent-hra"],
+  ["Banking & investments", "/taxation/banking-investments"],
+  ["Compliance & filing", "/taxation/compliance-filing"],
 ];
 
 export default function Sidebar({ onNavigate }) {
   const pathname = usePathname();
   const year = useSearchParams().get("year");
   const taxHref = (href) => /^20\d{2}-\d{2}$/.test(year || "") ? `${href}?year=${year}` : href;
-  const isTaxationSection = pathname.startsWith("/taxation");
-  const isAICopilot = pathname === "/taxation/ai-copilot";
+  const isTax = pathname.startsWith("/taxation") && pathname !== "/taxation/ai-copilot";
 
-  const handleNav = () => {
-    onNavigate?.();
-  };
+  function itemLink(item) {
+    const Icon = item.icon;
+    return <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={pathname === item.href ? "page" : undefined} className="fp-nav-item">
+      <Icon size={18} aria-hidden="true" />
+      <span className="flex-1">{item.label}</span>
+      {item.preview && <span className="rounded-md border border-white/15 px-1.5 py-0.5 text-[8px] tracking-wide">SOON</span>}
+    </Link>;
+  }
 
-  return (
-    <aside className="w-[min(280px,85vw)] sm:w-[250px] shrink-0 bg-white/95 backdrop-blur-xl border-r border-slate-200/80 min-h-screen min-h-[100dvh] flex flex-col shadow-xl lg:shadow-none z-40">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-slate-100/90">
-        <Link href="/dashboard" className="flex items-center gap-3 group" onClick={handleNav}>
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/25 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-white animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight">FinCopilot</h1>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-                PRO
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">Autonomous Wealth</p>
-          </div>
+  return <aside className="flex h-dvh w-[250px] max-w-[85vw] flex-col bg-sidebar text-sidebar-foreground lg:w-[232px]">
+    <Link href="/dashboard" onClick={onNavigate} className="mx-5 mb-3 mt-7 flex items-center gap-3 rounded-xl">
+      <BrandMark dark className="size-10" />
+      <span><span className="block font-heading text-xl font-semibold tracking-[-0.06em] text-white">finpilot<span className="text-[#b9cea1]">.</span></span><span className="mt-0.5 block text-[9px] tracking-[0.12em] text-[#a4b9ab]">A CLEARER FINANCIAL LIFE</span></span>
+    </Link>
+    <nav aria-label="Main navigation" className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-3">
+      <p className="fp-nav-label">{sections[0].label}</p>
+      <div className="space-y-1">{sections[0].items.map(itemLink)}</div>
+      <div className="mt-1">
+        <Link href={taxHref("/taxation")} onClick={onNavigate} aria-current={isTax ? "page" : undefined} className="fp-nav-item">
+          <Landmark size={18} aria-hidden="true" /><span className="flex-1">Tax workspace</span><ChevronDown size={14} className={isTax ? "rotate-180" : ""} aria-hidden="true" />
+        </Link>
+        {isTax && <div className="my-2 ml-5 space-y-0.5 border-l border-white/15 pl-3">
+          {taxItems.map(([label, href]) => <Link key={href} href={taxHref(href)} onClick={onNavigate} aria-current={pathname === href ? "page" : undefined} className={`block rounded-lg px-3 py-2 text-[11px] transition-colors hover:bg-white/5 hover:text-white ${pathname === href ? "bg-white/10 font-medium text-white" : "text-[#a9c0b0]"}`}>{label}</Link>)}
+        </div>}
+        <Link href={taxHref("/taxation/ai-copilot")} onClick={onNavigate} aria-current={pathname === "/taxation/ai-copilot" ? "page" : undefined} className="fp-nav-item mt-1">
+          <Sparkles size={18} aria-hidden="true" /><span className="flex-1">AI Copilot</span><span className="size-1.5 rounded-full bg-[#afc596]" aria-hidden="true" />
         </Link>
       </div>
-
-      {/* Navigation Links */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
-        {/* First 3 core items */}
-        {menuItems.slice(0, 3).map((item) => {
-          const Icon = item.icon;
-          const isActive = item.href !== "#" && pathname === item.href;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={handleNav}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-medium ${
-                isActive
-                  ? "bg-gradient-to-r from-indigo-50 via-indigo-50/80 to-violet-50/40 text-indigo-700 border-l-[3px] border-indigo-600 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-              }`}
-            >
-              <Icon
-                size={18}
-                className={isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}
-              />
-              <span className="flex-1">{item.label}</span>
-            </Link>
-          );
-        })}
-
-        {/* Taxation Group */}
-        <div>
-          <Link
-            href={taxHref("/taxation")}
-            onClick={handleNav}
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-medium w-full ${
-              isTaxationSection
-                ? "bg-gradient-to-r from-indigo-50 to-violet-50/40 text-indigo-700 border-l-[3px] border-indigo-600 shadow-xs"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-            }`}
-          >
-            <Landmark
-              size={18}
-              className={isTaxationSection ? "text-indigo-600" : "text-slate-400"}
-            />
-            <span className="flex-1">Taxation</span>
-            <ChevronDown
-              size={16}
-              className={`text-slate-400 transition-transform duration-200 ${
-                isTaxationSection ? "rotate-180 text-indigo-600" : ""
-              }`}
-            />
-          </Link>
-
-          {isTaxationSection && (
-            <div className="mt-1 ml-4 pl-3 border-l-2 border-indigo-100 space-y-1 py-1">
-              {taxationSubItems.map((sub) => {
-                const isActive =
-                  sub.href === "/taxation"
-                    ? pathname === "/taxation"
-                    : pathname === sub.href || pathname.startsWith(`${sub.href}/`);
-
-                if (sub.label === "AI Copilot") {
-                  return (
-                    <Link
-                      key={sub.label}
-                      href={taxHref(sub.href)}
-                      onClick={handleNav}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-xs font-semibold ${
-                        isAICopilot
-                          ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/25"
-                          : "bg-indigo-50/60 text-indigo-700 hover:bg-indigo-100/70 border border-indigo-100"
-                      }`}
-                    >
-                      <Bot size={15} className={isAICopilot ? "text-white" : "text-indigo-600"} />
-                      <span className="flex-1">{sub.label}</span>
-                      {sub.badge && (
-                        <span
-                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                            isAICopilot
-                              ? "bg-white/20 text-white"
-                              : "bg-indigo-200/80 text-indigo-800"
-                          }`}
-                        >
-                          {sub.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={sub.label}
-                    href={taxHref(sub.href)}
-                    onClick={handleNav}
-                    className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      isActive && !isAICopilot
-                        ? "text-indigo-700 font-semibold bg-indigo-50/80"
-                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/60"
-                    }`}
-                  >
-                    {sub.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Rest of menu items */}
-        {menuItems.slice(3).map((item) => {
-          const Icon = item.icon;
-          const isActive = item.href !== "#" && pathname === item.href;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={handleNav}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-medium ${
-                isActive
-                  ? "bg-gradient-to-r from-indigo-50 via-indigo-50/80 to-violet-50/40 text-indigo-700 border-l-[3px] border-indigo-600 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-              }`}
-            >
-              <Icon
-                size={18}
-                className={isActive ? "text-indigo-600" : "text-slate-400"}
-              />
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeColor}`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User & Signout */}
-      <div className="px-3 py-2 border-t border-slate-100">
-        <SignOutButton />
-      </div>
-
-      <div className="m-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-        <p className="text-sm font-semibold text-indigo-950">Your tax workspace</p>
-        <p className="my-3 text-xs leading-relaxed text-indigo-700">Yearly salary estimates, private proof documents and filing checklists in one place.</p>
-        <Link href={taxHref("/taxation")} onClick={handleNav} className="inline-flex rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Open tax overview</Link>
-      </div>
-    </aside>
-  );
+      {sections.slice(1).map((section) => <div key={section.label}><p className="fp-nav-label">{section.label}</p><div className="space-y-1">{section.items.map(itemLink)}</div></div>)}
+    </nav>
+    <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="font-heading text-sm font-medium text-[#eef4e8]">Make room for clarity.</p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-[#a9c0b0]">Your records, proofs and next steps. All together.</p>
+      <Link href={taxHref("/taxation")} onClick={onNavigate} className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#dce8c7]">Visit tax workspace <ArrowUpRight size={14} aria-hidden="true" /></Link>
+    </div>
+    <div className="border-t border-white/10 p-3">
+      {itemLink({ icon: Settings, label: "Settings", href: "/settings" })}
+      <SignOutButton className="text-[#bdcdc0] hover:bg-white/5 hover:text-white [&_svg]:text-[#a4b9ab]" />
+    </div>
+  </aside>;
 }

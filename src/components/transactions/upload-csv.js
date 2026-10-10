@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CloudUpload, FileText, ImageIcon, LoaderCircle } from "lucide-react";
+import { CloudUpload, FileText, ImageIcon, LoaderCircle, FileSpreadsheet, ArrowDownToLine } from "lucide-react";
 import { saveTransactions } from "@/app/transactions/actions";
 import { parseStatementFile, isSpreadsheetFile } from "@/components/transactions/parse-statement-file";
 import { validateFile } from "@/lib/import/transaction-values";
@@ -67,20 +67,20 @@ export default function UploadStatement({ className = "", onImported }) {
 
   return (
     <div className={className}>
-      <div onDragOver={(event) => { event.preventDefault(); if (!busy.current && !review) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files.length > 1) { setStatus({ type: "error", message: "Upload one statement at a time." }); return; } upload(event.dataTransfer.files[0]); }} className={`rounded-2xl border-2 border-dashed p-5 transition-colors ${dragging ? "border-indigo-500 bg-indigo-100" : "border-indigo-200 bg-indigo-50/40"}`}>
+      <div onDragOver={(event) => { event.preventDefault(); if (!busy.current && !review) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files.length > 1) { setStatus({ type: "error", message: "Upload one statement at a time." }); return; } upload(event.dataTransfer.files[0]); }} className={`rounded-2xl border border-dashed p-5 sm:p-6 transition-colors ${dragging ? "border-primary bg-accent" : "border-slate-300 bg-background"}`}>
         <input ref={input} aria-label="Bank statement file" type="file" className="hidden" onChange={(event) => upload(event.target.files?.[0])} />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-500">{uploading ? <LoaderCircle size={22} className="animate-spin" /> : <CloudUpload size={22} />}</div>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-white text-primary">{uploading ? <LoaderCircle size={22} className="animate-spin" /> : <CloudUpload size={22} />}</div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-gray-900">Upload Bank Statement</h3>
-            <p className="mt-1.5 text-sm text-gray-600">Upload your bank statement. We fill in the transactions automatically—check them, then click Import.</p>
+            <h3 className="text-sm font-semibold text-foreground">Bring your bank statement</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Drop a file here or choose a format below. Review the extracted transactions before importing.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" disabled={uploading || !!review} onClick={() => choose(".csv,.xlsx,.xls")} className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"><FileText size={15} />CSV / Excel</button>
-              <button type="button" disabled={uploading || !!review} onClick={() => choose(".pdf")} className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"><FileText size={15} />PDF</button>
-              <button type="button" disabled={uploading || !!review} onClick={() => choose(".png,.jpg,.jpeg,.webp")} className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"><ImageIcon size={15} />Photo / Screenshot</button>
-              <a href="/templates/transactions.csv" download className="px-2 py-2 text-xs font-medium text-indigo-600 underline underline-offset-2">Download CSV template</a>
+              <button type="button" disabled={uploading || !!review} onClick={() => choose(".csv,.xlsx,.xls")} className="fp-button min-h-10 px-3 text-xs"><FileSpreadsheet size={15} />CSV / Excel</button>
+              <button type="button" disabled={uploading || !!review} onClick={() => choose(".pdf")} className="fp-button min-h-10 px-3 text-xs"><FileText size={15} />PDF</button>
+              <button type="button" disabled={uploading || !!review} onClick={() => choose(".png,.jpg,.jpeg,.webp")} className="fp-button min-h-10 px-3 text-xs"><ImageIcon size={15} />Photo / Screenshot</button>
+              <a href="/templates/transactions.csv" download className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-medium text-muted-foreground hover:text-primary"><ArrowDownToLine size={13} />CSV template</a>
             </div>
-            <p className="mt-3 text-xs text-gray-400">Up to 10 MB · PDF: up to 20 pages</p>
+            <p className="mt-3 text-[10px] tracking-wide text-muted-foreground">Up to 10 MB · PDF: up to 20 pages</p>
             {uploading && <p role="status" className="mt-3 text-xs font-medium text-indigo-700">Reading your statement… Photos and scanned PDFs can take a minute or two.</p>}
             {status && <p role={status.type === "error" ? "alert" : "status"} className={`mt-3 rounded-lg px-3 py-2 text-xs ${status.type === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{status.message}</p>}
             {lockedPdf && <form onSubmit={(event) => { event.preventDefault(); upload(lockedPdf, password); }} className="mt-3 flex flex-wrap items-end gap-2">

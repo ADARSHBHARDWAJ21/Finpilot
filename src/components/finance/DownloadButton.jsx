@@ -5,7 +5,7 @@ export default function DownloadButton({
   url,
   filename,
   children,
-  className = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium",
+  className = "fp-button",
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -39,7 +39,7 @@ export default function DownloadButton({
         onClick={download}
         className={`${className} disabled:opacity-50`}
       >
-        <Download size={15} className="mr-2 inline" />
+        <Download size={15} strokeWidth={1.7} className="shrink-0" />
         {busy ? "Preparing…" : children}
       </button>
       {error && (

@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowDownLeft, ArrowUpRight, CreditCard, Smartphone } from "lucide-react";
 
 export default function TransactionRow({ tx, onDelete, onToggle, selected = false, deleting = false }) {
   return (
@@ -8,28 +8,26 @@ export default function TransactionRow({ tx, onDelete, onToggle, selected = fals
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div
-            className={`w-9 h-9 rounded-xl ${tx.iconBg || "bg-indigo-50 text-indigo-600"} flex items-center justify-center text-sm font-bold shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}
+            className={`w-9 h-9 rounded-xl ${tx.income ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"} flex items-center justify-center shrink-0`}
           >
-            {tx.icon}
+            {tx.income ? <ArrowDownLeft size={17} aria-hidden="true" /> : <ArrowUpRight size={17} aria-hidden="true" />}
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900 leading-tight">{tx.name}</p>
+            <p className="text-sm font-medium text-foreground leading-snug">{tx.name}</p>
             {tx.sub && <p className="text-[11px] text-slate-400 mt-0.5">{tx.sub}</p>}
           </div>
         </div>
       </td>
       <td className="px-6 py-4">
         <span
-          className={`inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-            tx.categoryStyle || "bg-slate-100 text-slate-700"
-          }`}
+          className="inline-block text-[11px] font-medium px-2.5 py-1 rounded-md bg-muted text-muted-foreground"
         >
           {tx.category}
         </span>
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm">{tx.paymentIcon}</span>
+          <span className="text-muted-foreground">{tx.payment?.toLowerCase().includes("upi") ? <Smartphone size={15} /> : <CreditCard size={15} />}</span>
           <div>
             <p className="text-xs font-semibold text-slate-800">{tx.payment}</p>
             {tx.paymentSub ? (
@@ -40,8 +38,8 @@ export default function TransactionRow({ tx, onDelete, onToggle, selected = fals
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span
-          className={`text-sm font-extrabold ${
-            tx.income ? "text-emerald-600" : "text-slate-900"
+          className={`text-sm font-semibold tabular-nums ${
+            tx.income ? "text-primary" : "text-slate-900"
           }`}
         >
           {tx.amount}

@@ -76,11 +76,11 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 p-3 sm:p-6">
-      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="import-title" tabIndex={-1} onKeyDown={keyboard} className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl outline-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#10211c]/45 backdrop-blur-sm p-3 sm:p-6">
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="import-title" tabIndex={-1} onKeyDown={keyboard} className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-xl outline-none">
         <div className="flex items-start justify-between border-b border-gray-100 p-5">
           <div>
-            <h2 id="import-title" className="text-lg font-bold text-gray-900">Review extracted transactions</h2>
+            <h2 id="import-title" className="text-lg font-semibold text-gray-900">Review extracted transactions</h2>
             <p className="mt-1 break-all text-xs text-gray-500">{fileName} · {rows.length} transactions found</p>
             <p className="mt-2 text-sm text-gray-600">Your statement details were filled automatically. Check they are correct, then click Import.</p>
             <p className="mt-1 text-xs text-gray-500">Categories are suggested from transaction details. Use the dropdowns to change them before importing. Unrecognized transactions stay in Other.</p>
@@ -88,10 +88,10 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
           <button type="button" disabled={saving} aria-label="Close import review" onClick={close} className="rounded-lg p-2 hover:bg-gray-100 disabled:opacity-50"><X size={20} /></button>
         </div>
         <div className="overflow-y-auto p-4 sm:p-5">
-          <div className="mb-4 grid grid-cols-3 gap-3 rounded-xl bg-gray-50 p-4">
-            <div><p className="text-xs text-gray-500">Ready to import</p><p className="mt-1 text-lg font-bold text-gray-900">{selected.length}</p></div>
-            <div><p className="text-xs text-gray-500">Money in</p><p className="mt-1 text-lg font-bold text-emerald-600">₹{money(totals.income)}</p></div>
-            <div><p className="text-xs text-gray-500">Money out</p><p className="mt-1 text-lg font-bold text-red-500">₹{money(totals.expense)}</p></div>
+          <div className="mb-5 grid grid-cols-1 gap-4 rounded-2xl border border-border bg-background p-4 min-[420px]:grid-cols-3">
+            <div><p className="text-xs text-gray-500">Ready to import</p><p className="mt-1 text-lg font-semibold text-gray-900">{selected.length}</p></div>
+            <div><p className="text-xs text-gray-500">Money in</p><p className="mt-1 text-lg font-semibold text-primary">₹{money(totals.income)}</p></div>
+            <div><p className="text-xs text-gray-500">Money out</p><p className="mt-1 text-lg font-semibold text-destructive">₹{money(totals.expense)}</p></div>
           </div>
           {warnings.map((warning, index) => <p key={index} className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{warning}</p>)}
           {unreadable.length > 0 && <p role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"><AlertTriangle size={15} className="shrink-0" />{unreadable.length} transaction(s) could not be read completely and are excluded. You can check them using Edit, or upload a clearer statement.</p>}
@@ -108,7 +108,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
                     <td className="px-3 py-4"><input aria-label={`Include transaction ${index + 1}`} type="checkbox" checked={row.selected} disabled={saving || editing !== null || !!issues.length} onChange={(event) => update(index, "selected", event.target.checked)} /></td>
                     <td className="whitespace-nowrap px-3 py-4 text-gray-600">{edit ? <input aria-label={`Date row ${index + 1}`} type="date" disabled={saving} value={parseTransactionDate(row.transaction_date)} onChange={(event) => update(index, "transaction_date", event.target.value)} className={inputClass} /> : dateLabel(row.transaction_date)}</td>
                     <td className="min-w-52 px-3 py-4 font-medium text-gray-900">{edit ? <input aria-label={`Description row ${index + 1}`} disabled={saving} maxLength={500} value={row.description || ""} onChange={(event) => update(index, "description", event.target.value)} className={inputClass} /> : row.description || "Not read"}</td>
-                    <td className={`whitespace-nowrap px-3 py-4 font-semibold ${row.type === "income" ? "text-emerald-600" : row.type === "expense" ? "text-red-500" : "text-gray-500"}`}>{edit ? <input aria-label={`Amount row ${index + 1}`} type="number" min="0.01" max="1000000000" step="0.01" disabled={saving} value={row.amount} onChange={(event) => update(index, "amount", event.target.value)} className={inputClass} /> : row.amount !== "" && row.amount != null ? `${row.type === "income" ? "+" : row.type === "expense" ? "−" : ""}₹${money(row.amount)}` : "Not read"}</td>
+                    <td className={`whitespace-nowrap px-3 py-4 font-semibold ${row.type === "income" ? "text-primary" : row.type === "expense" ? "text-destructive" : "text-gray-500"}`}>{edit ? <input aria-label={`Amount row ${index + 1}`} type="number" min="0.01" max="1000000000" step="0.01" disabled={saving} value={row.amount} onChange={(event) => update(index, "amount", event.target.value)} className={inputClass} /> : row.amount !== "" && row.amount != null ? `${row.type === "income" ? "+" : row.type === "expense" ? "−" : ""}₹${money(row.amount)}` : "Not read"}</td>
                     <td className="px-3 py-4">{edit ? <select aria-label={`Type row ${index + 1}`} disabled={saving} value={row.type || ""} onChange={(event) => update(index, "type", event.target.value)} className={inputClass}><option value="">Not read</option><option value="expense">Expense</option><option value="income">Income</option></select> : <span className={`rounded-full px-2 py-1 ${row.type === "income" ? "bg-emerald-50 text-emerald-700" : row.type === "expense" ? "bg-red-50 text-red-600" : "bg-amber-100 text-amber-800"}`}>{row.type === "income" ? "Income" : row.type === "expense" ? "Expense" : "Not read"}</span>}</td>
                     <td className="min-w-40 px-3 py-4 text-gray-600">
                       <select aria-label={`Category row ${index + 1}`} disabled={saving || (editing !== null && !edit)} value={row.category || "Other"} onChange={(event) => update(index, "category", event.target.value)} className={inputClass}>
@@ -127,7 +127,7 @@ export default function ReviewImportModal({ transactions = [], fileName, warning
         </div>
         <div className="border-t border-gray-100 p-4 sm:p-5">
           {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <div className="flex items-center justify-between gap-3"><p className="text-xs text-gray-500">{selected.length} transactions will be imported. Existing matches are skipped.</p><div className="flex gap-2"><button type="button" disabled={saving} onClick={close} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-600 disabled:opacity-50">Cancel</button><button type="button" disabled={saving || !selected.length || !!invalidSelected.length || editing !== null} onClick={confirm} className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{saving ? "Importing…" : "Import"}</button></div></div>
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"><p className="text-xs text-gray-500">{selected.length} transactions will be imported. Existing matches are skipped.</p><div className="flex gap-2"><button type="button" disabled={saving} onClick={close} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-600 disabled:opacity-50">Cancel</button><button type="button" disabled={saving || !selected.length || !!invalidSelected.length || editing !== null} onClick={confirm} className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{saving ? "Importing…" : "Import"}</button></div></div>
         </div>
       </div>
     </div>
