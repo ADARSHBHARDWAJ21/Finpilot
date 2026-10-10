@@ -3,11 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import FinancialYearSelect from "@/components/finance/FinancialYearSelect";
-import { Sparkles, Send, RefreshCw, Plus, Trash2, User, IndianRupee, Wallet, TrendingUp, Info, ArrowUpRight, LoaderCircle, PanelRight, History, X } from "lucide-react";
+import { Sparkles, Send, RefreshCw, Plus, Trash2, User, Wallet, Info, ArrowUpRight, ArrowRight, ChevronRight, LoaderCircle, PanelRight, History, X, CalendarDays, Percent, FileText, Paperclip, Upload, Pencil, PiggyBank, Sprout, ChartNoAxesColumnIncreasing, CircleDollarSign } from "lucide-react";
 import { Dialog } from "radix-ui";
-import { WorkspaceHeader } from "@/components/layout/WorkspaceUI";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { displayDate } from "@/lib/finance/model";
 
 const promptGroups = [{label:"Money",items:["Where is most of my spending going?","Can I afford a new EMI?","How can I improve my monthly savings?"]},{label:"Taxation",items:["Which tax regime is better for me?","Am I missing any eligible deductions?","Explain my HRA exemption and its assumptions."]}];
+const promptIcons = [CircleDollarSign, CalendarDays, PiggyBank, Percent, FileText, Sparkles];
+const moreQuestions = ["How should I plan my budget for next month?", "What should I consider before increasing my SIP?", "Which assumptions should I check before filing my return?", "What records do I need to support my deductions?"];
+const explorations = [
+  { title: "Explore your tax savings", detail: "Review deductions and compare your estimates.", icon: ChartNoAxesColumnIncreasing, tone: "green", prompt: "Help me understand my eligible deductions and compare both tax regimes before suggesting any tax-saving investments." },
+  { title: "Plan your next month", detail: "Set a budget and make room for your goals.", icon: FileText, tone: "purple", prompt: "Help me plan a budget for next month using my recorded spending. Ask me for any missing income or commitments." },
+  { title: "Build your financial future", detail: "Explore savings, goals and your next steps.", icon: PiggyBank, tone: "orange", prompt: "Help me build a savings plan for my goals. Ask me about my priorities, emergency savings and monthly commitments." },
+];
 const followUps = ["What if my salary increases by 20%?", "Explain the assumptions", "How can I save more each month?"];
 const MAX_EXCHANGES = 20;
 const money = (value) => `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
@@ -70,6 +78,8 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
   const [storageAvailable, setStorageAvailable] = useState(historyAvailable);
   const [contextOpen, setContextOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [questionsExpanded, setQuestionsExpanded] = useState(false);
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
   const inFlight = useRef(false);
   const bottom = useRef(null);
   const input = useRef(null);
@@ -174,30 +184,43 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
     setActiveId(null); setMessages([]); setDraft(""); setError(""); setNotice(""); input.current?.focus();
   }
   const tax = snapshot?.tax;
+  const selectedYear = snapshot?.financialYear || financialYear;
+  const taxSuffix = selectedYear ? `?year=${encodeURIComponent(selectedYear)}` : "";
+  const preparation = snapshot?.preparation;
+  const preparationPercent = preparation?.total ? Math.round(preparation.completed / preparation.total * 100) : 0;
+  const initials = snapshot?.name && snapshot.name !== "there" ? snapshot.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() : "FP";
+  const selectQuestion = (question) => { setDraft(question); input.current?.focus(); };
   const snapshotRows = [
-    { label: "Annual salary / CTC declaration", value: tax?.available ? money(tax.annualSalary) : "Not available", icon: IndianRupee },
-    { label: "Monthly take-home declaration", value: snapshot?.cashflow?.declaredMonthlyTakeHome ? money(snapshot.cashflow.declaredMonthlyTakeHome) : "Not recorded", icon: Wallet },
-    { label: "Expenses recorded this month", value: snapshot?.spending?.available ? money(snapshot.spending.currentMonth.expenses) : "Not available", icon: TrendingUp },
-    { label: "Lower annual tax estimate", value: hasTaxEstimates(tax) ? money(Math.min(tax.old.tax, tax.new.tax)) : "Not available", icon: IndianRupee },
+    { label: "Annual salary / CTC declaration", value: tax?.available ? money(tax.annualSalary) : "Not available", icon: Wallet },
+    { label: "Monthly take-home declaration", value: snapshot?.cashflow?.declaredMonthlyTakeHome ? money(snapshot.cashflow.declaredMonthlyTakeHome) : "Not recorded", icon: CalendarDays },
+    { label: "Expenses recorded this month", value: snapshot?.spending?.available ? money(snapshot.spending.currentMonth.expenses) : "Not available", icon: FileText },
+    { label: "Lower annual tax estimate", value: hasTaxEstimates(tax) ? money(Math.min(tax.old.tax, tax.new.tax)) : "Not available", icon: Percent },
   ];
   const assumptions = [...textList(tax?.warnings), ...textList(snapshot?.dataWarnings)];
-  return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 py-2">
-    <WorkspaceHeader eyebrow="A thoughtful second perspective" title="Financial Copilot" description="Make sense of your money and your tax year, with your saved context in view." meta={`${snapshot?.financialYear ? `FY ${snapshot.financialYear}` : "Tax year not selected"}${snapshot?.asOf ? ` · Snapshot as of ${snapshot.asOf}` : ""}`}>
-      <div className="flex flex-wrap items-center gap-2">{snapshot?.financialYear && <FinancialYearSelect year={snapshot.financialYear} />}<button type="button" disabled={busy} onClick={refresh} className="fp-button" aria-label="Refresh Copilot data"><RefreshCw size={15} className={busy ? "animate-spin" : ""} /><span className="sm:sr-only">Refresh data</span></button><button type="button" disabled={busy} onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"><Plus size={16} />New chat</button></div>
-    </WorkspaceHeader>
-    <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Money decisions and tax questions, together.</p><div className="flex gap-2"><button type="button" className="fp-button" aria-expanded={historyOpen} onClick={()=>{historyOpener.current=document.activeElement;setHistoryOpen(true);}}><History size={16}/>History</button><button type="button" className="fp-button" aria-expanded={contextOpen} aria-controls="copilot-financial-context" onClick={()=>setContextOpen(open=>!open)}><PanelRight size={16}/>{contextOpen ? "Hide context" : "Show context"}</button></div></div>
+  const toolbar = <div className="fp-copilot-toolbar">
+    {selectedYear && <FinancialYearSelect year={selectedYear} />}
+    <button type="button" disabled={busy} onClick={refresh} className="fp-copilot-icon-button" aria-label="Refresh Copilot data" title="Refresh Copilot data"><RefreshCw size={18} className={busy ? "animate-spin" : ""} /></button>
+    <button type="button" className="fp-copilot-history-button" aria-expanded={historyOpen} onClick={() => { historyOpener.current = document.activeElement; setHistoryOpen(true); }}><History size={17} />History</button>
+    <button type="button" disabled={busy} onClick={newChat} className="fp-copilot-new-chat"><Plus size={18} />New chat</button>
+  </div>;
+  return <DashboardLayout showRightSidebar={false} compactNavigation headerActions={toolbar} accountInitials={initials}><div className="fp-copilot-workspace">
+    <h1 className="sr-only">Financial Copilot</h1>
+    <div className="fp-copilot-mobile-controls">{toolbar}</div>
     {!providerReady && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">AI answers are waiting for setup</p><p className="mt-1 text-xs text-amber-800">Your financial snapshot and saved chats are still available. Ask the app administrator to connect Google Gemini, then select Refresh data.</p></div>}
     {!storageAvailable && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Saved chats need to be set up before you can ask a question. Ask the app administrator to finish Copilot setup, then select Refresh data.</div>}
     {profileError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{profileError}</div>}
-    <div className={`grid min-w-0 items-start gap-5 ${contextOpen ? "xl:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
-      <div className="min-w-0">
+    <div className={`fp-copilot-grid ${contextOpen ? "" : "fp-copilot-context-hidden"}`}>
+      <div className="fp-copilot-main-column">
+        {!messages.length && !pendingMessage && <section className="fp-copilot-welcome" aria-labelledby="copilot-welcome-heading">
+          <div className="fp-copilot-welcome-copy"><span className="fp-copilot-welcome-label">Your financial Copilot</span><h2 id="copilot-welcome-heading">Let’s make sense<br />of <span>your money.</span></h2><p>Ask anything about your spending, saving or taxes.<br className="hidden sm:block" /> Clear answers, with your financial context in view.</p></div>
+          <div className="fp-copilot-hero-art"><div className="fp-copilot-chart-tile" aria-hidden="true"><span /><span /><span /><span /></div><Link href="/budget-tracker" className="fp-copilot-plan-tile"><span>Plan<br />smarter</span><ArrowUpRight size={25} aria-hidden="true" /></Link><Sparkles className="fp-copilot-art-sparkle fp-copilot-sparkle-one" size={26} aria-hidden="true" /><Sparkles className="fp-copilot-art-sparkle fp-copilot-sparkle-two" size={17} aria-hidden="true" /></div>
+        </section>}
+        <section className="fp-copilot-chat-card" aria-label={messages.length ? "Your conversation" : "Quick questions and message"}>
         <div className="space-y-5" role="log" aria-label="Copilot conversation" aria-live="polite" aria-busy={busy}>
-          {!messages.length && !pendingMessage && <div className="rounded-[20px] border border-primary/10 bg-[#edf2eb] p-5 sm:p-7">
-            <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/10 bg-white/75 text-primary"><Sparkles size={23} strokeWidth={1.7} /></span>
-            <h2 className="text-2xl font-medium tracking-tight text-primary">Let’s make sense of your money.</h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-primary/75">Choose a starting question or write your own. Review it below, then send it when you’re ready.</p>
-            <div className="mb-6 mt-6 grid gap-5 sm:grid-cols-2">{promptGroups.map(group=><section key={group.label} aria-label={`${group.label} starter questions`}><h3 className="mb-3 text-sm font-medium text-primary">{group.label}</h3><div className="space-y-2">{group.items.map(prompt=><button key={prompt} type="button" disabled={busy} onClick={()=>{setDraft(prompt);input.current?.focus();}} className="flex w-full items-center justify-between gap-3 rounded-xl border border-primary/10 bg-white/75 px-4 py-3 text-left text-sm leading-relaxed text-primary transition-colors hover:border-primary/30 hover:bg-white disabled:opacity-50">{prompt}<ArrowUpRight size={14} className="shrink-0 text-primary/60"/></button>)}</div></section>)}</div>
-            <div className="border-t border-primary/10 pt-5"><p className="mb-3 text-xs font-medium text-primary">Your current salary tax picture</p><RegimeComparison tax={tax} />{hasTaxEstimates(tax) && <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Salary-only estimate using declared data. CTC may differ from taxable salary. Check assumptions before acting.</p>}</div>
+          {!messages.length && !pendingMessage && <div className="fp-copilot-quick-questions">
+            <div className="fp-copilot-section-heading"><h2>Quick questions</h2><button type="button" onClick={() => setQuestionsExpanded((open) => !open)} aria-expanded={questionsExpanded} aria-controls="copilot-more-questions" className="fp-copilot-text-button">{questionsExpanded ? "Show less" : "See all"}<ArrowRight size={16} aria-hidden="true" /></button></div>
+            <div className="fp-copilot-question-groups">{promptGroups.map((group, groupIndex) => <section key={group.label} aria-label={`${group.label} starter questions`}><h3 className="sr-only">{group.label}</h3>{group.items.map((prompt, index) => { const Icon = promptIcons[groupIndex * 3 + index]; return <button key={prompt} type="button" disabled={busy} onClick={() => selectQuestion(prompt)} className="fp-copilot-question"><span className="fp-copilot-question-icon"><Icon size={21} aria-hidden="true" /></span><span>{prompt}</span><ChevronRight size={17} aria-hidden="true" /></button>; })}</section>)}</div>
+            <div id="copilot-more-questions" hidden={!questionsExpanded} className="fp-copilot-more-questions">{moreQuestions.map((prompt) => <button key={prompt} type="button" disabled={busy} onClick={() => selectQuestion(prompt)} className="fp-copilot-question"><span>{prompt}</span><ChevronRight size={17} aria-hidden="true" /></button>)}</div>
           </div>}
           {messages.map((message, index) => {
             const sources = validSources(message.sources);
@@ -212,19 +235,27 @@ export default function AITaxCopilotSection({ financialYear, initialSnapshot, in
           {limitReached && <div role="status" className="mb-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">This chat has reached 20 questions. Select New chat to continue.</div>}
           {notice && <div role="status" className="mb-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">{notice}</div>}
           {error && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-          <form onSubmit={(event) => { event.preventDefault(); send(); }} className="fp-card p-4 transition-colors focus-within:border-primary/35 sm:p-5">
-            <label htmlFor="copilot-question" className="sr-only">Your finance or tax question</label><textarea ref={input} id="copilot-question" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); } }} disabled={busy} maxLength={3000} rows={3} placeholder="What would you like to understand about your money?" className="min-h-[88px] w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50" />
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3"><p className="text-[11px] text-muted-foreground"><span className="hidden sm:inline">Enter to send · </span>{exchanges}/{MAX_EXCHANGES} questions</p><button type="submit" disabled={!canSend || !draft.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50">{busy ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}Send</button></div>
+          <form onSubmit={(event) => { event.preventDefault(); send(); }} className="fp-copilot-input-box">
+            <label htmlFor="copilot-question" className="sr-only">Your finance or tax question</label><textarea ref={input} id="copilot-question" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); } }} disabled={busy} maxLength={3000} rows={3} placeholder="Ask me anything about your money, taxes or savings…" />
+            <div className="fp-copilot-input-actions"><div className="fp-copilot-file-links"><Link href={`/taxation/salary-documents${taxSuffix}`} title="Manage your private tax proofs. Document contents are not sent to Copilot."><Paperclip size={17} aria-hidden="true" />Tax documents</Link><Link href="/transactions"><Upload size={17} aria-hidden="true" />Upload statement</Link></div><button type="submit" disabled={!canSend || !draft.trim()} className="fp-copilot-send">{busy ? <LoaderCircle size={17} className="animate-spin" /> : <Send size={17} />}Send</button></div>
           </form>
-          <p className="mt-3 flex gap-2 text-[11px] leading-relaxed text-muted-foreground"><Info size={14} className="mt-0.5 shrink-0" />Answers use your financial summary and are processed by Google Gemini. Tax figures are estimates; verify eligibility and important decisions. Document contents are not connected yet.</p>
+          <div className="fp-copilot-composer-meta"><span>Enter to send · Shift + Enter for a new line</span><span>{exchanges}/{MAX_EXCHANGES} questions</span></div>
         </div>
+        </section>
+        <div className="fp-copilot-footnote"><Info size={14} aria-hidden="true" /><p>Answers use your financial summary and are processed by Google Gemini. Tax figures are estimates; verify eligibility and important decisions. Uploaded document contents are not sent to Copilot.</p><button type="button" className="fp-copilot-context-toggle" aria-expanded={contextOpen} aria-controls="copilot-financial-context" onClick={() => setContextOpen((open) => !open)}><PanelRight size={16} />{contextOpen ? "Hide context" : "Show context"}</button></div>
       </div>
-      {contextOpen && <aside id="copilot-financial-context" className="fp-sticky-result space-y-4">
-        <section className="fp-card p-5"><div className="mb-5 flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary" /><h2 className="text-sm font-medium">Your financial context</h2></div><ul className="divide-y divide-border">{snapshotRows.map(({ label, value, icon: Icon }) => <li key={label} className="flex items-start gap-3 py-3 first:pt-0"><Icon size={16} strokeWidth={1.7} className="mt-1 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-[11px] leading-relaxed text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium tabular-nums text-foreground">{value}</p></div></li>)}</ul><Link href="/settings" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Review financial profile<ArrowUpRight size={13} /></Link><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">A new chat starts with this saved financial profile. Ask for another tax year in your question, or update your profile and refresh.</p>{assumptions.length > 0 && <details className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Data and estimate assumptions</summary><ul className="mt-3 list-disc space-y-2 pl-4 leading-relaxed">{assumptions.map((note, i) => <li key={i}>{note}</li>)}</ul></details>}</section>
-        <section className="fp-card p-5"><h2 className="mb-4 text-sm font-medium text-foreground">Worth exploring</h2><ul className="space-y-3">{(snapshot?.insights || []).map((item, index) => <li key={index}><button type="button" disabled={!canSend} onClick={() => send(item.prompt)} className="text-left text-xs leading-relaxed text-muted-foreground hover:text-primary disabled:opacity-50">{item.text}<ArrowUpRight size={12} className="ml-1 inline text-primary" /></button></li>)}</ul>{!snapshot?.insights?.length && <p className="text-xs leading-relaxed text-muted-foreground">Insights appear as your saved financial picture takes shape.</p>}</section>
-
+      {contextOpen && <aside id="copilot-financial-context" className="fp-copilot-context">
+        <section className="fp-copilot-context-card"><div className="fp-copilot-section-heading"><h2>Your financial context</h2><Link href="/settings" className="fp-copilot-edit"><Pencil size={15} aria-hidden="true" />Edit</Link></div><ul className="fp-copilot-context-rows">{snapshotRows.map(({ label, value, icon: Icon }) => <li key={label}><span className="fp-copilot-context-icon"><Icon size={19} aria-hidden="true" /></span><span>{label}</span><strong>{value}</strong></li>)}</ul>
+          <Link href="/settings" className="fp-copilot-profile-link"><span className="fp-copilot-context-icon"><Sparkles size={19} aria-hidden="true" /></span><span><strong>{tax?.available && snapshot?.cashflow?.declaredMonthlyTakeHome ? "Keep your profile up to date" : "Complete your financial profile"}</strong><small>Give your answers more useful context.</small></span><ChevronRight size={18} aria-hidden="true" /></Link>
+          {snapshot?.asOf && <p className="fp-copilot-snapshot-date">Snapshot as of {displayDate(snapshot.asOf)} · selected FY {selectedYear}</p>}
+          {(hasTaxEstimates(tax) || assumptions.length > 0) && <details className="fp-copilot-assumptions"><summary>Tax estimates and assumptions</summary>{hasTaxEstimates(tax) && <RegimeComparison tax={tax} />}<ul>{assumptions.map((note, i) => <li key={i}>{note}</li>)}</ul><p>Salary-only estimates use declared data. CTC may differ from taxable salary.</p></details>}
+        </section>
+        <section className="fp-copilot-explore-card"><div className="fp-copilot-section-heading"><h2>Worth exploring</h2><button type="button" className="fp-copilot-text-button" aria-expanded={insightsExpanded} aria-controls="copilot-saved-insights" onClick={() => setInsightsExpanded((open) => !open)}>{insightsExpanded ? "Show less" : "View all"}<ArrowRight size={16} aria-hidden="true" /></button></div><ul className="fp-copilot-explorations">{explorations.map(({ title, detail, icon: Icon, tone, prompt }) => <li key={title}><button type="button" disabled={busy} onClick={() => selectQuestion(prompt)}><span className={`fp-copilot-explore-icon fp-copilot-tone-${tone}`}><Icon size={27} aria-hidden="true" /></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
+          <div id="copilot-saved-insights" hidden={!insightsExpanded} className="fp-copilot-saved-insights"><h3>From your saved context</h3>{snapshot?.insights?.length ? <ul>{snapshot.insights.map((item, index) => <li key={index}><button type="button" disabled={busy} onClick={() => selectQuestion(item.prompt)}>{item.text}<ArrowUpRight size={14} aria-hidden="true" /></button></li>)}</ul> : <p>Insights appear as your saved financial picture takes shape.</p>}</div>
+        </section>
       </aside>}
     </div>
+    <Link href={`/taxation${taxSuffix}`} className="fp-copilot-preparation" aria-label="Review your tax preparation progress"><span className="fp-copilot-preparation-icon"><Sprout size={25} aria-hidden="true" /></span><strong>Your tax preparation progress</strong><span className="fp-copilot-preparation-track" role={preparation ? "progressbar" : undefined} aria-label="Tax checklist items reviewed" aria-valuemin={preparation ? 0 : undefined} aria-valuemax={preparation?.total} aria-valuenow={preparation?.completed}><span style={{ width: `${preparationPercent}%` }} /></span><span className="fp-copilot-preparation-count">{preparation ? `${preparation.completed} of ${preparation.total} items reviewed` : "Progress unavailable"}</span><span className="fp-copilot-year-end"><CalendarDays size={21} aria-hidden="true" />{preparation?.yearEnd ? `Tax year ${snapshot.asOf > preparation.yearEnd ? "ended" : "ends"} ${displayDate(preparation.yearEnd)}` : "Review your tax workspace"}</span></Link>
     <Dialog.Root open={historyOpen} onOpenChange={setHistoryOpen}><Dialog.Portal><Dialog.Overlay className="fp-drawer-overlay"/><Dialog.Content className="fp-drawer" aria-describedby="copilot-history-description" onCloseAutoFocus={event=>{event.preventDefault();historyOpener.current?.focus();}}><div className="flex items-center justify-between gap-3"><Dialog.Title className="text-2xl font-medium">Recent conversations</Dialog.Title><Dialog.Close asChild><button type="button" className="fp-button !px-3" aria-label="Close conversation history"><X size={18}/></button></Dialog.Close></div><Dialog.Description id="copilot-history-description" className="mt-3 text-sm text-muted-foreground">Your saved conversations. Open one to continue where you left off.</Dialog.Description>{chats.length ? <ul className="mt-6 space-y-3">{chats.map(chat=><li key={chat.id} className="flex items-center rounded-xl border border-border bg-white"><button type="button" disabled={busy} onClick={async()=>{await openChat(chat.id);setHistoryOpen(false);}} className="min-h-14 min-w-0 flex-1 break-words p-4 text-left text-sm hover:text-primary disabled:opacity-50">{chat.title}</button><button type="button" aria-label={`Delete chat: ${chat.title}`} disabled={busy} className="min-h-11 min-w-11 text-muted-foreground hover:text-destructive" onClick={()=>{if(window.confirm("Delete this saved conversation? This cannot be undone."))deleteChat(chat.id);}}><Trash2 size={16}/></button></li>)}</ul> : <p className="mt-8 text-sm text-muted-foreground">{storageAvailable ? "Your first conversation will appear here." : "Saved chats will be available after Copilot setup."}</p>}</Dialog.Content></Dialog.Portal></Dialog.Root>
-  </div>;
+  </div></DashboardLayout>;
 }

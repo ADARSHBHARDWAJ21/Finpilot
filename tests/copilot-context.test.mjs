@@ -10,6 +10,19 @@ const snapshot = (options = {}) => buildCopilotContext({ profile, transactions: 
 const pair = (assistant = {}) => [{ role: "user", content: "Question" }, { role: "assistant", content: "Answer", calculations: [], sources: [], ...assistant }];
 const invalid = (value) => assert.throws(() => validateCopilotMessages(value), (error) => error.code === "CHAT_INVALID_DATA" && error.status === 409);
 
+test("Copilot preparation uses reviewed items from the selected tax workspace", () => {
+  const built = snapshot({ workspace: { year: "2025-26", sections: {
+    "salary-documents": { checklist: { form16: true, salary_slips: "true", unknown: true } },
+    "rent-hra": { checklist: { lease: true } },
+  }, documents: [] } });
+  assert.deepEqual(built.view.preparation, { completed: 2, total: 21, yearEnd: "2026-03-31" });
+  assert.equal("preparation" in built.context, false);
+});
+
+test("Copilot does not invent preparation progress when the workspace is unavailable", () => {
+  assert.equal(snapshot().view.preparation, null);
+});
+
 test("an independent workspace deduction requires confirmation and exposes both sources", () => {
   const built = snapshot({ deductions: [{ key: "80C", amount: 150000 }] });
   assert.equal(built.context.taxInputs.section80c, 0);

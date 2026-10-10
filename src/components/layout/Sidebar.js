@@ -35,11 +35,26 @@ const taxItems = [
   ["What-if calculator", "/taxation/simulation"],
 ];
 
-export default function Sidebar({ onNavigate }) {
+export default function Sidebar({ onNavigate, compact = false }) {
   const pathname = usePathname();
   const year = useSearchParams().get("year");
   const taxHref = (href) => /^20\d{2}-\d{2}$/.test(year || "") ? `${href}?year=${year}` : href;
   const isTax = pathname.startsWith("/taxation") && pathname !== "/taxation/ai-copilot";
+
+  if (compact) return <aside className="fp-copilot-rail">
+    <Link href="/dashboard" aria-label="Finpilot overview" className="fp-copilot-rail-brand"><BrandMark dark className="size-11" /></Link>
+    <nav aria-label="Main navigation">
+      {[
+        { icon: Sparkles, label: "Copilot", href: "/taxation/ai-copilot" },
+        { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+        { icon: ArrowLeftRight, label: "Transactions", href: "/transactions" },
+        { icon: Landmark, label: "Tax workspace", href: "/taxation" },
+        { icon: ChartNoAxesColumnIncreasing, label: "Reports", href: "/reports" },
+        { icon: Settings, label: "Settings", href: "/settings" },
+      ].map(({ icon: Icon, label, href }) => <Link key={href} href={href.startsWith("/taxation") || ["/reports", "/dashboard"].includes(href) ? taxHref(href) : href} aria-current={pathname === href ? "page" : undefined}><Icon size={23} strokeWidth={1.7} aria-hidden="true" /><span>{label}</span></Link>)}
+    </nav>
+    <SignOutButton className="fp-copilot-rail-signout text-white/75 hover:bg-white/10 hover:text-white" />
+  </aside>;
 
   function itemLink(item) {
     const Icon = item.icon;

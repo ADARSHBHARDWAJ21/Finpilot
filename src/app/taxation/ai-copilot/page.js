@@ -1,5 +1,4 @@
 import { requireUser } from "@/lib/auth";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import AITaxCopilotSection from "@/components/taxation/AITaxCopilotSection";
 import { createClient } from "@/lib/supabase/server-client";
 import { loadCopilotContext } from "@/lib/copilot/context";
@@ -19,7 +18,6 @@ export default async function AITaxCopilotPage({ searchParams }) {
   const history = historyResult.status === "fulfilled" ? historyResult.value : { chats: [], available: false };
 
   return (
-    <DashboardLayout showRightSidebar={false}>
       <AITaxCopilotSection
         key={snapshot?.view?.financialYear || resolveFinancialYear(params?.year)}
         financialYear={snapshot?.view?.financialYear || resolveFinancialYear(params?.year)}
@@ -30,6 +28,5 @@ export default async function AITaxCopilotPage({ searchParams }) {
         aiConfigured={Boolean(process.env.GEMINI_API_KEY?.trim())}
         initialQuestion={initialQuestion}
       />
-    </DashboardLayout>
   );
 }

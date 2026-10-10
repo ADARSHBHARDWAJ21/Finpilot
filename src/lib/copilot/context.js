@@ -1,7 +1,7 @@
 import { estimateTax, profileTaxInputs, number, inr } from "./tax-engine.js";
 import { applyTaxWorkspace } from "../taxation/year-inputs.js";
 import { loadTaxWorkspace } from "../finance/data.js";
-import { resolveFinancialYear } from "../finance/model.js";
+import { resolveFinancialYear, CHECKLIST_IDS, yearDates } from "../finance/model.js";
 
 function indiaDate(now) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
@@ -107,5 +107,10 @@ export function buildCopilotContext({ profile = {}, salary = null, deductions = 
   if (!taxInputs.deductionConflicts.some((conflict) => conflict.key === "80C") && taxInputs.section80c < 150000) insights.push({ text: `${inr(150000 - Math.min(150000, taxInputs.section80c))} of the old-regime deduction limit is unused in your declarations.`, prompt: "Am I missing deductions for expenses I already pay? Check whether they actually reduce my tax before suggesting investments." });
   insights.push({ text: "Model a promotion before changing your payroll declaration.", prompt: "If I get a promotion, what happens to my tax? Ask me for the raise amount and effective date." });
   // Contact details, identifiers, merchant descriptions and employer names never enter model context.
-  return { context, view: { name: String(profile.full_name || "there").slice(0, 80), financialYear: taxInputs.financialYear, asOf: today, tax, cashflow, spending, insights, dataWarnings: warnings } };
+  const preparation = workspace ? {
+    completed: Object.entries(CHECKLIST_IDS).reduce((sum, [section, ids]) => sum + ids.filter((id) => workspace.sections?.[section]?.checklist?.[id] === true).length, 0),
+    total: Object.values(CHECKLIST_IDS).reduce((sum, ids) => sum + ids.length, 0),
+    yearEnd: yearDates(workspace.year).end,
+  } : null;
+  return { context, view: { name: String(profile.full_name || "there").slice(0, 80), financialYear: taxInputs.financialYear, asOf: today, tax, cashflow, spending, insights, preparation, dataWarnings: warnings } };
 }

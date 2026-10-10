@@ -11,7 +11,7 @@ import BrandMark from "./BrandMark";
 
 const pageNames = { dashboard: "Overview", transactions: "Transactions", "budget-tracker": "Budgets", taxation: "Tax workspace", goals: "Goals", reports: "Reports", reminders: "Reminders", calendar: "Calendar", settings: "Settings", investments: "Investments", "net-worth": "Net worth", "ai-copilot": "AI Copilot", "rent-hra": "Rent & HRA" };
 
-export default function DashboardLayout({ children, showRightSidebar = true, rightSidebarProps }) {
+export default function DashboardLayout({ children, showRightSidebar = true, rightSidebarProps, headerActions, compactNavigation = false, accountInitials }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const closeMenuButton = useRef(null);
   useEffect(() => {
@@ -27,9 +27,9 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
   const title = (part) => pageNames[part] || part.replaceAll("-", " ").replace(/^./, (char) => char.toUpperCase());
 
   return (
-    <div className="fp-app flex min-h-dvh bg-background">
+    <div className={`fp-app ${compactNavigation ? "fp-copilot-app" : ""} flex min-h-dvh bg-background`}>
       <a href="#main-content" className="sr-only fixed left-4 top-4 z-[100] rounded-xl bg-primary px-5 py-3 text-sm text-white focus:not-sr-only">Skip to content</a>
-      <div className="fp-sidebar sticky top-0 hidden h-dvh shrink-0 lg:block"><Sidebar /></div>
+      <div className="fp-sidebar sticky top-0 hidden h-dvh shrink-0 lg:block"><Sidebar compact={compactNavigation} /></div>
       <div className="flex min-w-0 flex-1 flex-col">
         <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <header className="fp-mobile-header safe-top sticky top-0 z-30 flex h-17 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur-md lg:hidden">
@@ -52,13 +52,13 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
             {segments.map((part, index) => <span key={part} className="flex items-center gap-2"><ChevronRight size={12} className="text-slate-400" aria-hidden="true" /><span className={index === segments.length - 1 ? "font-medium text-foreground" : "text-muted-foreground"}>{title(part)}</span></span>)}
           </nav>
           <div className="flex items-center gap-3">
-            <span className="mr-2 text-[11px] text-muted-foreground">Your space. Your pace.</span>
+            {headerActions || <span className="mr-2 text-[11px] text-muted-foreground">Your space. Your pace.</span>}
             <Link href="/reminders" aria-label="View reminders" className="flex size-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:bg-muted"><Bell size={16} /></Link>
-            <Link href="/settings" aria-label="Account settings" className="flex size-9 items-center justify-center rounded-xl bg-muted text-primary hover:bg-accent"><Settings size={16} /></Link>
+            <Link href="/settings" aria-label="Account settings" className={`flex size-9 items-center justify-center bg-muted text-primary hover:bg-accent ${accountInitials ? "fp-copilot-avatar" : "rounded-xl"}`}>{accountInitials || <Settings size={16} />}</Link>
           </div>
         </header>
         <div className="flex min-w-0 flex-1">
-          <main id="main-content" tabIndex={-1} className={`fp-main ${pathname === "/dashboard" ? "fp-dashboard-main" : ""} w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9`}>
+          <main id="main-content" tabIndex={-1} className={`fp-main ${pathname === "/dashboard" ? "fp-dashboard-main" : ""} ${compactNavigation ? "fp-copilot-main" : ""} w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9`}>
             <div key={pathname} className="fp-page-content mx-auto w-full max-w-[1440px] min-w-0">{children}</div>
           </main>
           {showRightSidebar && <div className="hidden shrink-0 min-[1600px]:block"><RightSidebar {...rightSidebarProps} /></div>}
