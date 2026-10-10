@@ -4,7 +4,7 @@ import styles from "./MarketingAdditions.module.css";
 
 const audiences = [
   { icon: BriefcaseBusiness, number: "01", title: "For your working life.", body: "Bring your salary, everyday spending and upcoming commitments into one monthly picture.", detail: "A clearer month", href: "/demo", link: "Explore a sample month" },
-  { icon: FileCheck2, number: "02", title: "For a calmer tax year.", body: "Keep salary details and proofs together. Review your checklists and compare supported salary tax estimates.", detail: "A more organised year", href: "#tax-workspace", link: "See the tax workspace" },
+  { icon: FileCheck2, number: "02", title: "For a calmer tax year.", body: "Keep salary details and proofs together. Review your checklists and compare supported salary tax estimates.", detail: "A more organised year", href: "/demo?view=taxation", link: "Try the tax workspace" },
   { icon: Target, number: "03", title: "For what comes next.", body: "Set spending limits, make room for a goal and see how a future EMI changes your monthly balance.", detail: "A plan you can revisit", href: "/demo?view=copilot&question=emi", link: "Try an EMI example" },
 ];
 
