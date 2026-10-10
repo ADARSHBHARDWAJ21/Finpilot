@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import SummaryCards from "@/components/dashboard/SummaryCards";
 import NetWorthSection from "@/components/dashboard/NetWorthSection";
 import ExpenseChart from "@/components/dashboard/ExpenseChart";
 import CashFlowChart from "@/components/dashboard/CashFlowChart";
@@ -38,8 +37,6 @@ export default async function DashboardPage({ searchParams }) {
           <h2 className="text-sm font-medium text-foreground">Your financial overview</h2>
           <p className="text-[11px] text-muted-foreground" role="status">{overview.monthLabel} · {overview.summary.transactionCount} recorded transactions</p>
         </div>
-        {!overview.summary.transactionCount && <div className="mt-4 rounded-xl border border-border bg-secondary/60 p-4 text-xs leading-relaxed text-muted-foreground">No transactions recorded for {overview.monthLabel}. Choose another month or import a statement to add past activity.</div>}
-        <SummaryCards summary={overview.summary} omitTitles={["Total Income","Total Expenses"]} />
         <div className="mt-5 grid min-w-0 grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
           <div className="min-w-0 lg:col-span-7"><NetWorthSection key={selectedMonth} netWorthData={overview.netWorth} /></div>
           <div className="min-w-0 lg:col-span-5"><ExpenseChart expenseData={overview.expenses} /></div>

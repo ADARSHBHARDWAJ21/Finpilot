@@ -58,7 +58,7 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
           </div>
         </header>
         <div className="flex min-w-0 flex-1">
-          <main id="main-content" tabIndex={-1} className="fp-main w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9">
+          <main id="main-content" tabIndex={-1} className={`fp-main ${pathname === "/dashboard" ? "fp-dashboard-main" : ""} w-full min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 xl:px-9`}>
             <div key={pathname} className="fp-page-content mx-auto w-full max-w-[1440px] min-w-0">{children}</div>
           </main>
           {showRightSidebar && <div className="hidden shrink-0 min-[1600px]:block"><RightSidebar {...rightSidebarProps} /></div>}

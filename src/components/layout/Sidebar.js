@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import SignOutButton from "@/components/auth/SignOutButton";
 import BrandMark from "./BrandMark";
-import { LayoutDashboard, ArrowLeftRight, Wallet, Landmark, Sparkles, TrendingUp, ChartNoAxesCombined, Target, Bell, ChartNoAxesColumnIncreasing, CalendarDays, Settings, ArrowUpRight, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, Wallet, Landmark, Sparkles, TrendingUp, ChartNoAxesCombined, Target, Bell, ChartNoAxesColumnIncreasing, CalendarDays, Settings, ChevronDown } from "lucide-react";
 
 const sections = [
   { label: "Money", items: [
@@ -73,11 +73,6 @@ export default function Sidebar({ onNavigate }) {
       </div>
       {sections.slice(1).map((section) => <div key={section.label}><p className="fp-nav-label">{section.label}</p><div className="space-y-1">{section.items.map(itemLink)}</div></div>)}
     </nav>
-    <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="font-heading text-sm font-medium text-[#eef4e8]">Make room for clarity.</p>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-[#a9c0b0]">Your records, proofs and next steps. All together.</p>
-      <Link href={taxHref("/taxation")} onClick={onNavigate} className="mt-3 flex items-center justify-between text-[11px] font-medium text-[#dce8c7]">Visit tax workspace <ArrowUpRight size={14} aria-hidden="true" /></Link>
-    </div>
     <div className="border-t border-white/10 p-3">
       {itemLink({ icon: Settings, label: "Settings", href: "/settings" })}
       <SignOutButton className="text-[#bdcdc0] hover:bg-white/5 hover:text-white [&_svg]:text-[#a4b9ab]" />
