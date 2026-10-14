@@ -2,19 +2,10 @@ import {
   DEFAULT_CATEGORY_KEYS,
   getCategoryMeta,
   normalizeCategoryName,
-} from "@/lib/budget/category-meta";
+} from "./category-meta.js";
+import { currentMonthKey, monthLabel, shiftMonth, transactionMonthKey } from "../dashboard/period.js";
 
-function monthKey(dateStr) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatMonthLabel(key) {
-  const [y, m] = key.split("-");
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  return d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }).replace(" ", " '");
-}
+const roundMoney = (amount) => Math.round(amount * 100) / 100;
 
 function defaultBudgetForSpent(spent) {
   if (spent <= 0) return 5000;
@@ -64,24 +55,22 @@ function healthLabel(score) {
 }
 
 export function computeBudgetDashboard(transactions, budgetPlan, selectedMonthKey) {
-  const now = new Date();
-  const currentKey =
-    selectedMonthKey ||
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentKey = selectedMonthKey || currentMonthKey();
 
-  const spentByCategory = {};
-  const incomeByMonth = {};
-  const spentByMonth = {};
+  const spentByCategory = Object.create(null);
+  const incomeByMonth = Object.create(null);
+  const spentByMonth = Object.create(null);
 
   for (const tx of transactions || []) {
-    const mk = monthKey(tx.transaction_date);
+    const mk = transactionMonthKey(tx.transaction_date);
     if (!mk) continue;
 
-    const amount = Number(tx.amount) || 0;
+    const amount = Math.abs(Number(tx.amount));
+    if (!Number.isFinite(amount)) continue;
     const cat = normalizeCategoryName(tx.category);
 
     if (tx.type === "expense") {
-      spentByCategory[mk] = spentByCategory[mk] || {};
+      spentByCategory[mk] = spentByCategory[mk] || Object.create(null);
       spentByCategory[mk][cat] = (spentByCategory[mk][cat] || 0) + amount;
       spentByMonth[mk] = (spentByMonth[mk] || 0) + amount;
     } else if (tx.type === "income") {
@@ -89,25 +78,22 @@ export function computeBudgetDashboard(transactions, budgetPlan, selectedMonthKe
     }
   }
 
-  const monthSpentMap = spentByCategory[currentKey] || {};
+  const monthSpentMap = spentByCategory[currentKey] || Object.create(null);
   const savedCategoryBudgets = budgetPlan?.category_budgets || {};
 
-  const categoryKeys = new Set([
-    ...DEFAULT_CATEGORY_KEYS,
-    ...Object.keys(monthSpentMap),
-    ...Object.keys(savedCategoryBudgets),
-  ]);
+  const categoryKeys = new Set(budgetPlan?.categories_managed
+    ? Object.keys(savedCategoryBudgets)
+    : [...DEFAULT_CATEGORY_KEYS, ...Object.keys(monthSpentMap), ...Object.keys(savedCategoryBudgets)]);
 
   const categories = Array.from(categoryKeys)
     .filter((k) => k !== "Income")
     .map((key) => {
-      const spent = Math.round(monthSpentMap[key] || 0);
-      const budget = Math.round(
-        Number(savedCategoryBudgets[key]) || defaultBudgetForSpent(spent)
-      );
-      const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+      const spent = roundMoney(monthSpentMap[key] || 0);
+      const savedLimit = Object.hasOwn(savedCategoryBudgets, key) ? Number(savedCategoryBudgets[key]) : null;
+      const budget = Number.isFinite(savedLimit) && savedLimit >= 0 ? roundMoney(savedLimit) : defaultBudgetForSpent(spent);
+      const pct = budget > 0 ? Math.round((spent / budget) * 100) : spent > 0 ? 100 : 0;
       const meta = getCategoryMeta(key);
-      const statusMeta = getStatusMeta(pct);
+      const statusMeta = getStatusMeta(budget === 0 && spent > 0 ? 101 : pct);
 
       return {
         key,
@@ -117,37 +103,31 @@ export function computeBudgetDashboard(transactions, budgetPlan, selectedMonthKe
         iconColor: meta.iconColor,
         budget,
         spent,
-        remaining: budget - spent,
+        remaining: roundMoney(budget - spent),
         pct,
         ...statusMeta,
       };
     })
-    .filter((c) => c.budget > 0 || c.spent > 0)
     .sort((a, b) => b.spent - a.spent);
 
-  const totalSpent = categories.reduce((s, c) => s + c.spent, 0);
-  const totalBudget = Math.round(
-    Number(budgetPlan?.total_budget) ||
-      categories.reduce((s, c) => s + c.budget, 0) ||
-      defaultBudgetForSpent(totalSpent)
-  );
+  // Removing a budget category never removes its recorded expense.
+  const totalSpent = roundMoney(spentByMonth[currentKey] || 0);
+  const unbudgetedSpent = roundMoney(Object.entries(monthSpentMap).reduce((sum, [key, amount]) => sum + (categoryKeys.has(key) && key !== "Income" ? 0 : amount), 0));
+  const savedTotal = budgetPlan ? Number(budgetPlan.total_budget) : NaN;
+  const totalBudget = Number.isFinite(savedTotal) && savedTotal >= 0
+    ? roundMoney(savedTotal)
+    : roundMoney(categories.reduce((sum, category) => sum + category.budget, 0));
 
-  const remaining = totalBudget - totalSpent;
+  const remaining = roundMoney(totalBudget - totalSpent);
   const spentPct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 1000) / 10 : 0;
 
   const monthIncome = incomeByMonth[currentKey] || 0;
   const savings = Math.max(0, monthIncome - totalSpent);
 
-  const monthKeys = [];
-  const cursor = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-  for (let i = 0; i < 12; i++) {
-    const k = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-    monthKeys.push(k);
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
+  const monthKeys = Array.from({ length: 12 }, (_, index) => shiftMonth(currentKey, index - 11));
 
   const spendingTrend = monthKeys.map((mk) => ({
-    month: formatMonthLabel(mk),
+    month: monthLabel(mk, true),
     monthKey: mk,
     actual: Math.round(spentByMonth[mk] || 0),
     budget: totalBudget,
@@ -174,16 +154,10 @@ export function computeBudgetDashboard(transactions, budgetPlan, selectedMonthKe
       ? "You're staying within budget across categories. Keep it up!"
       : "Add expenses via Add Expense to see budget insights from your real data.";
 
-  const [y, m] = currentKey.split("-");
-  const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-IN", {
-    month: "long",
-    year: "numeric",
-  });
-
   const availableMonths = [
     ...new Set(
       (transactions || [])
-        .map((t) => monthKey(t.transaction_date))
+        .map((t) => transactionMonthKey(t.transaction_date))
         .filter(Boolean)
     ),
   ].sort((a, b) => b.localeCompare(a));
@@ -194,10 +168,11 @@ export function computeBudgetDashboard(transactions, budgetPlan, selectedMonthKe
 
   return {
     monthKey: currentKey,
-    monthLabel,
+    monthLabel: monthLabel(currentKey),
     availableMonths,
     totalBudget,
     totalSpent,
+    unbudgetedSpent,
     remaining,
     spentPct,
     monthIncome,
@@ -233,7 +208,7 @@ export function buildReportCsv(dashboard) {
 
   for (const c of dashboard.categories) {
     lines.push(
-      `"${c.name}",${c.budget},${c.spent},${c.remaining},${c.pct}%,"${c.status}"`
+      `"${c.name.replace(/"/g, '""')}",${c.budget},${c.spent},${c.remaining},${c.pct}%,"${c.status}"`
     );
   }
 

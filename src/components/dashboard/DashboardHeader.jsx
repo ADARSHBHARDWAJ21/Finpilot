@@ -38,12 +38,12 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
     const openSearch = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" && !addOpen && !pickerOpen) {
         event.preventDefault();
-        router.push("/transactions");
+        router.push(`/transactions?month=${selectedMonth}`);
       }
     };
     window.addEventListener("keydown", openSearch);
     return () => window.removeEventListener("keydown", openSearch);
-  }, [router, addOpen, pickerOpen]);
+  }, [router, addOpen, pickerOpen, selectedMonth]);
   function selectMonth(key) {
     const next = new URLSearchParams(params.toString());
     if (key === currentMonth) next.delete("month"); else next.set("month", key);
@@ -63,7 +63,7 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
           </div>
           <div className="min-w-0">
         <div className="fp-dashboard-toolbar">
-          <Link href="/transactions" aria-keyshortcuts="Control+k Meta+k" className={`fp-dashboard-search flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white px-3.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-primary ${focusClass}`}>
+          <Link href={`/transactions?month=${selectedMonth}`} aria-keyshortcuts="Control+k Meta+k" className={`fp-dashboard-search flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white px-3.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-primary ${focusClass}`}>
             <Search aria-hidden="true" size={17} className="shrink-0" />
             <span className="truncate">Find a transaction</span>
             <kbd className="fp-dashboard-shortcut" aria-hidden="true">Ctrl K</kbd>

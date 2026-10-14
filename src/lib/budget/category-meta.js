@@ -81,20 +81,22 @@ export const TRANSACTION_CATEGORY_KEYS = [
 ];
 
 export function normalizeCategoryName(category) {
-  const raw = String(category || "Other").trim();
+  const raw = String(category || "Other").trim().replace(/\s+/g, " ") || "Other";
   const map = {
     "Food & Dining": "Food",
     DEPOSIT: "Other",
     WITHDRAWAL: "Other",
     INTEREST: "Income",
   };
-  return map[raw] || raw;
+  const alias = Object.keys(map).find((key) => key.toLowerCase() === raw.toLowerCase());
+  const known = Object.keys(CATEGORY_DISPLAY).find((key) => key.toLowerCase() === raw.toLowerCase());
+  return alias ? map[alias] : raw.toLowerCase() === "others" ? "Other" : known || raw;
 }
 
 export function getCategoryMeta(category) {
   const key = normalizeCategoryName(category);
   return (
-    CATEGORY_DISPLAY[key] || {
+    (Object.hasOwn(CATEGORY_DISPLAY, key) ? CATEGORY_DISPLAY[key] : null) || {
       label: key,
       iconKey: "more-horizontal",
       iconBg: "bg-gray-100",

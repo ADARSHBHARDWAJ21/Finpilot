@@ -6,7 +6,7 @@ import { computeBudgetDashboard } from "@/lib/budget/compute-from-transactions";
 import { isMissingBudgetPlansTable } from "@/lib/budget/supabase-errors";
 import {
   computeSpentByCategoryForMonth,
-  distributeTotalBudget,
+  categoryBudgetsForSave,
   fetchBudgetPlanRows,
   rowsToBudgetPlan,
   saveBudgetPlanRows,
@@ -14,6 +14,8 @@ import {
   syncSpentFromTransactions,
 } from "@/lib/budget/budget-plans-db";
 import { serializeBudgetActionResult } from "@/lib/budget/budget-plan-storage";
+import { currentMonthKey } from "@/lib/dashboard/period";
+import { loadOwnedTransactions } from "@/lib/transactions/records";
 
 async function loadBudgetPlanForMonth(supabase, userId, monthKey, transactions) {
   try {
@@ -67,20 +69,8 @@ export async function getBudgetDashboardData(monthKey) {
     throw new Error("Unauthorized");
   }
 
-  const { data: transactions, error: txError } = await supabase
-    .from("transactions")
-    .select("id, transaction_date, description, amount, type, category")
-    .eq("user_id", user.id)
-    .order("transaction_date", { ascending: false });
-
-  if (txError) {
-    console.error("budget transactions:", txError.message);
-  }
-
-  const now = new Date();
-  const key =
-    monthKey ||
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const transactions = await loadOwnedTransactions(supabase, user.id);
+  const key = monthKey || currentMonthKey();
 
   const { plan, budgetPlansAvailable, setupHint, connected, planRowCount } =
     await loadBudgetPlanForMonth(supabase, user.id, key, transactions ?? []);
@@ -102,7 +92,7 @@ export async function saveBudgetPlan({
   monthKey,
   totalBudget,
   categoryBudgets,
-  savingsGoal: _savingsGoal,
+  savingsGoal,
 }) {
   const supabase = await createClient();
 
@@ -114,35 +104,19 @@ export async function saveBudgetPlan({
     throw new Error("Unauthorized");
   }
 
-  const now = new Date();
-  const key =
-    monthKey ||
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select("id, transaction_date, description, amount, type, category")
-    .eq("user_id", user.id)
-    .order("transaction_date", { ascending: false });
+  const key = monthKey || currentMonthKey();
+  const transactions = await loadOwnedTransactions(supabase, user.id);
 
   const spentByCategory = computeSpentByCategoryForMonth(transactions ?? [], key);
 
-  let budgets = { ...(categoryBudgets || {}) };
-  const total = Math.round(Number(totalBudget) || 0);
-
-  if (Object.keys(budgets).length === 0 && total > 0) {
-    const existingRows = await fetchBudgetPlanRows(supabase, user.id, key).catch(() => []);
-    const existingPlan = rowsToBudgetPlan(existingRows);
-    budgets = distributeTotalBudget(
-      total,
-      existingPlan?.category_budgets ?? spentByCategory
-    );
-  } else if (total > 0 && Object.keys(budgets).length > 0) {
-    const sum = Object.values(budgets).reduce((s, v) => s + Number(v), 0);
-    if (sum !== total && sum > 0) {
-      budgets = distributeTotalBudget(total, budgets);
-    }
+  let existingPlan = null;
+  if (categoryBudgets === undefined) {
+    const existingRows = await fetchBudgetPlanRows(supabase, user.id, key);
+    existingPlan = rowsToBudgetPlan(existingRows);
   }
+  // An explicit map is authoritative, including {} and zero amounts. Only
+  // total-only requests redistribute the existing active category amounts.
+  const budgets = categoryBudgetsForSave({ categoryBudgets, totalBudget }, existingPlan, spentByCategory);
 
   try {
     const rows = await saveBudgetPlanRows(
@@ -150,7 +124,8 @@ export async function saveBudgetPlan({
       user.id,
       key,
       budgets,
-      spentByCategory
+      spentByCategory,
+      { savingsGoal }
     );
 
     const plan = rowsToBudgetPlan(rows);
@@ -158,6 +133,7 @@ export async function saveBudgetPlan({
 
     revalidatePath("/budget-tracker");
     revalidatePath("/dashboard");
+    revalidatePath("/taxation/ai-copilot");
 
     return serializeBudgetActionResult({
       dashboard,

@@ -1,14 +1,4 @@
-function txMonthKey(dateStr) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatMonthShort(key) {
-  const [y, m] = key.split("-");
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  return d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }).replace(" ", " '");
-}
+import { monthLabel, resolveMonthKey, shiftMonth, transactionMonthKey } from "./period.js";
 
 export function formatInr(value) {
   return `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
@@ -21,11 +11,11 @@ function compareChange(current, previous, prevMonthLabel, { lowerIsBetter = fals
   if (previous === 0) {
     return {
       text: current > 0 ? `New vs ${prevMonthLabel}` : `— vs ${prevMonthLabel}`,
-      positive: true,
+      positive: lowerIsBetter ? current <= 0 : current >= 0,
     };
   }
 
-  const pct = ((current - previous) / previous) * 100;
+  const pct = ((current - previous) / Math.abs(previous)) * 100;
   const improved = lowerIsBetter ? pct <= 0 : pct >= 0;
   const arrow = pct >= 0 ? "↑" : "↓";
 
@@ -35,31 +25,25 @@ function compareChange(current, previous, prevMonthLabel, { lowerIsBetter = fals
   };
 }
 
-export function computeFinancialSummary(transactions) {
-  const now = new Date();
-  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
-  const prevMonthLabel = formatMonthShort(prevKey);
-  const monthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+export function computeFinancialSummary(transactions, requestedMonth, now = new Date()) {
+  const currentKey = resolveMonthKey(requestedMonth, now);
+  const prevKey = shiftMonth(currentKey, -1);
+  const prevMonthLabel = monthLabel(prevKey, true);
 
   let incomeCurrent = 0;
   let expenseCurrent = 0;
   let incomePrev = 0;
   let expensePrev = 0;
-  let incomeAll = 0;
-  let expenseAll = 0;
 
   for (const tx of transactions || []) {
-    const mk = txMonthKey(tx.transaction_date);
-    const amt = Math.abs(Number(tx.amount) || 0);
+    const mk = transactionMonthKey(tx.transaction_date);
+    const amt = Math.abs(Number(tx.amount));
+    if (!mk || !Number.isFinite(amt)) continue;
 
     if (tx.type === "income") {
-      incomeAll += amt;
       if (mk === currentKey) incomeCurrent += amt;
       if (mk === prevKey) incomePrev += amt;
     } else if (tx.type === "expense") {
-      expenseAll += amt;
       if (mk === currentKey) expenseCurrent += amt;
       if (mk === prevKey) expensePrev += amt;
     }
@@ -67,11 +51,10 @@ export function computeFinancialSummary(transactions) {
 
   const savingsCurrent = incomeCurrent - expenseCurrent;
   const savingsPrev = incomePrev - expensePrev;
-  const netWorth = incomeAll - expenseAll;
-  const netWorthPrev = netWorth - savingsCurrent;
 
   return {
-    monthLabel,
+    monthKey: currentKey,
+    monthLabel: monthLabel(currentKey),
     cards: [
       {
         title: "Total Income",
@@ -91,9 +74,9 @@ export function computeFinancialSummary(transactions) {
         ...compareChange(savingsCurrent, savingsPrev, prevMonthLabel),
       },
       {
-        title: "Net Worth",
-        amount: formatInr(netWorth),
-        ...compareChange(netWorth, netWorthPrev, prevMonthLabel),
+        title: "Monthly Balance",
+        amount: formatInr(savingsCurrent),
+        ...compareChange(savingsCurrent, savingsPrev, prevMonthLabel),
       },
       {
         title: "Tax Liability (Est.)",

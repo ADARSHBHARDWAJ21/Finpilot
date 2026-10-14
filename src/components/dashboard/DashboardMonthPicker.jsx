@@ -6,18 +6,18 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-rea
 import { monthLabel } from "@/lib/dashboard/period";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export default function DashboardMonthPicker({ selectedMonth, currentMonth, availableMonths, disabled, open, onOpenChange, onSelect }) {
+export default function DashboardMonthPicker({ selectedMonth, currentMonth, availableMonths, disabled, open, onOpenChange, onSelect, context = "dashboard" }) {
   const [year, setYear] = useState(Number(selectedMonth.slice(0, 4)));
   const currentYear = Number(currentMonth.slice(0, 4));
   function choose(key) { onOpenChange(false); onSelect(key); }
   return <Popover.Root open={open} onOpenChange={(value) => { if (value) setYear(Number(selectedMonth.slice(0, 4))); onOpenChange(value); }}>
     <Popover.Trigger asChild>
-      <button type="button" disabled={disabled} aria-label={`Choose dashboard month, ${monthLabel(selectedMonth)}`} className="inline-flex w-fit shrink-0 items-center gap-2.5 rounded-xl border border-border bg-white/90 px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60">
+      <button type="button" disabled={disabled} aria-label={`Choose ${context} month, ${monthLabel(selectedMonth)}`} className="inline-flex w-fit shrink-0 items-center gap-2.5 rounded-xl border border-border bg-white/90 px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60">
         <CalendarDays aria-hidden="true" size={17} className="text-primary" /><span>{monthLabel(selectedMonth)}</span><ChevronDown aria-hidden="true" size={15} className="text-muted-foreground" />
       </button>
     </Popover.Trigger>
     <Popover.Portal>
-      <Popover.Content aria-label="Choose a dashboard month" align="end" sideOffset={10} collisionPadding={12} className="z-50 w-[300px] max-w-[calc(100vw-24px)] rounded-2xl border border-border bg-white p-4 shadow-lg shadow-primary/5 outline-none">
+      <Popover.Content aria-label={`Choose a ${context} month`} align="end" sideOffset={10} collisionPadding={12} className="z-50 w-[300px] max-w-[calc(100vw-24px)] rounded-2xl border border-border bg-white p-4 shadow-lg shadow-primary/5 outline-none">
         <p className="mb-3 text-sm font-medium text-foreground">Explore your history</p>
         <div className="mb-3 flex items-center justify-between gap-2">
           <button type="button" aria-label="Previous year" disabled={year <= 1900} onClick={() => setYear(year - 1)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:opacity-30"><ChevronLeft size={17} /></button>

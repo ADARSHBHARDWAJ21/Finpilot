@@ -21,6 +21,7 @@ export default function WorkspaceOverview({ overview, report, year }) {
   const figures = overview?.summary?.cards || [];
   const count = overview?.summary?.transactionCount || 0;
   const recent = overview?.recentTransactions?.slice(0, 3) || [];
+  const transactionsHref = overview?.selectedMonth ? `/transactions?month=${overview.selectedMonth}` : "/transactions";
   const amount = (title) => overview ? figures.find((item) => item.title === title)?.amount || "₹0" : "—";
   const countLabel = (value, type) => value ? `${value} ${type} transaction${value === 1 ? "" : "s"}` : `No ${type} recorded`;
   const stats = [
@@ -44,14 +45,14 @@ export default function WorkspaceOverview({ overview, report, year }) {
           <MoneyMetric icon={Equal} tone="fp-tone-neutral" label="Monthly Balance" amount={amount("Total Savings")} detail={overview ? count ? "Income minus expenses" : "Add income and expenses" : "Records unavailable"} />
         </dl>
         <section className="fp-dashboard-recent" aria-labelledby="recent-activity-heading">
-          <div className="fp-dashboard-subheading"><h3 id="recent-activity-heading">Recent activity</h3><Link href="/transactions">View all<ArrowRight size={16} aria-hidden="true" /></Link></div>
+          <div className="fp-dashboard-subheading"><h3 id="recent-activity-heading">Recent activity</h3><Link href={transactionsHref}>View all<ArrowRight size={16} aria-hidden="true" /></Link></div>
           {recent.length ? <ul className="fp-dashboard-activity-list">{recent.map((transaction, index) => <li key={`${transaction.date}-${index}`}>
             <span className={`fp-dashboard-metric-icon ${transaction.income ? "fp-tone-green" : "fp-tone-red"}`}>{transaction.income ? <ArrowUp size={18} aria-hidden="true" /> : <ArrowDown size={18} aria-hidden="true" />}</span>
             <div className="fp-dashboard-activity-description"><strong title={transaction.name}>{transaction.name}</strong><span>{transaction.category} · {transaction.date}</span></div>
             <span className={`fp-dashboard-activity-amount ${transaction.income ? "text-primary" : "text-foreground"}`}>{transaction.amount}</span>
           </li>)}</ul> : <div className="fp-dashboard-activity-empty"><span className="fp-dashboard-empty-icon"><FileText size={25} aria-hidden="true" /></span><strong>{overview ? "No transactions yet" : "Your records could not be loaded"}</strong><p>{overview ? `Add income or expenses, or choose a month with past activity.` : "Refresh your overview to try again."}</p></div>}
         </section>
-        <div className="fp-dashboard-panel-actions"><Link className="fp-primary-link" href="/transactions">Review your money<ArrowRight size={17} aria-hidden="true" /></Link><Link className="fp-dashboard-plan-link" href="/budget-tracker"><CalendarDays size={18} aria-hidden="true" />Plan this month</Link></div>
+        <div className="fp-dashboard-panel-actions"><Link className="fp-primary-link" href={transactionsHref}>Review your money<ArrowRight size={17} aria-hidden="true" /></Link><Link className="fp-dashboard-plan-link" href="/budget-tracker"><CalendarDays size={18} aria-hidden="true" />Plan this month</Link></div>
       </section>
 
       <section className="fp-dashboard-panel fp-dashboard-tax" aria-labelledby="tax-outlook">
@@ -73,8 +74,8 @@ export default function WorkspaceOverview({ overview, report, year }) {
       </section>
     </div>
     <section className="fp-attention" aria-labelledby="attention-heading"><div><p className="fp-eyebrow">Your next steps</p><h2 id="attention-heading">Needs your attention</h2></div><div className="fp-attention-links">
-      {!overview?.summary?.transactionCount && <Link href="/transactions"><CircleAlert size={18} /><span>Add this month’s records<small>Import a statement or record a transaction.</small></span><ArrowRight size={15} /></Link>}
-      {overview?.summary?.transactionCount > 0 && <Link href="/transactions"><Wallet size={18} /><span>Review your recorded activity<small>Check amounts and categories before relying on totals.</small></span><ArrowRight size={15} /></Link>}
+      {!overview?.summary?.transactionCount && <Link href={transactionsHref}><CircleAlert size={18} /><span>Add this month’s records<small>Import a statement or record a transaction.</small></span><ArrowRight size={15} /></Link>}
+      {overview?.summary?.transactionCount > 0 && <Link href={transactionsHref}><Wallet size={18} /><span>Review your recorded activity<small>Check amounts and categories before relying on totals.</small></span><ArrowRight size={15} /></Link>}
       {tax && !tax.available && <Link href={`/taxation/salary-documents?year=${year}`}><Landmark size={18} /><span>Complete your salary details<small>Valid annual inputs unlock the tax comparison.</small></span><ArrowRight size={15} /></Link>}
       {nextSection && <Link href={`/taxation/${nextSection.section}?year=${year}`}><FileCheck2 size={18} /><span>{TAX_CATEGORIES.find((item) => item.slug === nextSection.section)?.title}<small>{nextSection.total - nextSection.completed} preparation items still to review.</small></span><ArrowRight size={15} /></Link>}
       <Link href={`/taxation/ai-copilot?year=${year}`}><Sparkles size={18} /><span>Explore with Copilot<small>Understand a money decision or a tax estimate.</small></span><ArrowRight size={15} /></Link>

@@ -1,5 +1,6 @@
 import { getCategoryMeta, normalizeCategoryName } from "../budget/category-meta.js";
 import { monthLabel, resolveMonthKey, shiftMonth, transactionMonthKey } from "./period.js";
+import { BUDGET_PLAN_META_CATEGORY } from "../budget/category-plan.js";
 
 const money = (value) => `₹${Math.round(value).toLocaleString("en-IN")}`;
 const totals = () => ({ income: 0, expenses: 0, incomeCount: 0, expenseCount: 0 });
@@ -70,8 +71,9 @@ export function computeDashboardOverview(transactions = [], budgetRows = [], req
   const cashIncome = cashFlowRows.reduce((sum, row) => sum + row.income, 0);
   const cashExpenses = cashFlowRows.reduce((sum, row) => sum + row.expenses, 0);
   const categoryData = [...expenses].map(([key, amount]) => ({ name: getCategoryMeta(key).label, value: Math.round(amount), pct: selected.expenses ? Math.round(amount / selected.expenses * 1000) / 10 : 0 })).sort((a, b) => b.value - a.value);
-  const limits = new Map(budgetRows.map((row) => [normalizeCategoryName(row.category), Math.max(0, Number(row.monthly_limit) || 0)]));
-  const categories = [...new Set([...limits.keys(), ...expenses.keys()])].filter((key) => key !== "Income").map((key) => {
+  const managedCategories = budgetRows.some((row) => row.category === BUDGET_PLAN_META_CATEGORY);
+  const limits = new Map(budgetRows.filter((row) => row.category !== BUDGET_PLAN_META_CATEGORY).map((row) => [normalizeCategoryName(row.category), Math.max(0, Number(row.monthly_limit) || 0)]));
+  const categories = [...new Set([...limits.keys(), ...(managedCategories ? [] : expenses.keys())])].filter((key) => key !== "Income").map((key) => {
     const spent = Math.round(expenses.get(key) || 0);
     const budget = limits.has(key) ? limits.get(key) : null;
     return { key, name: getCategoryMeta(key).label, spent, budget, pct: budget > 0 ? Math.round(spent / budget * 100) : 0 };

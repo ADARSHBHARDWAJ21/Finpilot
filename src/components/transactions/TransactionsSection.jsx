@@ -16,8 +16,12 @@ import TransactionRow, { TransactionCard } from "@/components/transactions/Trans
 import { mapTransactionToRow } from "@/components/transactions/transaction-utils";
 import { deleteTransactions, deleteAllTransactions } from "@/app/transactions/actions";
 import UploadStatement from "@/components/transactions/upload-csv";
+import SummaryCards from "@/components/dashboard/SummaryCards";
+import { computeFinancialSummary } from "@/lib/dashboard/compute-summary";
+import { monthLabel } from "@/lib/dashboard/period";
+import { transactionsForMonth } from "@/lib/transactions/period";
 
-export default function TransactionsSection({ initialTransactions = [], loadError = "" }) {
+export default function TransactionsSection({ initialTransactions = [], selectedMonth, loadError = "" }) {
   const router = useRouter();
   const [category, setCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,10 +43,14 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
     setSelectedIds(new Set([...selectedIds].filter((id) => available.has(id))));
   }
 
-  const rows = useMemo(
-    () => transactions.map((tx, i) => mapTransactionToRow(tx, i)),
-    [transactions]
-  );
+  const monthlyTransactions = useMemo(() => transactionsForMonth(transactions, selectedMonth), [transactions, selectedMonth]);
+  const summary = useMemo(() => computeFinancialSummary(transactions, selectedMonth), [transactions, selectedMonth]);
+  const rows = useMemo(() => monthlyTransactions.map((tx, i) => mapTransactionToRow(tx, i)), [monthlyTransactions]);
+  const emptyMessage = loadError
+    ? "Your transactions are temporarily unavailable. Refresh to try again."
+    : rows.length === 0
+      ? `No transactions recorded for ${monthLabel(selectedMonth)}. Upload a statement, add a transaction or choose another month.`
+      : "No transactions match your filters.";
 
   const categories = useMemo(() => {
     const set = new Set(rows.map((tx) => tx.category).filter(Boolean));
@@ -90,7 +98,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
   function requestDelete(mode, ids = []) {
     setError("");
     setSuccess("");
-    setDeleteRequest({ mode, ids, count: mode === "all" ? rows.length : ids.length });
+    setDeleteRequest({ mode, ids, count: mode === "all" ? transactions.length : ids.length });
   }
 
   function confirmDelete() {
@@ -127,13 +135,15 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
   }
 
   return (
+    <>
+    <SummaryCards summary={summary} omitTitles={["Total Savings", "Tax Liability (Est.)"]} />
     <section className="fp-card mt-6 overflow-hidden">
       {/* Header controls bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-5 sm:px-6 border-b border-border">
         <div>
           <h2 className="text-base font-semibold text-slate-900 tracking-tight">Your transactions</h2>
           <p className="text-xs text-slate-400 mt-0.5 font-medium">
-            All your recorded activity, organised in one place.
+            {monthLabel(selectedMonth)} activity. Statement dates place each transaction in its month.
           </p>
         </div>
 
@@ -180,6 +190,8 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
             return [...byId.values()].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
           });
           setCategory("all");
+          setReviewFilter("all");
+          setSearchQuery("");
           setSelectedIds(new Set());
           router.refresh();
         }}
@@ -203,7 +215,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectedVisibleIds.length > 0 && <button type="button" disabled={isPending || !!loadError} onClick={() => requestDelete("selected", selectedVisibleIds)} className="fp-button !border-destructive/20 !text-destructive"><Trash2 size={14} aria-hidden="true" />Delete selected ({selectedVisibleIds.length})</button>}
-          <details className="relative"><summary className="rounded-xl border border-border bg-white px-3 text-xs font-medium">More actions</summary><div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg"><button type="button" disabled={!rows.length || isPending || !!loadError} onClick={() => requestDelete("all")} className="w-full rounded-lg px-3 text-left text-sm text-destructive hover:bg-rose-50 disabled:opacity-40">Delete all transactions</button></div></details>
+          <details className="relative"><summary className="rounded-xl border border-border bg-white px-3 text-xs font-medium">More actions</summary><div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg"><button type="button" disabled={!transactions.length || isPending || !!loadError} onClick={() => requestDelete("all")} className="w-full rounded-lg px-3 text-left text-sm text-destructive hover:bg-rose-50 disabled:opacity-40">Delete all months’ transactions</button></div></details>
         </div>
       </div>
 
@@ -231,9 +243,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-14 text-center text-xs text-slate-400 font-medium">
-                  {loadError ? "Your transactions are temporarily unavailable. Refresh to try again." : rows.length === 0
-                    ? "Start with a bank statement or add your first transaction."
-                    : "No transactions match your search filter."}
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
@@ -252,7 +262,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
           </tbody>
         </table>
       </div>
-      <div className="space-y-3 bg-background p-4 md:hidden">{filtered.length ? filtered.map(tx=><TransactionCard key={tx.id} tx={tx} onDelete={id=>requestDelete("selected",[String(id)])} onToggle={toggleRow} onView={openTransaction} selected={selectedIds.has(String(tx.id))} deleting={isPending} />) : <p className="py-8 text-center text-sm text-muted-foreground">{loadError ? "Your records could not be loaded. Refresh to try again." : rows.length ? "No transactions match your filters." : "Upload a statement or add your first transaction."}</p>}</div>
+      <div className="space-y-3 bg-background p-4 md:hidden">{filtered.length ? filtered.map(tx=><TransactionCard key={tx.id} tx={tx} onDelete={id=>requestDelete("selected",[String(id)])} onToggle={toggleRow} onView={openTransaction} selected={selectedIds.has(String(tx.id))} deleting={isPending} />) : <p className="py-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>}</div>
 
       {/* All matching records are shown, including histories over 1,000 rows. */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 text-xs">
@@ -261,7 +271,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
             ? "No transactions found"
             : `Showing ${filtered.length} of ${rows.length} transaction${
                 rows.length === 1 ? "" : "s"
-              }`}
+              } in ${monthLabel(selectedMonth)}`}
         </p>
         {filteredView && <p className="text-slate-400">Select all applies to your current filters.</p>}
       </div>
@@ -275,7 +285,7 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
             <AlertDialog.Title className="text-base font-semibold text-slate-900">{deleteRequest?.mode === "all" ? "Delete all transactions?" : `Delete ${deleteRequest?.count || 0} selected transaction${deleteRequest?.count === 1 ? "" : "s"}?`}</AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm leading-6 text-slate-600">
               {deleteRequest?.mode === "all"
-                ? `This will permanently delete all transactions in your account (${deleteRequest.count.toLocaleString("en-IN")} currently listed), including those hidden by search or category filters.`
+                ? `This will permanently delete all transactions in your account (${deleteRequest.count.toLocaleString("en-IN")} across all months), including other months and those hidden by search or category filters.`
                 : "The selected transactions will be permanently removed from your account."}
               {" "}Your financial summaries will update. This cannot be undone.
             </AlertDialog.Description>
@@ -287,5 +297,6 @@ export default function TransactionsSection({ initialTransactions = [], loadErro
         </AlertDialog.Portal>
       </AlertDialog.Root>
     </section>
+    </>
   );
 }

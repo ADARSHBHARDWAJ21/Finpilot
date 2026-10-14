@@ -2,9 +2,12 @@ import {
   DEFAULT_CATEGORY_KEYS,
   getCategoryMeta,
   normalizeCategoryName,
-} from "@/lib/budget/category-meta";
+} from "./category-meta.js";
+import { transactionMonthKey, validMonthKey } from "../dashboard/period.js";
+import { BUDGET_PLAN_META_CATEGORY, normalizeCategoryBudgets, validateBudgetAmount, validateBudgetCategoryName } from "./category-plan.js";
 
 export function parseMonthKey(monthKey) {
+  if (!validMonthKey(monthKey)) throw new Error("Choose a valid budget month.");
   const [y, m] = String(monthKey).split("-");
   const monthNum = Number(m);
   return {
@@ -15,9 +18,7 @@ export function parseMonthKey(monthKey) {
 }
 
 export function txMonthKey(dateStr) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return transactionMonthKey(dateStr);
 }
 
 function defaultBudgetForSpent(spent) {
@@ -26,13 +27,15 @@ function defaultBudgetForSpent(spent) {
 }
 
 export function computeSpentByCategoryForMonth(transactions, monthKey) {
-  const map = {};
+  const map = new Map();
   for (const tx of transactions || []) {
     if (txMonthKey(tx.transaction_date) !== monthKey || tx.type !== "expense") continue;
     const cat = normalizeCategoryName(tx.category);
-    map[cat] = (map[cat] || 0) + (Number(tx.amount) || 0);
+    const amount = Math.abs(Number(tx.amount));
+    if (!Number.isFinite(amount)) continue;
+    map.set(cat, (map.get(cat) || 0) + amount);
   }
-  return map;
+  return Object.fromEntries([...map].map(([category, amount]) => [category, Math.round(amount * 100) / 100]));
 }
 
 /** DB rows → shape used by computeBudgetDashboard */
@@ -40,34 +43,41 @@ export function rowsToBudgetPlan(rows) {
   if (!rows?.length) return null;
 
   const category_budgets = {};
-  for (const row of rows) {
+  const uniqueRows = dedupeBudgetRows(rows);
+  const metadata = uniqueRows.find((row) => row.category === BUDGET_PLAN_META_CATEGORY);
+  for (const row of uniqueRows) {
+    if (row.category === BUDGET_PLAN_META_CATEGORY) continue;
     const key = normalizeCategoryName(row.category);
-    category_budgets[key] = Math.round(Number(row.monthly_limit) || 0);
+    const limit = Number(row.monthly_limit);
+    if (!Number.isFinite(limit) || limit < 0 || ["__proto__", "constructor", "prototype"].includes(key.toLowerCase())) continue;
+    category_budgets[key] = Math.round(limit * 100) / 100;
   }
 
-  const total_budget = Object.values(category_budgets).reduce((sum, v) => sum + v, 0);
+  const total_budget = Math.round(Object.values(category_budgets).reduce((sum, v) => sum + v, 0) * 100) / 100;
 
   return {
     total_budget,
     category_budgets,
-    savings_goal: 0,
+    savings_goal: Math.max(0, Number(metadata?.spent) || 0),
+    categories_managed: Boolean(metadata),
   };
 }
 
 export function distributeTotalBudget(totalBudget, existingBudgets = {}) {
-  const total = Math.round(Number(totalBudget) || 0);
-  const keys = Object.keys(existingBudgets).filter((k) => existingBudgets[k] > 0);
+  const total = Math.round(validateBudgetAmount(totalBudget) * 100);
+  const budgets = normalizeCategoryBudgets(existingBudgets);
+  const keys = Object.keys(budgets);
 
   if (keys.length > 0) {
-    const existingSum = keys.reduce((s, k) => s + existingBudgets[k], 0);
+    const existingSum = keys.reduce((s, k) => s + budgets[k], 0);
     const map = {};
     let assigned = 0;
     keys.forEach((k, i) => {
       if (i === keys.length - 1) {
-        map[k] = total - assigned;
+        map[k] = (total - assigned) / 100;
       } else {
-        const share = Math.round((existingBudgets[k] / existingSum) * total);
-        map[k] = share;
+        const share = Math.min(total - assigned, Math.round((existingSum > 0 ? budgets[k] / existingSum : 1 / keys.length) * total));
+        map[k] = share / 100;
         assigned += share;
       }
     });
@@ -79,13 +89,24 @@ export function distributeTotalBudget(totalBudget, existingBudgets = {}) {
   DEFAULT_CATEGORY_KEYS.forEach((k, i) => {
     map[k] =
       i === DEFAULT_CATEGORY_KEYS.length - 1
-        ? total - per * (DEFAULT_CATEGORY_KEYS.length - 1)
-        : per;
+        ? (total - per * (DEFAULT_CATEGORY_KEYS.length - 1)) / 100
+        : per / 100;
   });
   return map;
 }
 
-export async function fetchBudgetPlanRows(supabase, userId, monthKey) {
+export function categoryBudgetsForSave({ categoryBudgets, totalBudget }, existingPlan = null, spentByCategory = {}) {
+  if (categoryBudgets !== undefined) return normalizeCategoryBudgets(categoryBudgets);
+  const total = validateBudgetAmount(totalBudget, "Total monthly budget");
+  if (existingPlan?.categories_managed && !Object.keys(existingPlan.category_budgets).length) {
+    if (total > 0) throw new Error("Add a category before setting a monthly budget.");
+    return {};
+  }
+  return distributeTotalBudget(total, existingPlan?.category_budgets ?? spentByCategory);
+}
+
+async function readBudgetPlanRows(supabase, userId, monthKey) {
+  if (!userId) throw new Error("Please sign in again to manage budgets.");
   const { year, month, monthNum } = parseMonthKey(monthKey);
 
   const { data, error } = await supabase
@@ -99,7 +120,11 @@ export async function fetchBudgetPlanRows(supabase, userId, monthKey) {
     throw error;
   }
 
-  return dedupeBudgetRows(data ?? []);
+  return data ?? [];
+}
+
+export async function fetchBudgetPlanRows(supabase, userId, monthKey) {
+  return dedupeBudgetRows(await readBudgetPlanRows(supabase, userId, monthKey));
 }
 
 /** One row per category (handles duplicate month formats / re-seeds). */
@@ -128,33 +153,30 @@ export async function saveBudgetPlanRows(
   userId,
   monthKey,
   categoryBudgets,
-  spentByCategory = {}
+  spentByCategory = {},
+  { manageCategories = true, savingsGoal } = {}
 ) {
   const { year, month } = parseMonthKey(monthKey);
   const now = new Date().toISOString();
+  const budgets = normalizeCategoryBudgets(categoryBudgets);
 
-  const existing = await fetchBudgetPlanRows(supabase, userId, monthKey);
+  const existingRaw = await readBudgetPlanRows(supabase, userId, monthKey);
+  const existing = dedupeBudgetRows(existingRaw);
+  const existingPlan = rowsToBudgetPlan(existing);
+  const goal = validateBudgetAmount(savingsGoal ?? existingPlan?.savings_goal ?? 0, "Savings goal");
   const existingByCategory = new Map(
     existing.map((row) => [normalizeCategoryName(row.category), row])
   );
 
-  const entries = Object.entries(categoryBudgets).filter(
-    ([, limit]) => Number(limit) > 0
-  );
+  const entries = Object.entries(budgets);
+  if (manageCategories || existingPlan?.categories_managed) entries.push([BUDGET_PLAN_META_CATEGORY, 0]);
 
   const savedKeys = new Set(entries.map(([k]) => normalizeCategoryName(k)));
 
-  for (const row of existing) {
-    const key = normalizeCategoryName(row.category);
-    if (!savedKeys.has(key) && row.id) {
-      await supabase.from("budget_plans").delete().eq("id", row.id).eq("user_id", userId);
-    }
-  }
-
   for (const [catKey, limit] of entries) {
     const meta = getCategoryMeta(catKey);
-    const monthlyLimit = Math.round(Number(limit) || 0);
-    const spent = Math.round(spentByCategory[catKey] || 0);
+    const monthlyLimit = limit;
+    const spent = catKey === BUDGET_PLAN_META_CATEGORY ? goal : Math.round((Number(spentByCategory[catKey]) || 0) * 100) / 100;
     const payload = {
       user_id: userId,
       category: catKey,
@@ -182,6 +204,16 @@ export async function saveBudgetPlanRows(
     }
   }
 
+  // Remove omitted categories and stale duplicate rows in both supported month
+  // formats. Leaving an older duplicate would resurrect a deleted category.
+  for (const row of existingRaw) {
+    const key = normalizeCategoryName(row.category);
+    if (row.id && (!savedKeys.has(key) || existingByCategory.get(key)?.id !== row.id)) {
+      const { error } = await supabase.from("budget_plans").delete().eq("id", row.id).eq("user_id", userId);
+      if (error) throw error;
+    }
+  }
+
   return fetchBudgetPlanRows(supabase, userId, monthKey);
 }
 
@@ -197,8 +229,9 @@ export async function syncSpentFromTransactions(
   const now = new Date().toISOString();
 
   for (const row of rows) {
+    if (row.category === BUDGET_PLAN_META_CATEGORY) continue;
     const key = normalizeCategoryName(row.category);
-    const spent = Math.round(spentByCategory[key] || 0);
+    const spent = Math.round((Number(spentByCategory[key]) || 0) * 100) / 100;
     if (Number(row.spent) !== spent) {
       const { error } = await supabase
         .from("budget_plans")
@@ -227,11 +260,17 @@ export async function seedBudgetPlansFromTransactions(
 
   for (const [cat, amount] of Object.entries(spentByCategory)) {
     if (amount > 0) {
-      budgets[cat] = defaultBudgetForSpent(amount);
+      // Imported spending can carry a legacy or reserved label. Keep that
+      // spending in totals without making it an invalid editable budget key.
+      try {
+        budgets[validateBudgetCategoryName(cat)] = Math.min(1_000_000_000, defaultBudgetForSpent(amount));
+      } catch {
+        continue;
+      }
     }
   }
 
   if (Object.keys(budgets).length === 0) return [];
 
-  return saveBudgetPlanRows(supabase, userId, monthKey, budgets, spentByCategory);
+  return saveBudgetPlanRows(supabase, userId, monthKey, budgets, spentByCategory, { manageCategories: false });
 }

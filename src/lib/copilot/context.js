@@ -2,6 +2,7 @@ import { estimateTax, profileTaxInputs, number, inr } from "./tax-engine.js";
 import { applyTaxWorkspace } from "../taxation/year-inputs.js";
 import { loadTaxWorkspace } from "../finance/data.js";
 import { resolveFinancialYear, CHECKLIST_IDS, yearDates } from "../finance/model.js";
+import { BUDGET_PLAN_META_CATEGORY } from "../budget/category-plan.js";
 
 function indiaDate(now) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
@@ -91,6 +92,7 @@ export function buildCopilotContext({ profile = {}, salary = null, deductions = 
   const spending = { available: transactions !== null, periodStart: start, periodEnd: today, currentMonth, months: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), topCategories: [...categoryTotals].map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount).slice(0, 8), note: "Only recorded transactions; totals are not proof of complete bank activity." };
   const byCategory = new Map();
   for (const row of budgets || []) {
+    if (row.category === BUDGET_PLAN_META_CATEGORY) continue;
     const category = String(row.category).slice(0, 80);
     const previous = byCategory.get(category);
     if (!previous || String(row.updated_at) > String(previous.updated_at)) byCategory.set(category, row);

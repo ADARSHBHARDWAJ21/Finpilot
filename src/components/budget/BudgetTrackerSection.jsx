@@ -54,7 +54,7 @@ const quickActions = [
 ];
 
 function formatInr(value) {
-  return `₹${Math.round(Number(value) || 0).toLocaleString("en-IN")}`;
+  return `₹${(Number(value) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
 
 function BudgetHealthRing({ score }) {
@@ -102,7 +102,7 @@ function CategoryTable({ categories, onEditCategory }) {
             {categories.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-sm text-muted-foreground">
-                  No spending this month. Add transactions via Add Expense.
+                  No budget categories yet. Add one in Manage Categories.
                 </td>
               </tr>
             ) : (
@@ -172,13 +172,17 @@ export default function BudgetTrackerSection({
 }) {
   const router = useRouter();
   const [dashboard, setDashboard] = useState(initialData?.dashboard ?? null);
-  const [categoryBudgets, setCategoryBudgets] = useState(
-    initialData?.plan?.category_budgets ?? {}
-  );
+  const [previousInitialData, setPreviousInitialData] = useState(initialData);
   const [activeTab, setActiveTab] = useState("Overview");
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [saveError, setSaveError] = useState("");
+
+  if (previousInitialData !== initialData) {
+    setPreviousInitialData(initialData);
+    setDashboard(initialData?.dashboard ?? null);
+  }
 
   const d = dashboard;
   const budgetPlansAvailable = plansAvailableProp;
@@ -238,27 +242,32 @@ export default function BudgetTrackerSection({
   }, [d]);
 
   async function persistPlan(updates) {
+    if (saving) return;
     setSaving(true);
     setToast(null);
+    setSaveError("");
     try {
       const result = await saveBudgetPlan({
         monthKey: d.monthKey,
-        totalBudget: updates.totalBudget ?? d.totalBudget,
-        categoryBudgets: updates.categoryBudgets ?? categoryBudgets,
+        totalBudget: updates.totalBudget,
+        categoryBudgets: updates.categoryBudgets,
         savingsGoal: updates.savingsGoal ?? d.savingsGoal,
       });
       setDashboard(result.dashboard);
-      setCategoryBudgets(result.plan?.category_budgets ?? updates.categoryBudgets ?? {});
       setModal(null);
       setToast("Budget saved.");
+      router.refresh();
     } catch (error) {
-      setToast(error.message || "Failed to save. Run budget_plans migration in Supabase.");
+      const message = error.message || "Could not save your budget. Please try again.";
+      setSaveError(message);
+      setToast(message);
     } finally {
       setSaving(false);
     }
   }
 
   function handleQuickAction(id) {
+    setSaveError("");
     if (id === "download") {
       if (!d) return;
       const csv = buildReportCsv(d);
@@ -546,6 +555,7 @@ export default function BudgetTrackerSection({
                 categories={d.categories}
                 onEditCategory={() => setModal("categories")}
               />
+              {d.unbudgetedSpent > 0 && <p className="text-sm text-muted-foreground">{formatInr(d.unbudgetedSpent)} was spent outside your budget categories and is included in Total Spent.</p>}
             </>
           )}
 
@@ -570,10 +580,13 @@ export default function BudgetTrackerSection({
           )}
 
           {activeTab === "Categories" && (
+            <div className="space-y-3">
             <CategoryTable
               categories={d.categories}
               onEditCategory={() => setModal("categories")}
             />
+            {d.unbudgetedSpent > 0 && <p className="text-sm text-muted-foreground">{formatInr(d.unbudgetedSpent)} was spent outside your budget categories and is included in Total Spent.</p>}
+            </div>
           )}
 
           {activeTab === "Goals" && (
@@ -628,6 +641,7 @@ export default function BudgetTrackerSection({
         onClose={() => setModal(null)}
         totalBudget={d.totalBudget}
         saving={saving}
+        error={saveError}
         onSave={(total) => persistPlan({ totalBudget: total })}
       />
       <ManageCategoriesModal
@@ -635,6 +649,7 @@ export default function BudgetTrackerSection({
         onClose={() => setModal(null)}
         categories={d.categories}
         saving={saving}
+        error={saveError}
         onSave={(map) => persistPlan({ categoryBudgets: map })}
       />
       <BudgetPlannerModal
@@ -642,7 +657,10 @@ export default function BudgetTrackerSection({
         onClose={() => setModal(null)}
         totalBudget={d.totalBudget}
         spent={d.totalSpent}
+        categories={d.categories}
+        savingsGoal={d.savingsGoal}
         saving={saving}
+        error={saveError}
         onSave={({ totalBudget, categoryBudgets: map, savingsGoal }) =>
           persistPlan({ totalBudget, categoryBudgets: map, savingsGoal })
         }

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { computeDashboardOverview } from "../src/lib/dashboard/compute-overview.js";
 import { currentMonthKey, resolveMonthKey, shiftMonth, timeGreeting, transactionMonthKey } from "../src/lib/dashboard/period.js";
+import { BUDGET_PLAN_META_CATEGORY } from "../src/lib/budget/category-plan.js";
 
 const now = new Date("2026-10-04T17:30:00Z");
 const tx = (date, type, amount, category = "Other") => ({ id: `${date}-${type}-${amount}`, transaction_date: date, type, amount, category, description: "Test record" });
@@ -76,4 +77,13 @@ test("large histories and malformed rows do not truncate or poison monthly total
   assert.equal(overview.activity.income, 25010);
   assert.equal(overview.summary.transactionCount, 2501);
   assert.equal(overview.recentTransactions.length, 5);
+});
+
+test("saved category choices include custom and zero limits without restoring deleted categories", () => {
+  const saved = [{ category: BUDGET_PLAN_META_CATEGORY, monthly_limit: 0 }, { category: "Books", monthly_limit: 0 }];
+  const overview = computeDashboardOverview([tx("2026-10-01", "expense", 70, "Food")], saved, "2026-10", now);
+  assert.deepEqual(overview.budget.categories, [{ key: "Books", name: "Books", spent: 0, budget: 0, pct: 0 }]);
+  assert.equal(overview.expenses.totalFormatted, "₹70");
+  assert.equal(overview.activity.expenses, 70);
+  assert.deepEqual(computeDashboardOverview(records, [saved[0]], "2026-10", now).budget.categories, []);
 });

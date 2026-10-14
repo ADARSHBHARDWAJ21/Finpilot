@@ -1,5 +1,9 @@
 import { estimateTax, profileTaxInputs } from "../copilot/tax-engine.js";
-import { computeOnboardingFinancialSummary } from "@/lib/onboarding/compute-financial-summary";
+import { computeOnboardingFinancialSummary } from "./compute-financial-summary.js";
+import { currentMonthKey } from "../dashboard/period.js";
+import { fetchBudgetPlanRows, parseMonthKey } from "../budget/budget-plans-db.js";
+import { BUDGET_PLAN_META_CATEGORY } from "../budget/category-plan.js";
+import { normalizeCategoryName } from "../budget/category-meta.js";
 
 function n(value) {
   return Number(value) || 0;
@@ -16,7 +20,7 @@ function section80cTotal(profile) {
 }
 
 /** Push onboarding profile into taxation, budget, and insights tables. */
-export async function syncOnboardingToModules(supabase, userId, profile) {
+export async function syncOnboardingToModules(supabase, userId, profile, now = new Date()) {
   const summary = computeOnboardingFinancialSummary(profile);
   const regime = summary.chosenRegime === "old" ? "old" : "new";
 
@@ -46,43 +50,7 @@ export async function syncOnboardingToModules(supabase, userId, profile) {
     if (error) throw new Error("Your profile was saved, but the tax summary could not be updated. Please retry.");
   }
 
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = now.getFullYear();
-
-  const budgetCategories = [
-    { category: "Food", monthly_limit: n(profile.monthly_food_spend), icon: "utensils" },
-    { category: "Transport", monthly_limit: n(profile.monthly_transport_spend), icon: "car" },
-    { category: "Shopping", monthly_limit: n(profile.monthly_shopping_spend), icon: "shopping-bag" },
-  ].filter((b) => b.monthly_limit > 0);
-
-  for (const row of budgetCategories) {
-    const { data: existing } = await supabase
-      .from("budget_plans")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("year", year)
-      .eq("month", month)
-      .eq("category", row.category)
-      .maybeSingle();
-
-    const payload = {
-      user_id: userId,
-      category: row.category,
-      monthly_limit: row.monthly_limit,
-      spent: 0,
-      icon: row.icon,
-      month,
-      year,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (existing?.id) {
-      await supabase.from("budget_plans").update(payload).eq("id", existing.id);
-    } else {
-      await supabase.from("budget_plans").insert(payload);
-    }
-  }
+  await syncOnboardingBudgetDefaults(supabase, userId, profile, now);
 
   const insightMessages = summary.insights.map((message) => ({
     user_id: userId,
@@ -95,4 +63,47 @@ export async function syncOnboardingToModules(supabase, userId, profile) {
   }
 
   return summary;
+}
+
+/** Profile spending supplies initial defaults, never user-managed budgets. */
+export async function syncOnboardingBudgetDefaults(supabase, userId, profile, now = new Date()) {
+  const key = currentMonthKey(now);
+  const { month, year } = parseMonthKey(key);
+  let existingRows;
+  try {
+    // The shared reader checks both month formats and propagates read errors.
+    // Unknown saved state must never be treated as an empty budget plan.
+    existingRows = await fetchBudgetPlanRows(supabase, userId, key);
+  } catch {
+    throw new Error("Your profile was saved, but budget records could not be checked. Please retry.");
+  }
+  if (existingRows.some((row) => row.category === BUDGET_PLAN_META_CATEGORY)) return;
+
+  const existingByCategory = new Map(existingRows.map((row) => [normalizeCategoryName(row.category), row]));
+
+  const budgetCategories = [
+    { category: "Food", monthly_limit: n(profile.monthly_food_spend), icon: "utensils" },
+    { category: "Transport", monthly_limit: n(profile.monthly_transport_spend), icon: "car" },
+    { category: "Shopping", monthly_limit: n(profile.monthly_shopping_spend), icon: "shopping-bag" },
+  ].filter((b) => b.monthly_limit > 0);
+
+  for (const row of budgetCategories) {
+    const existing = existingByCategory.get(row.category);
+
+    const payload = {
+      user_id: userId,
+      category: row.category,
+      monthly_limit: row.monthly_limit,
+      spent: 0,
+      icon: row.icon,
+      month,
+      year,
+      updated_at: new Date(now).toISOString(),
+    };
+
+    const result = existing?.id
+      ? await supabase.from("budget_plans").update(payload).eq("id", existing.id).eq("user_id", userId)
+      : await supabase.from("budget_plans").insert(payload);
+    if (result.error) throw new Error("Your profile was saved, but budget records could not be updated. Please retry.");
+  }
 }

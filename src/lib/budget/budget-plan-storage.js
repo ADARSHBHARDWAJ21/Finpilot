@@ -5,6 +5,7 @@ export function normalizeBudgetPlan(plan) {
     total_budget: Number(plan.total_budget) || 0,
     category_budgets: plan.category_budgets || {},
     savings_goal: Number(plan.savings_goal) || 0,
+    categories_managed: Boolean(plan.categories_managed),
   };
 }
 
