@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadOwnedTransactions, deleteOwnedTransactions, deleteAllOwnedTransactions } from "../src/lib/transactions/records.js";
+import { loadOwnedTransactions, deleteOwnedTransactions, deleteOwnedTransactionsForMonth } from "../src/lib/transactions/records.js";
 
-function database(initialRows, { failDeleteAt = 0, throwDeleteAt = 0, failReadAt = 0 } = {}) {
+function database(initialRows, { failDeleteAt = 0, throwDeleteAt = 0, failReadAt = 0, returnedCount } = {}) {
   let rows = initialRows.map((row) => ({ transaction_date: "2026-10-01", ...row }));
   const requests = [];
   let deletes = 0;
@@ -14,6 +14,8 @@ function database(initialRows, { failDeleteAt = 0, throwDeleteAt = 0, failReadAt
       const query = {
         select(columns) { request.columns = columns; return query; },
         eq(column, value) { request.filters.push([column, value]); return query; },
+        gte(column, value) { request.start = [column, value]; return query; },
+        lt(column, value) { request.end = [column, value]; return query; },
         in(column, values) { request.in = [column, values]; return query; },
         order(column, options) { request.orders.push([column, options]); return query; },
         range(start, end) { request.range = [start, end]; return query; },
@@ -28,10 +30,12 @@ function database(initialRows, { failDeleteAt = 0, throwDeleteAt = 0, failReadAt
               if (deletes === failDeleteAt) return { error: { message: "Database unavailable" } };
             } else if (++reads === failReadAt) return { data: null, error: { message: "Read unavailable" } };
             const matches = rows.filter((row) => request.filters.every(([column, value]) => row[column] === value)
-              && (!request.in || request.in[1].includes(String(row[request.in[0]]))));
+              && (!request.in || request.in[1].includes(String(row[request.in[0]])))
+              && (!request.start || row[request.start[0]] >= request.start[1])
+              && (!request.end || row[request.end[0]] < request.end[1]));
             if (request.deleting) {
               rows = rows.filter((row) => !matches.includes(row));
-              return { data: request.columns ? matches.map(({ id }) => ({ id })) : null, count: request.options?.count ? matches.length : null, error: null };
+              return { data: request.columns ? matches.map(({ id }) => ({ id })) : null, count: returnedCount !== undefined ? returnedCount : request.options?.count ? matches.length : null, error: null };
             }
             return { data: matches.slice(request.range[0], request.range[1] + 1), error: null };
           }).then(resolve, reject);
@@ -61,7 +65,7 @@ test("UUID transaction IDs are supported", async () => {
 
 test("missing authentication and invalid selections never issue database requests", async () => {
   const db = database(owned(2));
-  await assert.rejects(deleteAllOwnedTransactions(db.client, null), /sign in/);
+  await assert.rejects(deleteOwnedTransactionsForMonth(db.client, null, "2026-10"), /sign in/);
   await assert.rejects(deleteOwnedTransactions(db.client, null, ["1"]), /sign in/);
   await assert.rejects(loadOwnedTransactions(db.client, null), /sign in/);
   for (const ids of [null, [], ["1", null], ["1", "all"], ["1", "2),user_id.neq.x"], [{}], [1.5], [Number.MAX_SAFE_INTEGER + 1], Array(10001).fill("1")]) {
@@ -93,25 +97,65 @@ test("a failed later batch reports completed deletions and a retry removes only 
   }
 });
 
-test("delete all covers more than 1,000 records in one request and preserves other accounts", async () => {
-  const db = database([...owned(2501), { id: "3000", user_id: "account-b" }]);
-  const result = await deleteAllOwnedTransactions(db.client, "account-a");
+test("selected-month deletion covers more than 1,000 rows in one request and preserves other months and accounts", async () => {
+  const db = database([...owned(2501),
+    { id: "3000", user_id: "account-b" },
+    { id: "3001", user_id: "account-a", transaction_date: "2026-09-30" },
+    { id: "3002", user_id: "account-a", transaction_date: "2026-11-01" },
+  ]);
+  const result = await deleteOwnedTransactionsForMonth(db.client, "account-a", "2026-10");
   assert.deepEqual(result, { count: 2501 });
   assert.equal(db.requests.length, 1);
   assert.equal(db.requests[0].in, undefined);
   assert.equal(db.requests[0].columns, undefined);
   assert.equal(db.requests[0].options.count, "exact");
-  assert.deepEqual(db.remaining().map((row) => row.user_id), ["account-b"]);
-  assert.deepEqual(await deleteAllOwnedTransactions(db.client, "account-a"), { count: 0 });
+  assert.deepEqual(db.requests[0].start, ["transaction_date", "2026-10-01"]);
+  assert.deepEqual(db.requests[0].end, ["transaction_date", "2026-11-01"]);
+  assert.deepEqual(db.remaining().map((row) => row.id), ["3000", "3001", "3002"]);
+  assert.deepEqual(await deleteOwnedTransactionsForMonth(db.client, "account-a", "2026-10"), { count: 0 });
 });
 
-test("delete-all failures never claim success", async () => {
+test("selected-month deletion failures never claim success", async () => {
   for (const failure of [{ failDeleteAt: 1 }, { throwDeleteAt: 1 }]) {
     const db = database(owned(3), failure);
-    const result = await deleteAllOwnedTransactions(db.client, "account-a");
+    const result = await deleteOwnedTransactionsForMonth(db.client, "account-a", "2026-10");
     assert.equal(result.count, null);
     assert.match(result.error, /Could not confirm/);
     assert.equal(db.remaining().length, 3);
+  }
+});
+
+test("invalid selected months never issue a deletion or fall back to another month", async () => {
+  const db = database(owned(3));
+  for (const month of [undefined, null, [], {}, 202610, "", "2026-1", "2026-00", "2026-13", "2026-10-01", "2026-10,user_id.neq.x", "1899-12", "2200-01"]) {
+    await assert.rejects(deleteOwnedTransactionsForMonth(db.client, "account-a", month), /valid transaction month/);
+  }
+  assert.equal(db.requests.length, 0);
+  assert.equal(db.remaining().length, 3);
+});
+
+test("historical month deletion includes its first and last days and excludes both neighboring months", async () => {
+  for (const [month, before, first, last, next] of [
+    ["2024-02", "2024-01-31", "2024-02-01", "2024-02-29", "2024-03-01"],
+    ["2025-02", "2025-01-31", "2025-02-01", "2025-02-28", "2025-03-01"],
+    ["2025-12", "2025-11-30", "2025-12-01", "2025-12-31", "2026-01-01"],
+    ["2026-01", "2025-12-31", "2026-01-01", "2026-01-31", "2026-02-01"],
+  ]) {
+    const db = database([before, first, last, next].map((transaction_date, index) => ({ id: String(index + 1), user_id: "account-a", transaction_date })));
+    assert.deepEqual(await deleteOwnedTransactionsForMonth(db.client, "account-a", month), { count: 2 }, month);
+    assert.deepEqual(db.remaining().map((row) => row.transaction_date), [before, next], month);
+    assert.deepEqual(db.requests[0].start, ["transaction_date", first]);
+    assert.deepEqual(db.requests[0].end, ["transaction_date", next]);
+  }
+});
+
+test("an unavailable or invalid deletion count reports uncertainty and requires refresh", async () => {
+  for (const returnedCount of [null, -1, 1.5, "3"]) {
+    const db = database([...owned(3), { id: "9", user_id: "account-a", transaction_date: "2026-09-30" }], { returnedCount });
+    const result = await deleteOwnedTransactionsForMonth(db.client, "account-a", "2026-10");
+    assert.equal(result.count, null);
+    assert.match(result.error, /Could not confirm.*selected month/);
+    assert.deepEqual(db.remaining().map((row) => row.id), ["9"]);
   }
 });
 

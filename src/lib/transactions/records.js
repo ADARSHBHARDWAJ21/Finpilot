@@ -1,3 +1,5 @@
+import { shiftMonth, validMonthKey } from "../dashboard/period.js";
+
 const PAGE_SIZE = 1000;
 const DELETE_BATCH_SIZE = 100;
 const ID_PATTERN = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[1-9][0-9]{0,18})$/i;
@@ -23,7 +25,7 @@ export async function loadOwnedTransactions(supabase, userId) {
 export async function deleteOwnedTransactions(supabase, userId, transactionIds) {
   requireAccount(userId);
   if (!Array.isArray(transactionIds) || !transactionIds.length || transactionIds.length > 10000) {
-    throw new Error("Select between 1 and 10,000 transactions, or use Delete All Transactions.");
+    throw new Error("Select between 1 and 10,000 transactions, or use Delete selected month.");
   }
   const ids = transactionIds.map((id) => {
     if (!(["string", "number"].includes(typeof id)) || !ID_PATTERN.test(String(id)) || (typeof id === "number" && !Number.isSafeInteger(id))) {
@@ -48,15 +50,19 @@ export async function deleteOwnedTransactions(supabase, userId, transactionIds) 
   return { deletedIds, count: deletedIds.length };
 }
 
-export async function deleteAllOwnedTransactions(supabase, userId) {
+export async function deleteOwnedTransactionsForMonth(supabase, userId, monthKey) {
   requireAccount(userId);
+  if (!validMonthKey(monthKey)) throw new Error("Choose a valid transaction month before deleting.");
   try {
-    // One account-scoped DELETE covers every row, without the API's response
-    // row limit or a client-provided list of IDs limiting which records it deletes.
-    const { count, error } = await supabase.from("transactions").delete({ count: "exact" }).eq("user_id", userId);
-    if (error) throw new Error("Delete failed");
-    return { count: Number.isInteger(count) ? count : null };
+    // One date-scoped DELETE covers the whole selected month, including rows
+    // beyond response limits and rows hidden by the current search filters.
+    const { count, error } = await supabase.from("transactions").delete({ count: "exact" })
+      .eq("user_id", userId)
+      .gte("transaction_date", `${monthKey}-01`)
+      .lt("transaction_date", `${shiftMonth(monthKey, 1)}-01`);
+    if (error || !Number.isInteger(count) || count < 0) throw new Error("Deletion could not be confirmed");
+    return { count };
   } catch {
-    return { count: null, error: "Could not confirm the deletion. The list has been refreshed; check the remaining transactions before trying again." };
+    return { count: null, error: "Could not confirm the deletion for the selected month. The list has been refreshed; check the remaining transactions before trying again." };
   }
 }

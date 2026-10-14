@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server-client";
 import { saveImportedTransactions } from "@/lib/import/save-import";
-import { deleteOwnedTransactions, deleteAllOwnedTransactions } from "@/lib/transactions/records";
+import { deleteOwnedTransactions, deleteOwnedTransactionsForMonth } from "@/lib/transactions/records";
 
 function refreshTransactionPages() {
   for (const path of ["/transactions", "/dashboard", "/budget-tracker", "/reports", "/net-worth", "/taxation", "/taxation/ai-copilot"]) revalidatePath(path);
@@ -36,11 +36,11 @@ export async function deleteTransactions(transactionIds) {
   return result;
 }
 
-export async function deleteAllTransactions() {
+export async function deleteTransactionsForMonth(monthKey) {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) throw new Error("Please sign in again to delete transactions.");
-  const result = await deleteAllOwnedTransactions(supabase, user.id);
+  const result = await deleteOwnedTransactionsForMonth(supabase, user.id, monthKey);
   refreshTransactionPages();
   return result;
 }

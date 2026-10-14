@@ -14,11 +14,11 @@ import {
 } from "lucide-react";
 import TransactionRow, { TransactionCard } from "@/components/transactions/TransactionRow";
 import { mapTransactionToRow } from "@/components/transactions/transaction-utils";
-import { deleteTransactions, deleteAllTransactions } from "@/app/transactions/actions";
+import { deleteTransactions, deleteTransactionsForMonth } from "@/app/transactions/actions";
 import UploadStatement from "@/components/transactions/upload-csv";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import { computeFinancialSummary } from "@/lib/dashboard/compute-summary";
-import { monthLabel } from "@/lib/dashboard/period";
+import { monthLabel, transactionMonthKey } from "@/lib/dashboard/period";
 import { transactionsForMonth } from "@/lib/transactions/period";
 
 export default function TransactionsSection({ initialTransactions = [], selectedMonth, loadError = "" }) {
@@ -98,7 +98,7 @@ export default function TransactionsSection({ initialTransactions = [], selected
   function requestDelete(mode, ids = []) {
     setError("");
     setSuccess("");
-    setDeleteRequest({ mode, ids, count: mode === "all" ? transactions.length : ids.length });
+    setDeleteRequest({ mode, ids, monthKey: selectedMonth, count: mode === "month" ? monthlyTransactions.length : ids.length });
   }
 
   function confirmDelete() {
@@ -108,11 +108,11 @@ export default function TransactionsSection({ initialTransactions = [], selected
     setSuccess("");
     startTransition(async () => {
       try {
-        const result = request.mode === "all"
-          ? await deleteAllTransactions()
+        const result = request.mode === "month"
+          ? await deleteTransactionsForMonth(request.monthKey)
           : await deleteTransactions(request.ids);
-        if (request.mode === "all" && !result.error) {
-          setTransactions([]);
+        if (request.mode === "month" && !result.error && result.count !== null) {
+          setTransactions((previous) => previous.filter((tx) => transactionMonthKey(tx.transaction_date) !== request.monthKey));
           setSelectedIds(new Set());
           setCategory("all");
           setReviewFilter("all");
@@ -124,7 +124,7 @@ export default function TransactionsSection({ initialTransactions = [], selected
         }
         if (result.error) setError(result.error);
         if (result.count > 0) setSuccess(`Deleted ${result.count.toLocaleString("en-IN")} transaction${result.count === 1 ? "" : "s"}.`);
-        else if (!result.error) setSuccess(result.count === 0 ? "No transactions were deleted. The list is up to date." : "All transactions deleted.");
+        else if (!result.error) setSuccess("No transactions were deleted. The list is up to date.");
       } catch (err) {
         setError(err.message || "Could not delete transactions. Please try again.");
       } finally {
@@ -215,7 +215,7 @@ export default function TransactionsSection({ initialTransactions = [], selected
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectedVisibleIds.length > 0 && <button type="button" disabled={isPending || !!loadError} onClick={() => requestDelete("selected", selectedVisibleIds)} className="fp-button !border-destructive/20 !text-destructive"><Trash2 size={14} aria-hidden="true" />Delete selected ({selectedVisibleIds.length})</button>}
-          <details className="relative"><summary className="rounded-xl border border-border bg-white px-3 text-xs font-medium">More actions</summary><div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg"><button type="button" disabled={!transactions.length || isPending || !!loadError} onClick={() => requestDelete("all")} className="w-full rounded-lg px-3 text-left text-sm text-destructive hover:bg-rose-50 disabled:opacity-40">Delete all months’ transactions</button></div></details>
+          <details className="relative"><summary className="rounded-xl border border-border bg-white px-3 text-xs font-medium">More actions</summary><div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-border bg-white p-2 shadow-lg"><button type="button" disabled={!monthlyTransactions.length || isPending || !!loadError} onClick={() => requestDelete("month")} className="w-full rounded-lg px-3 text-left text-sm text-destructive hover:bg-rose-50 disabled:opacity-40">Delete {monthLabel(selectedMonth)} transactions</button></div></details>
         </div>
       </div>
 
@@ -282,16 +282,16 @@ export default function TransactionsSection({ initialTransactions = [], selected
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm" />
           <AlertDialog.Content aria-busy={isPending} className="fixed left-1/2 top-1/2 z-50 w-[calc(100%_-_2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl focus:outline-none">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><Trash2 size={22} aria-hidden="true" /></div>
-            <AlertDialog.Title className="text-base font-semibold text-slate-900">{deleteRequest?.mode === "all" ? "Delete all transactions?" : `Delete ${deleteRequest?.count || 0} selected transaction${deleteRequest?.count === 1 ? "" : "s"}?`}</AlertDialog.Title>
+            <AlertDialog.Title className="text-base font-semibold text-slate-900">{deleteRequest?.mode === "month" ? `Delete ${monthLabel(deleteRequest.monthKey)} transactions?` : `Delete ${deleteRequest?.count || 0} selected transaction${deleteRequest?.count === 1 ? "" : "s"}?`}</AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm leading-6 text-slate-600">
-              {deleteRequest?.mode === "all"
-                ? `This will permanently delete all transactions in your account (${deleteRequest.count.toLocaleString("en-IN")} across all months), including other months and those hidden by search or category filters.`
+              {deleteRequest?.mode === "month"
+                ? `This will permanently delete all transactions from ${monthLabel(deleteRequest.monthKey)} (${deleteRequest.count.toLocaleString("en-IN")} currently recorded), including those hidden by search, category or review filters. Transactions from other months will be kept.`
                 : "The selected transactions will be permanently removed from your account."}
               {" "}Your financial summaries will update. This cannot be undone.
             </AlertDialog.Description>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <AlertDialog.Cancel asChild><button type="button" disabled={isPending} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button></AlertDialog.Cancel>
-              <button type="button" onClick={confirmDelete} disabled={isPending} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{isPending && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}{isPending ? "Deleting…" : deleteRequest?.mode === "all" ? "Yes, delete all transactions" : "Delete permanently"}</button>
+              <button type="button" onClick={confirmDelete} disabled={isPending} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{isPending && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}{isPending ? "Deleting…" : deleteRequest?.mode === "month" ? `Delete ${monthLabel(deleteRequest.monthKey)}` : "Delete permanently"}</button>
             </div>
           </AlertDialog.Content>
         </AlertDialog.Portal>
