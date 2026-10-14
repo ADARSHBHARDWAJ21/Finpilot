@@ -4,13 +4,16 @@ import { useRef, useState } from "react";
 import { CloudUpload, FileText, ImageIcon, LoaderCircle, FileSpreadsheet, ArrowDownToLine } from "lucide-react";
 import { saveTransactions } from "@/app/transactions/actions";
 import { parseStatementFile, isSpreadsheetFile } from "@/components/transactions/parse-statement-file";
-import { validateFile } from "@/lib/import/transaction-values";
+import { MAX_FILE_MB, MAX_PDF_PAGES, validateFile } from "@/lib/import/transaction-values";
+import { readServerStatement } from "@/components/transactions/read-server-statement";
 import ReviewImportModal from "@/components/transactions/ReviewImportModal";
+import { STATEMENT_TIMEOUT_MESSAGE } from "@/lib/ingestion/statement-errors";
 
 export default function UploadStatement({ className = "", onImported }) {
   const input = useRef(null);
   const busy = useRef(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState("");
   const [status, setStatus] = useState(null);
   const [review, setReview] = useState(null);
   const [password, setPassword] = useState("");
@@ -26,6 +29,7 @@ export default function UploadStatement({ className = "", onImported }) {
     if (!file || busy.current || review) return;
     busy.current = true;
     setUploading(true);
+    setProgress("Reading your statement…");
     setStatus(null);
     setLockedPdf(null);
     try {
@@ -34,21 +38,13 @@ export default function UploadStatement({ className = "", onImported }) {
       if (isSpreadsheetFile(file)) {
         result = await parseStatementFile(file);
       } else if (/\.(?:pdf|png|jpe?g|webp)$/i.test(file.name)) {
-        const form = new FormData();
-        form.append("file", file);
-        if (/\.pdf$/i.test(file.name) && pdfPassword) form.append("password", pdfPassword);
-        const response = await fetch("/api/process-statement", { method: "POST", body: form, signal: AbortSignal.timeout(175_000) });
-        try { result = await response.json(); }
-        catch { throw new Error("The upload service did not respond correctly. Refresh the page and try again."); }
-        if (!response.ok || !result.success) {
-          if (result.code === "PDF_PASSWORD_REQUIRED") { setLockedPdf(file); setPassword(""); }
-          throw new Error(result.error || "Could not process the statement.");
-        }
+        result = await readServerStatement(file, { password: pdfPassword, onProgress: setProgress });
       } else throw new Error("Choose a CSV, XLSX, XLS, PDF, PNG, JPG or WebP file.");
       setReview({ transactions: result.transactions, warnings: result.warnings || [], fileName: file.name });
       setPassword("");
     } catch (error) {
-      const message = error.name === "TimeoutError" || error.name === "AbortError" ? "Processing took too long. Split the statement into smaller files and try again." : error instanceof TypeError ? "Could not connect to the import service. Check your connection and try again." : error.message;
+      if (error.code === "PDF_PASSWORD_REQUIRED") { setLockedPdf(file); setPassword(""); }
+      const message = error.name === "TimeoutError" || error.name === "AbortError" ? STATEMENT_TIMEOUT_MESSAGE : error instanceof TypeError ? "Could not connect to the import service. Check your connection and try again." : error.message;
       setStatus({ type: "error", message: message || "Could not import this statement." });
     } finally {
       busy.current = false;
@@ -62,7 +58,7 @@ export default function UploadStatement({ className = "", onImported }) {
     if (result.count) pieces.push(`${result.count} transaction${result.count === 1 ? "" : "s"} imported`);
     if (result.skipped) pieces.push(`${result.skipped} existing match${result.skipped === 1 ? "" : "es"} skipped`);
     setStatus({ type: "success", message: pieces.join(". ") + "." });
-    if (result.transactions?.length) onImported?.(result.transactions);
+    if (result.count > 0) onImported?.(result.transactions || []);
   }
 
   return (
@@ -80,8 +76,8 @@ export default function UploadStatement({ className = "", onImported }) {
               <button type="button" disabled={uploading || !!review} onClick={() => choose(".png,.jpg,.jpeg,.webp")} className="fp-button min-h-10 px-3 text-xs"><ImageIcon size={15} />Photo / Screenshot</button>
               <a href="/templates/transactions.csv" download className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-medium text-muted-foreground hover:text-primary"><ArrowDownToLine size={13} />CSV template</a>
             </div>
-            <p className="mt-3 text-[10px] tracking-wide text-muted-foreground">Up to 10 MB · PDF: up to 20 pages</p>
-            {uploading && <p role="status" className="mt-3 text-xs font-medium text-indigo-700">Reading your statement… Photos and scanned PDFs can take a minute or two.</p>}
+            <p className="mt-3 text-[10px] tracking-wide text-muted-foreground">Up to {MAX_FILE_MB} MB · PDF: up to {MAX_PDF_PAGES} pages</p>
+            {uploading && <p role="status" className="mt-3 text-xs font-medium text-indigo-700">{progress} Photos and scanned pages can take a minute or two each.</p>}
             {status && <p role={status.type === "error" ? "alert" : "status"} className={`mt-3 rounded-lg px-3 py-2 text-xs ${status.type === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{status.message}</p>}
             {lockedPdf && <form onSubmit={(event) => { event.preventDefault(); upload(lockedPdf, password); }} className="mt-3 flex flex-wrap items-end gap-2">
               <label className="text-xs text-gray-600">This PDF is password protected<input type="password" autoComplete="off" autoFocus required disabled={uploading} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Bank statement password" className="mt-1 block w-56 rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-700 focus:border-indigo-500 focus:outline-none" /></label>

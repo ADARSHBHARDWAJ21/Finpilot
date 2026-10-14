@@ -1,4 +1,4 @@
-import { MAX_IMPORT_ROWS, validateImportRow, transactionKey } from "./transaction-values.js";
+import { MAX_IMPORT_ROWS, assertImportRowLimit, validateImportRow, transactionKey } from "./transaction-values.js";
 import { applyCategoryRules } from "../bank-parsers/category-rules.js";
 
 const locks = new Map();
@@ -14,7 +14,8 @@ async function withAccountLock(userId, callback) {
 }
 
 export function normalizeImportRows(transactions, userId) {
-  if (!Array.isArray(transactions) || !transactions.length || transactions.length > MAX_IMPORT_ROWS) throw new Error("Select between 1 and 1,000 transactions to import.");
+  if (!Array.isArray(transactions) || !transactions.length) throw new Error(`Select between 1 and ${MAX_IMPORT_ROWS.toLocaleString("en-US")} transactions to import.`);
+  assertImportRowLimit(transactions.length);
   return transactions.map((input, index) => {
     const { row, issues } = validateImportRow(input);
     if (issues.length) throw new Error(`Row ${index + 1}: ${issues.join(". ")}. Please correct it before saving.`);
@@ -60,6 +61,8 @@ export async function saveImportedTransactions(supabase, userId, transactions) {
     if (!toInsert.length) return { count: 0, skipped, transactions: [], message: "These transactions are already in your account." };
     const result = await supabase.from("transactions").insert(toInsert).select("*");
     if (result.error) throw new Error("Could not save the import. Refresh your connection and retry; existing rows will be checked again.");
-    return { count: result.data?.length || toInsert.length, skipped, transactions: result.data || [] };
+    // The insert succeeds atomically even when the database's response row
+    // limit returns only the first portion of the newly saved transactions.
+    return { count: toInsert.length, skipped, transactions: result.data || [], refreshRequired: (result.data?.length || 0) < toInsert.length };
   });
 }

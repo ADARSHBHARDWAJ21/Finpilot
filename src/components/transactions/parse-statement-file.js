@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { identifyColumns, isStatementHeader, parseStatementMatrix } from "../../lib/import/statement-parser.js";
-import { MAX_IMPORT_ROWS, validateFile, excelSerialDate } from "../../lib/import/transaction-values.js";
+import { assertImportRowLimit, validateFile, excelSerialDate } from "../../lib/import/transaction-values.js";
 
 export function isSpreadsheetFile(file) {
   return /\.(?:csv|xlsx|xls)$/i.test(file?.name || "");
@@ -35,11 +35,11 @@ export async function parseStatementFile(file) {
       const result = parseStatementMatrix(matrix);
       transactions.push(...result.transactions);
     } catch (error) {
-      if (workbook.SheetNames.length === 1 || error.message.includes("1,000")) throw error;
+      if (workbook.SheetNames.length === 1 || error.code === "IMPORT_ROW_LIMIT") throw error;
       warnings.push(`Sheet “${name}” has no readable transaction table and was skipped.`);
     }
   }
   if (!transactions.length) throw new Error("No transaction table was found in the workbook.");
-  if (transactions.length > MAX_IMPORT_ROWS) throw new Error("This workbook has more than 1,000 transactions. Split it into smaller files.");
+  assertImportRowLimit(transactions.length, "workbook");
   return { transactions, warnings };
 }

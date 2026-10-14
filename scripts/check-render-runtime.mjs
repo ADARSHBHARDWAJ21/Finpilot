@@ -5,10 +5,12 @@ import sharp from "sharp";
 import { PDFParse } from "pdf-parse";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { createWorker } from "tesseract.js";
+import { access } from "node:fs/promises";
 
 const canvas = createCanvas(2, 2);
 const png = canvas.toBuffer("image/png");
 await sharp(png).resize(1, 1).png().toBuffer();
+await access(new URL("../eng.traineddata", import.meta.url));
 
 if ([PDFParse, getDocument, createWorker].some((value) => typeof value !== "function")) {
   throw new Error("A required PDF/OCR runtime export is unavailable.");

@@ -1,4 +1,4 @@
-import { parseDirection, parseMoney, parseTransactionDate, MAX_IMPORT_ROWS } from "./transaction-values.js";
+import { parseDirection, parseMoney, parseTransactionDate, assertImportRowLimit } from "./transaction-values.js";
 import { applyCategoryRules } from "../bank-parsers/category-rules.js";
 
 const ALIASES = {
@@ -24,6 +24,16 @@ export function inferPaymentMethod(description) {
 }
 
 export function completeStatementRows(rows, { openingBalance = null, includeBalances = false } = {}) {
+  // OCR can replace a neighboring page's balance after native rows have
+  // already been completed. Reconsider those inferred directions against
+  // the final row set, while retaining directions and categories from source.
+  for (const row of rows) {
+    if (row._balanceInference && row.type === row._balanceInference.type) {
+      row.type = "";
+      row.category = row._balanceInference.category;
+    }
+    delete row._balanceInference;
+  }
   let order = 0;
   for (let index = 1; index < rows.length; index++) {
     if (rows[index].transaction_date !== rows[index - 1].transaction_date) { order = rows[index].transaction_date > rows[index - 1].transaction_date ? 1 : -1; break; }
@@ -51,13 +61,16 @@ export function completeStatementRows(rows, { openingBalance = null, includeBala
     if (!row.type && row._balance !== null && row.amount) {
       const baseline = order ? baselineFor(index, order) : null;
       const difference = baseline === null ? null : row._balance - baseline;
-      if (difference !== null && Math.abs(Math.abs(difference) - row.amount) < 0.005) row.type = difference > 0 ? "income" : "expense";
+      if (difference !== null && Math.abs(Math.abs(difference) - row.amount) < 0.005) {
+        row._balanceInference = { type: difference > 0 ? "income" : "expense", category: row.category || "Other" };
+        row.type = row._balanceInference.type;
+      }
     }
     row.category = applyCategoryRules(row.description, row.category || "Other", row.type);
     if (row.type === "income" && row.category === "Other") row.category = "Income";
     if (!row.payment_method || row.payment_method === "Bank") row.payment_method = inferPaymentMethod(row.description);
   }
-  return includeBalances ? rows : rows.map(({ _balance: ignoredBalance, _sourcePage: ignoredPage, ...row }) => row);
+  return includeBalances ? rows : rows.map(({ _balance: ignoredBalance, _sourcePage: ignoredPage, _balanceInference: ignoredInference, ...row }) => row);
 }
 
 export function normalizeHeader(value) {
@@ -131,7 +144,7 @@ export function parseStatementMatrix(matrix, { includeBalances = false, openingB
       continue;
     }
     transactions.push(mapStatementRow(cells, columns));
-    if (transactions.length > MAX_IMPORT_ROWS) throw new Error("This statement has more than 1,000 rows. Split it into smaller files.");
+    assertImportRowLimit(transactions.length);
   }
   if (!transactions.length) throw new Error("The file has column headers but no transaction rows.");
   return { transactions: completeStatementRows(transactions, { openingBalance, includeBalances }), warnings: [], ...(includeBalances ? { openingBalance } : {}) };
@@ -181,7 +194,7 @@ export function parseStatementText(text, { includeBalances = false, openingBalan
     if (!type && marker) type = parseDirection(marker);
     if (!type && hasDebitCredit && candidates.length === 2 && nonzero.length === 1) type = nonzero[0] === candidates[0] ? "expense" : "income";
     transactions.push({ transaction_date: parseTransactionDate(dateMatch[1]), description, amount: amount === null ? "" : Math.abs(amount), type, category: applyCategoryRules(description, undefined, type), payment_method: "Bank", _balance: hasBalanceColumn && moneyMatches.length > 1 ? parseMoney(lastMoney[1]) : null });
-    if (transactions.length > MAX_IMPORT_ROWS) throw new Error("This statement has more than 1,000 rows. Split it into smaller files.");
+    assertImportRowLimit(transactions.length);
   }
   const openingLine = lines.find((line) => /^(?:opening\s+balance|balance\s+brought\s+forward)\b/i.test(line));
   const openingBalance = openingLine ? parseMoney(openingLine.match(/[+-]?\d[\d,]*\.\d{2}(?:\s*(?:CR|DR))?\s*$/i)?.[0]) : startingBalance;

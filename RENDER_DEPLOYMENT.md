@@ -53,7 +53,7 @@ Render's Free web service currently has 512 MB RAM and sleeps after 15 minutes w
 
 Image/scanned-PDF OCR and ZIP exports need significantly more resources than ordinary pages. The existing upload limits are not a promise that a free instance can process every allowed file. Large or simultaneous uploads can exceed the instance's memory or processing budget. Prefer CSV/Excel and small digital PDFs during preview; consider a larger paid instance after measuring real usage.
 
-The local filesystem is temporary. The English OCR language cache under `.cache/ocr` may be downloaded again after a restart; saved transactions and proofs remain in Supabase. No persistent disk is required for existing application data.
+The local filesystem is temporary. English OCR language data ships with the app in `eng.traineddata`, so a restart does not require a language download during uploads. Scanned PDFs are temporarily cached privately while individual pages are read; completion, cancellation, or 30 minutes of inactivity removes the file. Restarting the service interrupts an unfinished upload, which must be uploaded again. Saved transactions and proofs remain in Supabase. No persistent disk is required for existing application data.
 
 Keep one service instance for the initial preview. Current import locks and request limits are process-local. Multiple instances need shared coordination; free hosting does not make this a production scaling setup.
 

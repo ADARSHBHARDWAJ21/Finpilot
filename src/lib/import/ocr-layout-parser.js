@@ -44,12 +44,82 @@ function groupLines(input) {
   return lines.map((line) => ({ ...line, words: line.words.sort((a, b) => a.x - b.x) }));
 }
 
+function columnStart(anchors, field) {
+  const index = anchors.findIndex((anchor) => anchor.field === field);
+  return index > 0 ? (anchors[index - 1].x + anchors[index].x) / 2 : 0;
+}
+
+const REFERENCE_NOTE = /^(?:chq|cheque|ref(?:erence)?(?:\s*(?:no\.?|number))?)\s*[:#]/i;
+
+function assignCenteredDescriptionBlocks(rows, segments) {
+  const blocks = [];
+  for (const segment of segments) {
+    const previous = blocks.at(-1)?.at(-1);
+    // Keep a wrapped narration together even when its tail is closer to the
+    // next row's date. Cheque/reference notes belong to the preceding cell.
+    if (!previous || segment.y - previous.y > Math.max(segment.height, previous.height) * 1.55
+      || REFERENCE_NOTE.test(segment.text) || REFERENCE_NOTE.test(previous.text)) blocks.push([segment]);
+    else blocks.at(-1).push(segment);
+  }
+  const closestRow = (y) => rows.reduce((best, row) => Math.abs(row._rowY - y) < Math.abs(best._rowY - y) ? row : best);
+  const append = (row, block) => { row.description = [row.description, ...block.map((segment) => segment.text)].filter(Boolean).join(" "); };
+  let previousOwner = null;
+  for (const block of blocks) {
+    const first = block[0], last = block.at(-1);
+    const containedRows = rows.filter((row) => row._rowY >= first.y - first.height * 0.55 && row._rowY <= last.y + last.height * 0.55);
+    if (REFERENCE_NOTE.test(first.text) && previousOwner && !containedRows.some((row) => row !== previousOwner)) {
+      append(previousOwner, block);
+    } else if (containedRows.length <= 1) {
+      previousOwner = containedRows[0] || closestRow((first.y + last.y) / 2);
+      append(previousOwner, block);
+    } else {
+      // Dense rows without a blank line can share a text block. Their dates
+      // still divide the block, while separate reference notes remain intact.
+      for (const segment of block) {
+        previousOwner = closestRow(segment.y);
+        append(previousOwner, [segment]);
+      }
+    }
+  }
+}
+
+function restoreCenteredDescriptions(records, segments, previousLayout, tableSections) {
+  const first = records[0];
+  const firstSegments = segments.filter((segment) => segment.section === first._section && segment.sourcePage === first._sourcePage);
+  const preceding = firstSegments.filter((segment) => segment.y < first._rowY - first._height);
+  // Some banks vertically center the date and amounts inside a tall narration
+  // cell. Require several lines above the first date to distinguish this from
+  // a usual row whose narration wraps only below its date.
+  const centeredRows = previousLayout?.centeredRows ?? (tableSections.has(first._section)
+    && preceding.length >= 2 && first._rowY - preceding[0].y >= first._height * 1.5
+    && firstSegments.some((segment) => segment.y > first._rowY + first._height));
+  if (!centeredRows) return false;
+  const groups = new Map();
+  for (const record of records) {
+    record.description = "";
+    const key = `${record._section}:${record._sourcePage ?? ""}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(record);
+  }
+  const segmentGroups = new Map();
+  for (const segment of segments) {
+    const key = `${segment.section}:${segment.sourcePage ?? ""}`;
+    if (!segmentGroups.has(key)) segmentGroups.set(key, []);
+    segmentGroups.get(key).push(segment);
+  }
+  for (const [key, rows] of groups) assignCenteredDescriptionBlocks(rows, segmentGroups.get(key) || []);
+  return true;
+}
+
 // Words use coordinates normalized to a width of 1,000, for PDF/OCR page reuse.
 export function parsePositionedStatementLayout(input, { layout: previousLayout = null, includeBalances = false, includeSourcePages = false, openingBalance = null } = {}) {
   let anchors = previousLayout?.anchors || [];
   let pendingHeader = [];
   let lastHeaderY = -Infinity;
   const records = [];
+  const descriptionSegments = [];
+  const tableSections = new Set();
+  let section = 0;
   let pending = null;
   const flush = () => { if (pending) records.push(pending); pending = null; };
   for (const line of groupLines(input)) {
@@ -57,13 +127,17 @@ export function parsePositionedStatementLayout(input, { layout: previousLayout =
     const fullText = words.map((word) => word.text).join(" ");
     const dateInLine = words.some((word) => parseTransactionDate(word.text));
     const found = dateInLine ? [] : findAnchors(words);
-    const headerFragment = found.length >= 2 || pendingHeader.length && line.y - lastHeaderY <= line.height * 3 && found.length;
+    const headerFragment = !SUMMARY.test(fullText) && (found.length >= 2 || pendingHeader.length && line.y - lastHeaderY <= line.height * 3 && found.length);
     if (headerFragment) {
       if (line.y - lastHeaderY > line.height * 3) pendingHeader = [];
+      if (!pendingHeader.length) section++;
       for (const anchor of found) if (!pendingHeader.some((entry) => entry.field === anchor.field)) pendingHeader.push(anchor);
       lastHeaderY = line.y;
       const columns = identifyColumns(pendingHeader.map((anchor) => anchor.field));
-      if (isStatementHeader(columns)) anchors = pendingHeader.toSorted((a, b) => a.x - b.x);
+      if (isStatementHeader(columns)) {
+        anchors = pendingHeader.toSorted((a, b) => a.x - b.x);
+        tableSections.add(section);
+      }
       continue;
     }
     pendingHeader = [];
@@ -79,7 +153,7 @@ export function parsePositionedStatementLayout(input, { layout: previousLayout =
     const dateAnchor = anchors.find((anchor) => anchor.field === "date");
     const descriptionAnchor = anchors.find((anchor) => anchor.field === "description");
     const nextDateColumn = anchors.filter((anchor) => anchor.x > dateAnchor.x).map((anchor) => anchor.x).sort((a, b) => a - b)[0] ?? dateAnchor.x + 150;
-    const dateWords = words.filter((word) => word.x >= dateAnchor.x - 20 && word.x < nextDateColumn - 5);
+    const dateWords = words.filter((word) => word.x >= columnStart(anchors, "date") && word.x < (dateAnchor.x + nextDateColumn) / 2);
     for (let index = 0; index < dateWords.length; index++) {
       for (let length = Math.min(6, dateWords.length - index); length > 0; length--) {
         const raw = dateWords.slice(index, index + length).map((word) => word.text).join(" ").replace(/\s*([/.-])\s*/g, "$1");
@@ -98,15 +172,17 @@ export function parsePositionedStatementLayout(input, { layout: previousLayout =
       } else if (nearest.field === "type" && parseDirection(word.text)) values.type = word.text;
     }
     const end = Math.min(...anchors.filter((anchor) => anchor.x > descriptionAnchor.x).map((anchor) => anchor.x), ...amountWords.filter((word) => word.x > descriptionAnchor.x).map((word) => word.x));
-    values.description = words.filter((word) => word.x >= descriptionAnchor.x - 12 && word.x < end - 3).map((word) => word.text).join(" ");
-    if (values.date) { flush(); pending = { ...values, _sourcePage: dateWords[0]?.sourcePage }; }
+    values.description = words.filter((word) => word.x >= columnStart(anchors, "description") && word.x < end - 3).map((word) => word.text).join(" ");
+    if (values.description) descriptionSegments.push({ text: values.description, y: line.y, height: line.height, section, sourcePage: words[0]?.sourcePage });
+    if (values.date) { flush(); pending = { ...values, _sourcePage: dateWords[0]?.sourcePage, _rowY: dateWords[0]?.y ?? line.y, _height: line.height, _section: section }; }
     else if (pending) {
       if (values.description) pending.description = [pending.description, values.description].filter(Boolean).join(" ");
       for (const field of [...MONEY_FIELDS, "type"]) if (values[field] && !pending[field]) pending[field] = values[field];
     }
   }
   flush();
-  const layout = anchors.length ? { anchors } : previousLayout;
+  const centeredRows = records.length ? restoreCenteredDescriptions(records, descriptionSegments, previousLayout, tableSections) : previousLayout?.centeredRows;
+  const layout = anchors.length ? { anchors, ...(centeredRows !== undefined ? { centeredRows } : {}) } : previousLayout;
   if (!records.length) return { transactions: [], warnings: [], layout, openingBalance };
   const fields = ["date", "description", "amount", "debit", "credit", "type", "balance"];
   // Only add monetary columns that exist in the statement.

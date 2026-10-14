@@ -28,7 +28,7 @@ Built with Next.js, React and Supabase. This is an actively developed applicatio
 - Merchant and description rules suggest categories. Unrecognized transactions remain available for review.
 - Detect duplicate imports without discarding legitimate repeated transactions within a statement.
 - Local OCR and PDF parsing handle wrapped descriptions, continuation pages, and common bank tables, including tested Canara-style layouts.
-- Limits: **10 MB per file, 20 pages per PDF, and 1,000 rows per import**. Password-protected PDFs require their password for extraction.
+- Statement limits: **50 MB per file, 500 pages per PDF, and 10,000 rows per import**. Password-protected PDFs require their password for extraction. Scanned pages are read in separate requests with visible page progress. Digital bank mastheads above a readable transaction table do not trigger unnecessary OCR.
 
 See [Bank statement import](STATEMENT_IMPORT.md) for supported layouts, completeness checks, duplicate handling and OCR tests. A sample CSV is available at [public/templates/transactions.csv](public/templates/transactions.csv).
 
@@ -181,7 +181,7 @@ npm run build
 
 `npm test` runs the automated suites together. Coverage includes transaction parsing and deduplication, category review, Copilot calculator calls and failures, chat ownership, India-time greetings, historical month boundaries and empty months. Fixtures use synthetic data. Mocked tests do not prove live database policies, provider availability or every bank's PDF layout.
 
-Four OCR integration tests are opt-in because they use local image/PDF recognition and can need the language-data download. To include them on PowerShell:
+Four OCR integration tests are opt-in because they use local image/PDF recognition. They use the bundled English language data without a download. To include them on PowerShell:
 
 ```powershell
 $env:RUN_OCR_TESTS = "1"
@@ -211,15 +211,15 @@ Deploy to a platform that supports Next.js **Node.js server execution**. A stati
 
 - Set the environment variables on the deployment platform; local `.env.local` is not uploaded to GitHub.
 - Use the matching Supabase schema and configure the deployed authentication URL.
-- Allow up to **90 seconds** for Copilot requests and **180 seconds** for statement processing, subject to the host's limits.
+- Allow up to **90 seconds** for Copilot requests and **180 seconds per statement-processing request**, subject to the host's limits. Long scanned PDFs use one request per scanned page.
 - Ensure the host supports the PDF/OCR native dependencies and enough memory for statement processing.
-- OCR downloads English language data when needed and caches it under `.cache/ocr`; ephemeral hosts may download it again.
+- OCR uses the bundled `eng.traineddata` file, included in the statement API's deployment trace. It does not download language data during uploads.
 - Builds may need network access for the project's Google fonts.
 - Multi-instance production deployments need shared rate limiting and database-backed import locking. Current request limits and import serialization are process-local.
 
 ## Data handling and limits
 
-The main statement-upload flow parses statements locally on the app server and saves only reviewed transaction fields to Supabase. That flow does not send the original statement to Gemini. PDF passwords are used for extraction and are not stored. Older extraction endpoints remain in the codebase; this description applies to the current Transactions upload flow.
+The main statement-upload flow parses statements locally on the app server and saves only reviewed transaction fields to Supabase. That flow does not send the original statement to Gemini. PDFs requiring text recognition are temporarily cached in a private runtime temporary directory outside the source checkout while individual pages are processed. Files are deleted after completion or cancellation; idle uploads expire after 30 minutes and are cleaned up automatically. PDF passwords stay in memory during processing and are not written to disk. Upload sessions are bound to the signed-in account and the current app instance; a server restart requires a fresh upload. Older extraction endpoints remain in the codebase; this description applies to the current Transactions upload flow.
 
 Copilot sends the question, conversation text and a limited financial summary to Google Gemini. Contact details, account identifiers and merchant descriptions are omitted from its generated snapshot. Provider data handling depends on the Gemini project's service terms; see [COPILOT_SETUP.md](COPILOT_SETUP.md) before processing sensitive financial information.
 

@@ -1,5 +1,14 @@
-export const MAX_IMPORT_ROWS = 1000;
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_IMPORT_ROWS = 10_000;
+export const MAX_PDF_PAGES = 500;
+export const MAX_FILE_MB = 50;
+export const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
+export function assertImportRowLimit(count, source = "statement") {
+  if (count <= MAX_IMPORT_ROWS) return;
+  const error = new Error(`This ${source} has more than ${MAX_IMPORT_ROWS.toLocaleString("en-US")} rows. Choose a shorter statement date range.`);
+  error.code = "IMPORT_ROW_LIMIT";
+  throw error;
+}
 
 export function excelSerialDate(serial, date1904 = false) {
   if (!Number.isFinite(serial) || serial < 0 || (!date1904 && Math.floor(serial) === 60)) return "";
@@ -71,5 +80,5 @@ export function transactionKey(row) {
 
 export function validateFile(file) {
   if (!file || !file.size) throw new Error("Choose a file that contains a bank statement.");
-  if (file.size > MAX_FILE_BYTES) throw new Error("File is too large. Choose a file under 10 MB.");
+  if (file.size > MAX_FILE_BYTES) throw Object.assign(new Error(`File is too large. Choose a file up to ${MAX_FILE_MB} MB.`), { code: "FILE_TOO_LARGE", status: 413 });
 }

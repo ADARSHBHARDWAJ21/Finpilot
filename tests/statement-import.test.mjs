@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import * as XLSX from "xlsx";
 import sharp from "sharp";
-import { parseMoney, parseTransactionDate, validateImportRow, transactionKey } from "../src/lib/import/transaction-values.js";
+import { PDFParse } from "pdf-parse";
+import { parseMoney, parseTransactionDate, validateImportRow, transactionKey, MAX_IMPORT_ROWS, MAX_PDF_PAGES } from "../src/lib/import/transaction-values.js";
 import { parseStatementMatrix, parseStatementText, completeStatementRows } from "../src/lib/import/statement-parser.js";
 import { parseOcrStatementLayout, parsePositionedStatementLayout } from "../src/lib/import/ocr-layout-parser.js";
 import { normalizeImportRows, removeExistingTransactions, saveImportedTransactions } from "../src/lib/import/save-import.js";
@@ -170,7 +171,7 @@ test("limits, empty files, damaged CSV and absent transaction headers fail clear
   await assert.rejects(parseStatementFile(new File([], "empty.csv")), /contains/);
   await assert.rejects(parseStatementFile(new File(['Date,Description,Amount\n01/09/2026,"bad quote,100'], "bad.csv")), /quoted/);
   assert.throws(() => parseStatementMatrix([["Customer", "Account number"], ["Test", "123"]]), /columns/);
-  assert.throws(() => parseStatementMatrix([["Date", "Description", "Amount", "Type"], ...Array.from({ length: 1001 }, () => ["01/09/2026", "Test", 1, "expense"])]), /1,000/);
+  assert.throws(() => parseStatementMatrix([["Date", "Description", "Amount", "Type"], ...Array.from({ length: MAX_IMPORT_ROWS + 1 }, () => ["01/09/2026", "Test", 1, "expense"])]), { code: "IMPORT_ROW_LIMIT" });
 });
 
 test("text parsing reads explicit markers and two-column debit/credit layouts", () => {
@@ -342,6 +343,42 @@ function rawPdf(objects) {
   return Buffer.concat(chunks);
 }
 
+test("20-page digital statements with bank logos skip OCR and redundant table scans", async (t) => {
+  let tableReads = 0;
+  const originalGetTable = PDFParse.prototype.getTable;
+  PDFParse.prototype.getTable = async function (...args) { tableReads++; return originalGetTable.apply(this, args); };
+  t.after(() => { PDFParse.prototype.getTable = originalGetTable; });
+  const pageCount = 20;
+  const font = pageCount + 3;
+  const logo = font + 1;
+  const firstStream = logo + 1;
+  const streams = Array.from({ length: pageCount }, (_, index) => `q 70 0 0 25 40 755 cm /Logo Do Q\nBT /F1 12 Tf 40 700 Td (${String(index + 1).padStart(2, "0")}/09/2026 TEST COFFEE 450.00 DR) Tj ET`);
+  const bytes = rawPdf([
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    `<< /Type /Pages /Kids [${streams.map((_, index) => `${index + 3} 0 R`).join(" ")}] /Count ${pageCount} >>`,
+    ...streams.map((_, index) => `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R >> /XObject << /Logo ${logo} 0 R >> >> /Contents ${firstStream + index} 0 R >>`),
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
+    Buffer.concat([Buffer.from("<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\n"), Buffer.from([30, 70, 50]), Buffer.from("\nendstream")]),
+    ...streams.map((stream) => `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`),
+  ]);
+  const result = await processStatement(bytes, "pdf");
+  assert.equal(result.ok, true);
+  assert.equal(result.transactions.length, pageCount);
+  assert.equal(result.extractionMethod, "PDF text");
+  assert.equal(tableReads, 0);
+  assert.ok(result.transactions.every((row) => row.amount === 450 && row.type === "expense"));
+});
+
+test("a stalled PDF operation returns a typed processing timeout", async (t) => {
+  const originalGetInfo = PDFParse.prototype.getInfo;
+  PDFParse.prototype.getInfo = () => new Promise(() => {});
+  t.after(() => { PDFParse.prototype.getInfo = originalGetInfo; });
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const result = assert.rejects(processStatement(pdfDocument(["Test"]), "pdf"), { code: "STATEMENT_TIMEOUT" });
+  t.mock.timers.tick(150_000);
+  await result;
+});
+
 test("a real bank table photo fills all details despite blank debit/credit cells", { skip: process.env.RUN_OCR_TESTS !== "1" }, async () => {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="400"><rect width="100%" height="100%" fill="white"/><g fill="black" font-family="monospace" font-size="32"><text x="60" y="80">Date</text><text x="400" y="80">Narration</text><text x="1000" y="80">Debit</text><text x="1300" y="80">Credit</text><text x="1600" y="80">Balance</text><text x="60" y="170">01/09/2026</text><text x="400" y="170">UPI ZOMATO</text><text x="1000" y="170">450.00</text><text x="1600" y="170">9550.00</text><text x="60" y="260">02/09/2026</text><text x="400" y="260">NEFT SALARY</text><text x="1300" y="260">30000.00</text><text x="1600" y="260">39550.00</text></g></svg>';
   const png = await sharp(Buffer.from(svg)).png().toBuffer();
@@ -426,7 +463,7 @@ test("scanned and mixed-page PDFs include every page through local OCR", { skip:
 });
 
 test("PDF page limits reject the whole file instead of silently truncating it", async () => {
-  const pages = Array.from({ length: 21 }, () => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>");
-  const bytes = rawPdf(["<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Kids [${pages.map((_, i) => `${i + 3} 0 R`).join(" ")}] /Count 21 >>`, ...pages]);
-  await assert.rejects(processStatement(bytes, "pdf"), /more than 20 pages/);
+  const pages = Array.from({ length: MAX_PDF_PAGES + 1 }, () => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>");
+  const bytes = rawPdf(["<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Kids [${pages.map((_, i) => `${i + 3} 0 R`).join(" ")}] /Count ${pages.length} >>`, ...pages]);
+  await assert.rejects(processStatement(bytes, "pdf"), new RegExp(`more than ${MAX_PDF_PAGES} pages`));
 });
