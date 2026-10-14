@@ -75,7 +75,12 @@ export function validateImportRow(input) {
 }
 
 export function transactionKey(row) {
-  return JSON.stringify([row.transaction_date, row.type, Math.round(Number(row.amount) * 100), row.description.trim().replace(/\s+/g, " ").toLowerCase()]);
+  const description = row.description.trim().replace(/\s+/g, " ").toLowerCase();
+  // Canara and similar statements retain the 12-digit UPI reference even when
+  // a later extraction adds wrapped narration or cheque notes. Account numbers
+  // and generic embedded digits are not transaction references.
+  const upiReference = description.match(/^upi\s*\/\s*(?:dr|cr)\s*\/\s*(\d{12})\s*(?:\/|$)/)?.[1];
+  return JSON.stringify([row.transaction_date, row.type, Math.round(Number(row.amount) * 100), upiReference ? `upi-reference:${upiReference}` : description]);
 }
 
 export function validateFile(file) {
