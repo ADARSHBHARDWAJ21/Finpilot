@@ -2,18 +2,19 @@ import { requireUser } from "@/lib/auth";
 import { getBudgetDashboardData } from "@/app/budget-tracker/actions";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BudgetTrackerSection from "@/components/budget/BudgetTrackerSection";
+import { getSelectedMonth } from "@/lib/dashboard/month-selection";
 
 export default async function BudgetTrackerPage({ searchParams }) {
-  await requireUser();
+  const user = await requireUser();
 
   const params = await searchParams;
-  const monthKey = typeof params?.month === "string" ? params.month : undefined;
+  const { selectedMonth, currentMonth } = await getSelectedMonth(params?.month, user.id);
 
   let initialData = null;
   let loadError = null;
 
   try {
-    initialData = await getBudgetDashboardData(monthKey);
+    initialData = await getBudgetDashboardData(selectedMonth);
   } catch (error) {
     loadError = error.message;
   }
@@ -21,7 +22,9 @@ export default async function BudgetTrackerPage({ searchParams }) {
   return (
     <DashboardLayout showRightSidebar={false}>
       <BudgetTrackerSection
-        key={monthKey || initialData?.dashboard?.monthKey || "current"}
+        key={selectedMonth}
+        selectedMonth={selectedMonth}
+        currentMonth={currentMonth}
         initialData={initialData}
         loadError={loadError}
         budgetPlansAvailable={initialData?.budgetPlansAvailable ?? true}

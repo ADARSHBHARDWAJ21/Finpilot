@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { validMonthKey } from "@/lib/dashboard/period";
 import BrandMark from "./BrandMark";
 import { LayoutDashboard, ArrowLeftRight, Wallet, Landmark, Sparkles, TrendingUp, ChartNoAxesCombined, Target, Bell, ChartNoAxesColumnIncreasing, CalendarDays, Settings, ChevronDown } from "lucide-react";
 
@@ -37,7 +38,10 @@ const taxItems = [
 
 export default function Sidebar({ onNavigate, compact = false }) {
   const pathname = usePathname();
-  const year = useSearchParams().get("year");
+  const params = useSearchParams();
+  const year = params.get("year");
+  const month = params.get("month");
+  const moneyHref = (href) => ["/transactions", "/budget-tracker"].includes(pathname) && validMonthKey(month) && ["/transactions", "/budget-tracker"].includes(href) ? `${href}?month=${month}` : href;
   const taxHref = (href) => /^20\d{2}-\d{2}$/.test(year || "") ? `${href}?year=${year}` : href;
   const isTax = pathname.startsWith("/taxation") && pathname !== "/taxation/ai-copilot";
 
@@ -51,14 +55,14 @@ export default function Sidebar({ onNavigate, compact = false }) {
         { icon: Landmark, label: "Tax workspace", href: "/taxation" },
         { icon: ChartNoAxesColumnIncreasing, label: "Reports", href: "/reports" },
         { icon: Settings, label: "Settings", href: "/settings" },
-      ].map(({ icon: Icon, label, href }) => <Link key={href} href={href.startsWith("/taxation") || ["/reports", "/dashboard"].includes(href) ? taxHref(href) : href} aria-current={pathname === href ? "page" : undefined}><Icon size={23} strokeWidth={1.7} aria-hidden="true" /><span>{label}</span></Link>)}
+      ].map(({ icon: Icon, label, href }) => <Link key={href} href={href.startsWith("/taxation") || ["/reports", "/dashboard"].includes(href) ? taxHref(href) : moneyHref(href)} aria-current={pathname === href ? "page" : undefined}><Icon size={23} strokeWidth={1.7} aria-hidden="true" /><span>{label}</span></Link>)}
     </nav>
     <SignOutButton className="fp-copilot-rail-signout text-white/75 hover:bg-white/10 hover:text-white" />
   </aside>;
 
   function itemLink(item) {
     const Icon = item.icon;
-    return <Link key={item.href} href={["/reports","/dashboard"].includes(item.href) ? taxHref(item.href) : item.href} onClick={onNavigate} aria-current={pathname === item.href ? "page" : undefined} className="fp-nav-item">
+    return <Link key={item.href} href={["/reports","/dashboard"].includes(item.href) ? taxHref(item.href) : moneyHref(item.href)} onClick={onNavigate} aria-current={pathname === item.href ? "page" : undefined} className="fp-nav-item">
       <Icon size={18} aria-hidden="true" />
       <span className="flex-1">{item.label}</span>
       {item.preview && <span className="rounded-md border border-white/15 px-1.5 py-0.5 text-[8px] tracking-wide">SOON</span>}

@@ -8,6 +8,7 @@ import Link from "next/link";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 import BrandMark from "./BrandMark";
+import { validMonthKey } from "@/lib/dashboard/period";
 
 const pageNames = { dashboard: "Overview", transactions: "Transactions", "budget-tracker": "Budgets", taxation: "Tax workspace", goals: "Goals", reports: "Reports", reminders: "Reminders", calendar: "Calendar", settings: "Settings", investments: "Investments", "net-worth": "Net worth", "ai-copilot": "AI Copilot", "rent-hra": "Rent & HRA" };
 
@@ -21,7 +22,10 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
     return () => desktop.removeEventListener("change", closeOnDesktop);
   }, []);
   const pathname = usePathname();
-  const year = useSearchParams().get("year");
+  const params = useSearchParams();
+  const year = params.get("year");
+  const month = params.get("month");
+  const transactionsHref = ["/transactions", "/budget-tracker"].includes(pathname) && validMonthKey(month) ? `/transactions?month=${month}` : "/transactions";
   const taxSuffix = /^20\d{2}-\d{2}$/.test(year || "") ? `?year=${year}` : "";
   const segments = pathname.split("/").filter(Boolean);
   const title = (part) => pageNames[part] || part.replaceAll("-", " ").replace(/^./, (char) => char.toUpperCase());
@@ -64,7 +68,7 @@ export default function DashboardLayout({ children, showRightSidebar = true, rig
           {showRightSidebar && <div className="hidden shrink-0 min-[1600px]:block"><RightSidebar {...rightSidebarProps} /></div>}
         </div>
         <nav aria-label="Quick navigation" className="fp-bottom-nav safe-bottom lg:hidden">
-          {[["Overview", "/dashboard", LayoutDashboard], ["Transactions", "/transactions", ArrowLeftRight], ["Tax", "/taxation", Landmark], ["Copilot", "/taxation/ai-copilot", Sparkles]].map(([label, href, Icon]) => <Link key={href} href={`${href}${href.startsWith("/taxation") ? taxSuffix : ""}`} aria-current={(href === "/taxation" ? pathname.startsWith(href) && pathname !== "/taxation/ai-copilot" : pathname === href) ? "page" : undefined}><Icon size={19} aria-hidden="true" /><span>{label}</span></Link>)}
+          {[["Overview", "/dashboard", LayoutDashboard], ["Transactions", "/transactions", ArrowLeftRight], ["Tax", "/taxation", Landmark], ["Copilot", "/taxation/ai-copilot", Sparkles]].map(([label, href, Icon]) => <Link key={href} href={href === "/transactions" ? transactionsHref : `${href}${href.startsWith("/taxation") ? taxSuffix : ""}`} aria-current={(href === "/taxation" ? pathname.startsWith(href) && pathname !== "/taxation/ai-copilot" : pathname === href) ? "page" : undefined}><Icon size={19} aria-hidden="true" /><span>{label}</span></Link>)}
         </nav>
       </div>
     </div>

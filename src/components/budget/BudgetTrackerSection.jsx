@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  Calendar,
   Wallet,
   Receipt,
   PiggyBank,
@@ -41,6 +40,9 @@ import {
 import CategoryIcon from "@/components/budget/CategoryIcon";
 import ClientOnly from "@/components/budget/ClientOnly";
 import { ProgressLine } from "@/components/layout/WorkspaceUI";
+import MonthSelectionControl from "@/components/dashboard/MonthSelectionControl";
+import { transactionMonths } from "@/lib/transactions/period";
+import { currentMonthKey } from "@/lib/dashboard/period";
 
 const chartColors = ["#214d43", "#91a787", "#c9d7c5", "#bda78a", "#6e8574", "#d6d4c7"];
 
@@ -169,6 +171,8 @@ export default function BudgetTrackerSection({
   initialData,
   loadError,
   budgetPlansAvailable: plansAvailableProp = true,
+  selectedMonth = initialData?.dashboard?.monthKey,
+  currentMonth = currentMonthKey(),
 }) {
   const router = useRouter();
   const [dashboard, setDashboard] = useState(initialData?.dashboard ?? null);
@@ -284,14 +288,11 @@ export default function BudgetTrackerSection({
     setModal(id);
   }
 
-  function handleMonthChange(monthKey) {
-    router.push(`/budget-tracker?month=${monthKey}`);
-  }
-
   if (loadError && !d) {
     return (
       <div className="p-6 text-sm text-red-600">
-        Could not load budget data: {loadError}
+        <MonthSelectionControl context="budget" selectedMonth={selectedMonth} currentMonth={currentMonth} />
+        <p className="mt-4">Could not load budget data: {loadError}</p>
       </div>
     );
   }
@@ -404,24 +405,7 @@ export default function BudgetTrackerSection({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
-              value={d.monthKey}
-              aria-label="Budget month"
-              onChange={(e) => handleMonthChange(e.target.value)}
-              className="appearance-none flex items-center gap-2 bg-white border border-border pl-3 pr-8 py-2 rounded-xl text-sm text-foreground"
-            >
-              {d.availableMonths.map((mk) => (
-                <option key={mk} value={mk}>
-                  {mk}
-                </option>
-              ))}
-            </select>
-            <Calendar
-              size={16}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-            />
-          </div>
+          <MonthSelectionControl context="budget" selectedMonth={d.monthKey} currentMonth={currentMonth} availableMonths={transactionMonths(initialData?.transactions || [])} disabled={saving} />
         </div>
       </div>
       <section className="mb-6 flex flex-wrap items-center justify-between gap-6 rounded-[22px] border border-primary/10 bg-secondary p-6 sm:p-7" aria-label="Monthly budget remaining"><div><p className="text-sm text-muted-foreground">{d.remaining < 0 ? "Over your plan this month" : "Remaining this month"}</p><p className={`mt-3 text-4xl font-medium tracking-tight tabular-nums ${d.remaining<0 ? "text-[#a45f4b]" : "text-primary"}`}>{formatInr(Math.abs(d.remaining))}</p><p className="mt-3 text-sm text-muted-foreground">{formatInr(d.totalSpent)} spent of {formatInr(d.totalBudget)} planned.</p></div><div className="w-full space-y-4 sm:max-w-sm"><ProgressLine value={Math.min(100,d.spentPct)} label={`${d.spentPct}% of the plan used`} /><button type="button" onClick={()=>setModal("planner")} className="fp-primary-link">Edit monthly plan<ChevronRight size={16}/></button></div></section>

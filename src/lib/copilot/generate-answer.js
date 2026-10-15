@@ -26,24 +26,32 @@ function functionTools() {
 }
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+export const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
 
-async function requestGemini(url, options, { fetchImpl, sleepImpl, deadline, retries }) {
+async function requestGemini(requestForModel, { model, fallbackModel, fetchImpl, sleepImpl, deadline, retries }) {
+  let attempts = 0;
   for (;;) {
     if (Date.now() >= deadline) throw new CopilotError("AI_CONNECTION_FAILED");
+    const { url, options } = requestForModel(model);
+    attempts++;
     let response;
     let networkError;
     try {
-      response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(Math.max(1, Math.min(30000, deadline - Date.now()))) });
+      // Reserve time for both the backup's first response and a calculator turn.
+      const attemptTimeout = fallbackModel && fallbackModel !== model ? 15000 : 20000;
+      response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(Math.max(1, Math.min(attemptTimeout, deadline - Date.now()))) });
     } catch (error) { networkError = error; }
     const temporary = networkError || [500, 502, 503, 504].includes(response.status);
     const delay = 750 * (2 ** (2 - retries.remaining));
     if (!temporary || retries.remaining === 0 || Date.now() + delay + 1000 >= deadline) {
       if (networkError) throw new CopilotError("AI_CONNECTION_FAILED");
-      return response;
+      return { response, model };
     }
     retries.remaining--;
-    // Only retry transient failures. Keys, billing, quota and safety errors
-    // remain distinct. The total deadline and retry budget span all tool turns.
+    // Only the initial turn may change models; thought signatures in subsequent
+    // tool turns belong to the model that produced them. Switching spends the
+    // same retry budget as repeating a request, never an additional budget.
+    if (attempts === 2 && fallbackModel && fallbackModel !== model) model = fallbackModel;
     try { await response?.body?.cancel(); } catch { /* Ignore cleanup failure. */ }
     await sleepImpl(delay);
   }
@@ -73,8 +81,10 @@ function uncalculatedAmount(answer, calculations) {
 
 export async function generateCopilotAnswer({ message, history = [], context, fetchImpl = fetch,
   sleepImpl = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-  apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_COPILOT_MODEL || DEFAULT_GEMINI_MODEL }) {
-  if (!apiKey?.trim() || !/^gemini-[a-zA-Z0-9._-]{1,90}$/.test(model)) throw new CopilotError("AI_NOT_CONFIGURED");
+  apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_COPILOT_MODEL || DEFAULT_GEMINI_MODEL,
+  fallbackModel = process.env.GEMINI_COPILOT_FALLBACK_MODEL || DEFAULT_GEMINI_FALLBACK_MODEL }) {
+  const validModel = (value) => typeof value === "string" && /^gemini-[a-zA-Z0-9._-]{1,90}$/.test(value);
+  if (!apiKey?.trim() || !validModel(model) || (fallbackModel != null && !validModel(fallbackModel))) throw new CopilotError("AI_NOT_CONFIGURED");
   if (!Array.isArray(history) || history.length > 40 || history.some((item) => !item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || item.content.length > 16000)) {
     throw new CopilotError("CHAT_INVALID", 409);
   }
@@ -89,18 +99,24 @@ export async function generateCopilotAnswer({ message, history = [], context, fe
   let toolCallCount = 0;
   const deadline = Date.now() + 65000;
   const retries = { remaining: 2 };
+  let providerModel = model;
   for (let round = 0; round < 4; round++) {
     let payload;
     try {
       if (Date.now() >= deadline) throw new CopilotError("AI_CONNECTION_FAILED");
-      const response = await requestGemini(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey.trim() },
-        body: JSON.stringify({ systemInstruction, contents, tools: functionTools(),
-          toolConfig: { functionCallingConfig: { mode: "AUTO" } },
-          generationConfig: { maxOutputTokens: 8192, ...(model.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}) },
-        }),
-      }, { fetchImpl, sleepImpl, deadline, retries });
+      const requested = await requestGemini((selectedModel) => ({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`,
+        options: {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey.trim() },
+          body: JSON.stringify({ systemInstruction, contents, tools: functionTools(),
+            toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+            generationConfig: { maxOutputTokens: 8192, ...(selectedModel.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}) },
+          }),
+        },
+      }), { model: providerModel, fallbackModel: round === 0 ? fallbackModel : null, fetchImpl, sleepImpl, deadline, retries });
+      const { response } = requested;
+      providerModel = requested.model;
       if (!response.ok) {
         let providerError;
         try { providerError = (await response.json()).error; } catch { /* Non-JSON provider errors are handled by status. */ }
@@ -140,7 +156,7 @@ export async function generateCopilotAnswer({ message, history = [], context, fe
       contents.push(candidate.content, { role: "user", parts: [{ text: "Your answer includes a personal tax or EMI amount without a calculator result. Call the appropriate tool using confirmed data, or ask for missing inputs without claiming a calculated amount." }] });
       continue;
     }
-    return { answer, calculations, sources: calculations.some((item) => item.kind === "tax") ? TAX_SOURCES : [] };
+    return { answer, calculations, sources: calculations.some((item) => item.kind === "tax") ? TAX_SOURCES : [], providerModel, fallbackUsed: providerModel !== model };
   }
   throw new CopilotError("AI_TOOL_LIMIT");
 }

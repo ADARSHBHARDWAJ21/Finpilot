@@ -1,34 +1,139 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateCopilotAnswer, DEFAULT_GEMINI_MODEL } from "../src/lib/copilot/generate-answer.js";
+import { generateCopilotAnswer, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL } from "../src/lib/copilot/generate-answer.js";
 import { buildCopilotContext } from "../src/lib/copilot/context.js";
 
 const context = () => buildCopilotContext({ profile: { financial_year: "2026-27", annual_ctc: 1800000, age: 30, basic_salary: 50000 }, transactions: [], budgets: [], today: "2026-10-01" }).context;
 const text = (answer) => ({ text: answer });
 const call = (args = {}, name = "compare_tax", id = "call_1") => ({ functionCall: { name, id, args }, thoughtSignature: "signed-thought" });
 const response = (parts, finishReason = "STOP") => ({ ok: true, json: async () => ({ candidates: [{ finishReason, content: { role: "model", parts } }] }) });
-const config = () => ({ message: "What changes after a 20% promotion for six months?", context: context(), apiKey: "test-secret", sleepImpl: async () => {} });
+const config = () => ({ message: "What changes after a 20% promotion for six months?", context: context(), apiKey: "test-secret", model: DEFAULT_GEMINI_MODEL, fallbackModel: DEFAULT_GEMINI_FALLBACK_MODEL, sleepImpl: async () => {} });
+const requestedModel = (url) => /\/models\/([^:]+):generateContent$/.exec(url)?.[1];
 
 test("temporary Gemini overload retries the same request and recovers without duplicate calculations", async () => {
   const requests = [];
   const delays = [];
   const result = await generateCopilotAnswer({ ...config(), sleepImpl: async (delay) => delays.push(delay), fetchImpl: async (_url, options) => {
     requests.push(JSON.parse(options.body));
-    if (requests.length < 3) return { ok: false, status: 503 };
+    if (requests.length < 2) return { ok: false, status: 503 };
     return response([text("Please confirm your salary and the effective month.")]);
   } });
-  assert.equal(requests.length, 3);
-  assert.deepEqual(requests[0], requests[2]);
-  assert.deepEqual(delays, [750, 1500]);
+  assert.equal(requests.length, 2);
+  assert.deepEqual(requests[0], requests[1]);
+  assert.deepEqual(delays, [750]);
   assert.equal(result.calculations.length, 0);
+  assert.equal(result.providerModel, DEFAULT_GEMINI_MODEL);
+  assert.equal(result.fallbackUsed, false);
 });
 
-test("retries are bounded and quota or key failures are never repeatedly submitted", async () => {
-  for (const status of [503, 429, 403]) {
-    let count = 0;
-    await assert.rejects(generateCopilotAnswer({ ...config(), fetchImpl: async () => { count++; return { ok: false, status }; } }));
-    assert.equal(count, status === 503 ? 3 : 1);
+test("persistent overload uses one backup attempt within the shared request budget", async () => {
+  const models = [];
+  const bodies = [];
+  const delays = [];
+  const result = await generateCopilotAnswer({ ...config(), sleepImpl: async (delay) => delays.push(delay), fetchImpl: async (url, options) => {
+    models.push(requestedModel(url)); bodies.push(JSON.parse(options.body));
+    return models.length < 3 ? { ok: false, status: 503 } : response([text("Please confirm the effective month.")]);
+  } });
+  assert.deepEqual(models, ["gemini-3.8-flash", "gemini-3.8-flash", "gemini-3.6-flash"]);
+  assert.deepEqual(bodies[0], bodies[2]);
+  assert.deepEqual(delays, [750, 1500]);
+  assert.equal(result.providerModel, "gemini-3.6-flash");
+  assert.equal(result.fallbackUsed, true);
+  assert.equal(result.calculations.length, 0);
+
+  const failedModels = [];
+  await assert.rejects(generateCopilotAnswer({ ...config(), fetchImpl: async (url) => {
+    failedModels.push(requestedModel(url)); return { ok: false, status: 503 };
+  } }), (error) => error.code === "AI_BUSY");
+  assert.deepEqual(failedModels, models);
+});
+
+test("key, billing, quota, missing-model and other nontransient failures never use backup", async () => {
+  for (const [status, code] of [[400, "AI_CONNECTION_FAILED"], [401, "AI_KEY_INVALID"], [402, "AI_CREDITS_EXHAUSTED"], [403, "AI_KEY_INVALID"], [404, "AI_MODEL_UNAVAILABLE"], [429, "AI_QUOTA_EXHAUSTED"]]) {
+    const models = [];
+    await assert.rejects(generateCopilotAnswer({ ...config(), fetchImpl: async (url) => {
+      models.push(requestedModel(url)); return { ok: false, status };
+    } }), (error) => error.code === code);
+    assert.deepEqual(models, [DEFAULT_GEMINI_MODEL]);
   }
+});
+
+test("network timeouts reserve a full backup attempt without resetting the deadline", async (t) => {
+  let now = 100000;
+  t.mock.method(Date, "now", () => now);
+  t.mock.method(AbortSignal, "timeout", (milliseconds) => ({ milliseconds }));
+  const models = [];
+  const timeouts = [];
+  await assert.rejects(generateCopilotAnswer({ ...config(), sleepImpl: async (delay) => { now += delay; }, fetchImpl: async (url, options) => {
+    models.push(requestedModel(url)); timeouts.push(options.signal.milliseconds);
+    if (models.length <= 2) { now += options.signal.milliseconds; throw new Error("Timed out"); }
+    if (models.length === 3) { now += options.signal.milliseconds; return response([call()]); }
+    now += options.signal.milliseconds; throw new Error("Timed out");
+  } }), (error) => error.code === "AI_CONNECTION_FAILED");
+  assert.deepEqual(models, [DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL]);
+  assert.deepEqual(timeouts, [15000, 15000, 20000, 12750]);
+  assert.equal(now, 165000);
+});
+
+test("network failures can recover through backup and preserve its signed tool turns", async () => {
+  const requests = [];
+  const signedCall = call({ increasePercent: 20, monthsRemaining: 6 });
+  const result = await generateCopilotAnswer({ ...config(), fetchImpl: async (url, options) => {
+    requests.push({ model: requestedModel(url), body: JSON.parse(options.body) });
+    if (requests.length <= 2) throw new Error("Network failure");
+    return requests.length === 3 ? response([signedCall]) : response([text("See the calculated promotion comparison below.")]);
+  } });
+  assert.deepEqual(requests.map((item) => item.model), [DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL]);
+  assert.deepEqual(requests[3].body.contents.at(-2), { role: "model", parts: [signedCall] });
+  assert.equal(result.calculations[0].scenario.annualSalary, 1980000);
+  assert.equal(result.calculations[0].scenario.new.tax, 188240);
+  assert.equal(result.fallbackUsed, true);
+});
+
+test("primary tool turns never change models and backup tool turns cannot reset retries", async () => {
+  for (const useBackup of [false, true]) {
+    const models = [];
+    await assert.rejects(generateCopilotAnswer({ ...config(), fetchImpl: async (url) => {
+      models.push(requestedModel(url));
+      if (models.length === (useBackup ? 3 : 1)) return response([call()]);
+      return { ok: false, status: 503 };
+    } }), (error) => error.code === "AI_BUSY");
+    assert.deepEqual(models, useBackup
+      ? [DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL, DEFAULT_GEMINI_FALLBACK_MODEL]
+      : Array(4).fill(DEFAULT_GEMINI_MODEL));
+  }
+});
+
+test("fallback with continued tool calls remains bounded to four rounds and six requests", async () => {
+  const models = [];
+  const result = await generateCopilotAnswer({ ...config(), fetchImpl: async (url) => {
+    models.push(requestedModel(url));
+    if (models.length <= 2) return { ok: false, status: 503 };
+    return models.length < 6 ? response([call()]) : response([text("See the calculated tax scenarios below.")]);
+  } });
+  assert.deepEqual(models, [DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_MODEL, ...Array(4).fill(DEFAULT_GEMINI_FALLBACK_MODEL)]);
+  assert.equal(result.calculations.length, 3);
+});
+
+test("configured model overrides are used and malformed backup configuration fails before a request", async (t) => {
+  const previous = { model: process.env.GEMINI_COPILOT_MODEL, fallbackModel: process.env.GEMINI_COPILOT_FALLBACK_MODEL };
+  t.after(() => {
+    for (const [name, value] of [["GEMINI_COPILOT_MODEL", previous.model], ["GEMINI_COPILOT_FALLBACK_MODEL", previous.fallbackModel]]) {
+      if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+  });
+  process.env.GEMINI_COPILOT_MODEL = "gemini-test-primary";
+  process.env.GEMINI_COPILOT_FALLBACK_MODEL = "gemini-test-backup";
+  const models = [];
+  const options = config(); delete options.model; delete options.fallbackModel;
+  const result = await generateCopilotAnswer({ ...options, fetchImpl: async (url, request) => {
+    models.push(requestedModel(url));
+    assert.equal(JSON.parse(request.body).generationConfig.thinkingConfig, undefined);
+    return models.length <= 2 ? { ok: false, status: 503 } : response([text("Please confirm the tax year.")]);
+  } });
+  assert.deepEqual(models, ["gemini-test-primary", "gemini-test-primary", "gemini-test-backup"]);
+  assert.equal(result.providerModel, "gemini-test-backup");
+  await assert.rejects(generateCopilotAnswer({ ...config(), fallbackModel: "../other-endpoint", fetchImpl: async () => { assert.fail("Invalid configuration must not be sent"); } }), (error) => error.code === "AI_NOT_CONFIGURED");
 });
 
 test("Gemini replays signed model content and returns server-calculated promotion figures", async () => {
