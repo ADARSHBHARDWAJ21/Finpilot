@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, RefreshCw, Search } from "lucide-react";
-import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+const AddTransactionModal = dynamic(() => import("@/components/transactions/AddTransactionModal"));
 import DashboardMonthPicker from "./DashboardMonthPicker";
 import { currentMonthKey, DASHBOARD_TIME_ZONE, monthLabel, timeGreeting } from "@/lib/dashboard/period";
 
@@ -20,7 +21,7 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
   const [clock, setClock] = useState(updatedAt);
   const currentMonth = currentMonthKey(clock);
   useEffect(() => {
-    const update = () => setClock(new Date().toISOString());
+    const update = () => { if (document.visibilityState === "visible") setClock(new Date().toISOString()); };
     const timer = setInterval(update, 30000);
     document.addEventListener("visibilitychange", update);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", update); };
@@ -81,7 +82,7 @@ export default function DashboardHeader({ fullName, selectedMonth, availableMont
           </div>
       </section>
 
-      <AddTransactionModal open={addOpen} onClose={() => setAddOpen(false)} defaultType="expense" />
+      {addOpen && <AddTransactionModal open={addOpen} onClose={() => setAddOpen(false)} defaultType="expense" />}
     </>
   );
 }

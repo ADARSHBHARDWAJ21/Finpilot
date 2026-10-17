@@ -1,5 +1,3 @@
-import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import { identifyColumns, isStatementHeader, parseStatementMatrix } from "../../lib/import/statement-parser.js";
 import { assertImportRowLimit, validateFile, excelSerialDate } from "../../lib/import/transaction-values.js";
 
@@ -13,11 +11,13 @@ export function isPdfFile(file) {
 export async function parseStatementFile(file) {
   validateFile(file);
   if (/\.csv$/i.test(file.name)) {
+    const { default: Papa } = await import("papaparse");
     const result = Papa.parse(await file.text(), { skipEmptyLines: "greedy" });
     if (result.errors.some((error) => error.code === "MissingQuotes")) throw new Error("This CSV contains an unclosed quoted field. Export it again from your bank.");
     return parseStatementMatrix(result.data);
   }
   if (!/\.(?:xls|xlsx)$/i.test(file.name)) throw new Error("Choose a CSV, XLSX or XLS file.");
+  const XLSX = await import("xlsx");
   const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
   const transactions = [];
   const warnings = [];

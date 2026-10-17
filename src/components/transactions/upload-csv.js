@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { CloudUpload, FileText, ImageIcon, LoaderCircle, FileSpreadsheet, ArrowDownToLine } from "lucide-react";
 import { saveTransactions } from "@/app/transactions/actions";
 import { parseStatementFile, isSpreadsheetFile } from "@/components/transactions/parse-statement-file";
 import { MAX_FILE_MB, MAX_PDF_PAGES, validateFile } from "@/lib/import/transaction-values";
 import { readServerStatement } from "@/components/transactions/read-server-statement";
-import ReviewImportModal from "@/components/transactions/ReviewImportModal";
+const ReviewImportModal = dynamic(() => import("@/components/transactions/ReviewImportModal"));
 import { STATEMENT_TIMEOUT_MESSAGE } from "@/lib/ingestion/statement-errors";
 
 export default function UploadStatement({ className = "", onImported }) {
