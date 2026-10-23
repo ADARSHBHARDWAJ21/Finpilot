@@ -19,6 +19,10 @@ create index if not exists budget_plans_user_month_idx
 
 alter table public.budget_plans enable row level security;
 
+-- New tables no longer receive automatic Data API grants from Supabase.
+-- Signed-in users still need to satisfy the owner policies below.
+grant select, insert, update, delete on public.budget_plans to authenticated;
+
 drop policy if exists "Users can view own budgets" on public.budget_plans;
 drop policy if exists "Users can insert own budgets" on public.budget_plans;
 drop policy if exists "Users can update own budgets" on public.budget_plans;

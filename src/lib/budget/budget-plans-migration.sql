@@ -15,3 +15,7 @@ create table if not exists public.budget_plans (
 );
 
 alter table public.budget_plans enable row level security;
+
+-- Explicit Data API access; this reference still requires the owner policies
+-- from supabase/migrations/20260526_budget_plans.sql before use by the app.
+grant select, insert, update, delete on public.budget_plans to authenticated;

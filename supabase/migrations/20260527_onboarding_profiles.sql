@@ -74,6 +74,9 @@ create table if not exists public.onboarding_profiles (
 
 alter table public.onboarding_profiles enable row level security;
 
+-- Explicit Data API access for signed-in users; owner policies still apply.
+grant select, insert, update, delete on public.onboarding_profiles to authenticated;
+
 drop policy if exists "Users manage own onboarding profile" on public.onboarding_profiles;
 
 create policy "Users manage own onboarding profile"

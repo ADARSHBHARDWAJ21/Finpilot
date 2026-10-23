@@ -138,6 +138,8 @@ Available migration files include:
 
 Review and apply only the migrations your project needs. **Do not blindly run every migration:** `20260527_reset_onboarding_profiles_option_a.sql` is a destructive reset that drops onboarding profiles. Keep row-level security configured for each user's records.
 
+Supabase stops automatically granting Data API access to new `public` tables in existing projects on October 30, 2026. The table-creation migrations here explicitly grant the required operations to `authenticated`; row-level security still restricts users to their own records. Include explicit grants and owner policies in future table-creation migrations. Existing tables retain their grants, so this change does not require rerunning old migrations, resetting data, or changing project-wide exposure settings. The standalone budget SQL reference requires the owner policies from the full budget migration.
+
 Configure Supabase Auth for your local or deployed app URL and email confirmation settings. The Copilot migration needs to be applied once; switching the AI provider or using the dashboard month picker requires no additional database migration.
 
 ### 5. Start the app
